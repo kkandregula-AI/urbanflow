@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UrbanFlow — Urban Traffic Simulator</title>
+<link rel="manifest" id="pwa-manifest">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #070b12;
+  --surface: #0e1525;
+  --surface2: #162035;
+  --surface3: #1e2d48;
+  --cyan: #00e5ff;
+  --cyan2: #00b8d4;
+  --cyan-glow: rgba(0,229,255,0.12);
+  --cyan-border: rgba(0,229,255,0.25);
+  --amber: #ffb300;
+  --amber-glow: rgba(255,179,0,0.12);
+  --green: #00e676;
+  --green-glow: rgba(0,230,118,0.12);
+  --red: #ff4081;
+  --red-glow: rgba(255,64,129,0.12);
+  --text: #cdd5e0;
+  --text-dim: #4a5e7a;
+  --text-mid: #7a90aa;
+  --border: rgba(0,229,255,0.15);
+  --border-faint: rgba(255,255,255,0.04);
+  --sidebar-w: 310px;
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+
+body {
+  font-family:'Rajdhani',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  height:100vh;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
+
+/* ── TOPBAR ── */
+#topbar {
+  height:52px;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  padding:0 18px;
+  gap:14px;
+  flex-shrink:0;
+  z-index:1000;
+  position:relative;
+}
+#topbar::after {
+  content:'';
+  position:absolute;
+  bottom:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--cyan),transparent);
+  opacity:0.4;
+}
+.logo {
+  font-family:'Orbitron',sans-serif;
+  font-size:17px;
+  font-weight:900;
+  letter-spacing:3px;
+  color:var(--cyan);
+  white-space:nowrap;
+}
+.logo em { color:var(--amber); font-style:normal; }
+.tagline {
+  font-family:'Share Tech Mono',monospace;
+  font-size:10px;
+  color:var(--text-dim);
+  letter-spacing:1px;
+  border-left:1px solid var(--border);
+  padding-left:14px;
+}
+.spacer{flex:1}
+#status-pill {
+  font-family:'Share Tech Mono',monospace;
+  font-size:10px;
+  padding:4px 12px;
+  border-radius:2px;
+  border:1px solid var(--cyan-border);
+  background:var(--cyan-glow);
+  color:var(--cyan);
+  letter-spacing:1.5px;
+  transition:all .3s;
+}
+#status-pill.running { border-color:rgba(0,230,118,.4); background:var(--green-glow); color:var(--green); }
+#status-pill.error   { border-color:rgba(255,64,129,.4); background:var(--red-glow);   color:var(--red); }
+#status-pill.loading { border-color:var(--cyan-border); background:var(--cyan-glow);  color:var(--cyan);
+  animation:pulse 1s ease-in-out infinite; }
+@keyframes pulse{ 0%,100%{opacity:1} 50%{opacity:.5} }
+
+/* ── BODY LAYOUT ── */
+#body {
+  display:flex;
+  flex:1;
+  overflow:hidden;
+}
+
+/* ── SIDEBAR ── */
+#sidebar {
+  width:var(--sidebar-w);
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  display:flex;
+  flex-direction:column;
+  overflow-y:auto;
+  flex-shrink:0;
+  z-index:100;
+}
+#sidebar::-webkit-scrollbar{width:3px}
+#sidebar::-webkit-scrollbar-thumb{background:rgba(0,229,255,.2);border-radius:2px}
+
+.sec {
+  padding:14px 16px;
+  border-bottom:1px solid var(--border-faint);
+}
+
+.sec-head {
+  font-family:'Share Tech Mono',monospace;
+  font-size:9px;
+  color:var(--text-dim);
+  letter-spacing:2.5px;
+  text-transform:uppercase;
+  margin-bottom:12px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.sec-head::before {
+  content:'';
+  width:3px;height:3px;
+  border-radius:50%;
+  background:var(--cyan);
+  flex-shrink:0;
+}
+.sec-head::after {
+  content:'';flex:1;height:1px;
+  background:var(--border-faint);
+}
+
+/* SEARCH */
+.search-wrap { position:relative; }
+#city-input {
+  width:100%;
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:3px;
+  padding:9px 12px;
+  color:var(--text);
+  font-family:'Rajdhani',sans-serif;
+  font-size:14px;
+  outline:none;
+  transition:border-color .2s;
+}
+#city-input:focus{ border-color:var(--cyan); }
+#city-input::placeholder{ color:var(--text-dim); }
+#suggestions {
+  display:none;
+  position:absolute;
+  top:100%;left:0;right:0;
+  background:var(--surface3);
+  border:1px solid var(--border);
+  border-top:none;
+  border-radius:0 0 3px 3px;
+  z-index:9999;
+  max-height:180px;
+  overflow-y:auto;
+}
+.sug-item {
+  padding:8px 12px;
+  font-size:12px;
+  cursor:pointer;
+  border-bottom:1px solid var(--border-faint);
+  transition:background .15s;
+}
+.sug-item:hover{ background:var(--cyan-glow); color:var(--cyan); }
+
+.load-btn {
+  width:100%;margin-top:8px;
+  padding:9px;
+  background:linear-gradient(135deg,var(--cyan-glow),transparent);
+  border:1px solid var(--cyan-border);
+  border-radius:3px;
+  color:var(--cyan);
+  font-family:'Orbitron',sans-serif;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:1.5px;
+  cursor:pointer;
+  transition:all .2s;
+}
+.load-btn:hover:not(:disabled){ background:var(--cyan); color:var(--bg); }
+.load-btn:disabled{ opacity:.35;cursor:not-allowed; }
+
+/* CONTROLS */
+.ctrl { margin-bottom:12px; }
+.ctrl-hd {
+  display:flex;
+  justify-content:space-between;
+  font-size:12px;
+  color:var(--text-mid);
+  margin-bottom:5px;
+}
+.ctrl-hd .val {
+  font-family:'Share Tech Mono',monospace;
+  font-size:11px;
+  color:var(--amber);
+}
+input[type=range]{
+  width:100%;
+  height:4px;
+  accent-color:var(--cyan);
+  cursor:pointer;
+}
+
+.btn-grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:6px;
+  margin-top:2px;
+}
+.btn {
+  padding:8px 6px;
+  border-radius:3px;
+  font-family:'Orbitron',sans-serif;
+  font-size:9px;
+  font-weight:700;
+  letter-spacing:.5px;
+  cursor:pointer;
+  border:1px solid;
+  transition:all .2s;
+  white-space:nowrap;
+}
+.btn:disabled{ opacity:.28;cursor:not-allowed; }
+.btn-g{ border-color:var(--green);  color:var(--green);  background:var(--green-glow); }
+.btn-a{ border-color:var(--amber);  color:var(--amber);  background:var(--amber-glow); }
+.btn-r{ border-color:var(--red);    color:var(--red);    background:var(--red-glow); }
+.btn-c{ border-color:var(--cyan);   color:var(--cyan);   background:var(--cyan-glow); }
+.btn-g:hover:not(:disabled){ background:var(--green); color:var(--bg); }
+.btn-a:hover:not(:disabled){ background:var(--amber); color:var(--bg); }
+.btn-r:hover:not(:disabled){ background:var(--red);   color:#fff; }
+.btn-c:hover:not(:disabled){ background:var(--cyan);  color:var(--bg); }
+
+/* STATS */
+.stat-grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:6px;
+}
+.stat-card {
+  background:var(--surface2);
+  border:1px solid var(--border-faint);
+  border-radius:3px;
+  padding:8px 10px;
+}
+.stat-lbl {
+  font-size:9px;
+  color:var(--text-dim);
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  margin-bottom:3px;
+}
+.stat-val {
+  font-family:'Share Tech Mono',monospace;
+  font-size:18px;
+  color:var(--cyan);
+  line-height:1;
+}
+.stat-val.a{ color:var(--amber); }
+.stat-val.g{ color:var(--green); }
+.stat-val.r{ color:var(--red); }
+
+/* DENSITY BARS */
+.db-section { margin-top:12px; }
+.db-row {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:5px;
+}
+.db-lbl{ width:75px; font-size:10px; color:var(--text-dim); }
+.db-track{
+  flex:1;height:5px;
+  background:rgba(255,255,255,.04);
+  border-radius:3px;
+  overflow:hidden;
+}
+.db-fill{ height:100%; border-radius:3px; transition:width .6s ease; }
+
+/* EXPORT */
+.ex-btn {
+  width:100%;
+  margin-bottom:6px;
+  padding:8px 12px;
+  background:var(--surface2);
+  border:1px solid var(--border-faint);
+  border-radius:3px;
+  color:var(--text-mid);
+  font-family:'Rajdhani',sans-serif;
+  font-size:13px;
+  cursor:pointer;
+  text-align:left;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  transition:all .2s;
+}
+.ex-btn:hover:not(:disabled){
+  border-color:var(--amber);
+  color:var(--amber);
+  background:var(--amber-glow);
+}
+.ex-btn:disabled{ opacity:.28;cursor:not-allowed; }
+.ex-note {
+  margin-top:8px;
+  padding:8px 10px;
+  background:var(--surface2);
+  border-left:2px solid var(--amber);
+  border-radius:0 3px 3px 0;
+  font-size:10px;
+  color:var(--text-mid);
+  line-height:1.7;
+}
+.ex-note code{
+  font-family:'Share Tech Mono',monospace;
+  color:var(--amber);
+  font-size:9px;
+}
+
+/* ── MAP AREA ── */
+#map-area {
+  flex:1;
+  position:relative;
+  overflow:hidden;
+}
+#map {
+  width:100%;height:100%;
+}
+#veh-canvas {
+  position:absolute;
+  inset:0;
+  width:100%;height:100%;
+  pointer-events:none;
+  z-index:500;
+}
+
+/* LOADING */
+#loading {
+  display:none;
+  position:absolute;
+  inset:0;
+  background:rgba(7,11,18,.88);
+  backdrop-filter:blur(4px);
+  z-index:900;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  gap:14px;
+}
+#loading.on{ display:flex; }
+.spinner {
+  width:44px;height:44px;
+  border:2px solid rgba(0,229,255,.1);
+  border-top-color:var(--cyan);
+  border-right-color:var(--cyan2);
+  border-radius:50%;
+  animation:spin .7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-title{
+  font-family:'Share Tech Mono',monospace;
+  font-size:12px;
+  color:var(--cyan);
+  letter-spacing:2px;
+}
+.load-sub{
+  font-size:11px;
+  color:var(--text-dim);
+  letter-spacing:1px;
+}
+
+/* WELCOME */
+#welcome {
+  position:absolute;
+  inset:0;
+  background:rgba(7,11,18,.75);
+  backdrop-filter:blur(6px);
+  z-index:400;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.welcome-card {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:6px;
+  padding:36px 40px;
+  max-width:500px;
+  text-align:center;
+  box-shadow:0 0 60px rgba(0,229,255,.06);
+}
+.welcome-card h2 {
+  font-family:'Orbitron',sans-serif;
+  font-size:24px;
+  font-weight:900;
+  color:var(--cyan);
+  letter-spacing:4px;
+  margin-bottom:6px;
+}
+.welcome-card .sub {
+  font-family:'Share Tech Mono',monospace;
+  font-size:10px;
+  color:var(--amber);
+  letter-spacing:2px;
+  margin-bottom:16px;
+}
+.welcome-card p {
+  font-size:13px;
+  color:var(--text-mid);
+  line-height:1.7;
+  margin-bottom:20px;
+}
+.feat-list {
+  display:flex;
+  flex-direction:column;
+  gap:7px;
+  text-align:left;
+  margin-bottom:20px;
+}
+.feat {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-size:13px;
+  color:var(--text);
+}
+.feat-dot{
+  width:5px;height:5px;
+  border-radius:50%;
+  flex-shrink:0;
+  background:var(--cyan);
+}
+.feat-dot.a{ background:var(--amber); }
+.hint{
+  font-size:11px;
+  color:var(--text-dim);
+  letter-spacing:.5px;
+}
+
+/* LEGEND */
+#legend {
+  display:none;
+  position:absolute;
+  bottom:18px;right:18px;
+  background:rgba(14,21,37,.92);
+  border:1px solid var(--border);
+  border-radius:4px;
+  padding:12px 14px;
+  z-index:600;
+  backdrop-filter:blur(10px);
+}
+.leg-title{
+  font-family:'Share Tech Mono',monospace;
+  font-size:9px;
+  color:var(--text-dim);
+  letter-spacing:2px;
+  margin-bottom:8px;
+}
+.leg-item{
+  display:flex;align-items:center;
+  gap:8px;margin-bottom:4px;
+  font-size:11px;color:var(--text);
+}
+.leg-dot{width:9px;height:9px;border-radius:50%;}
+
+/* CITY INFO */
+#city-banner {
+  display:none;
+  position:absolute;
+  top:12px;left:50%;
+  transform:translateX(-50%);
+  background:rgba(14,21,37,.9);
+  border:1px solid var(--border);
+  border-radius:3px;
+  padding:6px 16px;
+  font-family:'Share Tech Mono',monospace;
+  font-size:11px;
+  color:var(--cyan);
+  letter-spacing:1px;
+  z-index:600;
+  backdrop-filter:blur(8px);
+  white-space:nowrap;
+  max-width:400px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div id="topbar">
+  <div class="logo">URBAN<em>FLOW</em></div>
+  <div class="tagline">OSM + SUMO TRAFFIC SIMULATION ENGINE</div>
+  <div class="spacer"></div>
+  <div id="status-pill">READY</div>
+</div>
+
+<div id="body">
+
+  <!-- ── SIDEBAR ── -->
+  <div id="sidebar">
+
+    <!-- City Search -->
+    <div class="sec">
+      <div class="sec-head">City Target</div>
+      <div class="search-wrap">
+        <input id="city-input" type="text" placeholder="Search any city worldwide…" autocomplete="off">
+        <div id="suggestions"></div>
+      </div>
+      <button class="load-btn" id="load-btn" onclick="onLoadCity()">⟶ LOAD ROAD NETWORK</button>
+    </div>
+
+    <!-- Simulation Controls -->
+    <div class="sec">
+      <div class="sec-head">Simulation Parameters</div>
+
+      <div class="ctrl">
+        <div class="ctrl-hd">Vehicles <span class="val" id="v-count-lbl">150</span></div>
+        <input type="range" id="v-count" min="50" max="600" value="150" step="10"
+               oninput="document.getElementById('v-count-lbl').textContent=this.value">
+      </div>
+      <div class="ctrl">
+        <div class="ctrl-hd">Sim Speed <span class="val" id="v-speed-lbl">1.0×</span></div>
+        <input type="range" id="v-speed" min="0.5" max="8" value="1" step="0.5"
+               oninput="document.getElementById('v-speed-lbl').textContent=this.value+'×'">
+      </div>
+      <div class="ctrl">
+        <div class="ctrl-hd">Area Radius <span class="val" id="v-radius-lbl">2.0 km</span></div>
+        <input type="range" id="v-radius" min="0.5" max="6" value="2" step="0.5"
+               oninput="document.getElementById('v-radius-lbl').textContent=this.value+' km'">
+      </div>
+
+      <div class="btn-grid">
+        <button class="btn btn-g" id="btn-start"  onclick="startSim()"  disabled>▶ START</button>
+        <button class="btn btn-a" id="btn-pause"  onclick="togglePause()"disabled>⏸ PAUSE</button>
+        <button class="btn btn-r" id="btn-reset"  onclick="resetSim()"  disabled>⟳ RESET</button>
+        <button class="btn btn-c" id="btn-spawn"  onclick="spawnMore()" disabled>+ SPAWN</button>
+      </div>
+    </div>
+
+    <!-- Live Stats -->
+    <div class="sec">
+      <div class="sec-head">Live Statistics</div>
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-lbl">Vehicles</div>
+          <div class="stat-val" id="s-veh">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-lbl">Avg Speed</div>
+          <div class="stat-val a" id="s-spd">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-lbl">Nodes</div>
+          <div class="stat-val g" id="s-nodes">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-lbl">Edges</div>
+          <div class="stat-val g" id="s-edges">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-lbl">Sim Time</div>
+          <div class="stat-val" id="s-time">00:00</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-lbl">Congested</div>
+          <div class="stat-val r" id="s-cong">0%</div>
+        </div>
+      </div>
+
+      <div class="db-section">
+        <div class="db-row">
+          <div class="db-lbl">Motorway</div>
+          <div class="db-track"><div class="db-fill" id="db-mw" style="width:0%;background:#00e5ff"></div></div>
+        </div>
+        <div class="db-row">
+          <div class="db-lbl">Primary</div>
+          <div class="db-track"><div class="db-fill" id="db-pr" style="width:0%;background:#ffb300"></div></div>
+        </div>
+        <div class="db-row">
+          <div class="db-lbl">Secondary</div>
+          <div class="db-track"><div class="db-fill" id="db-sc" style="width:0%;background:#00e676"></div></div>
+        </div>
+        <div class="db-row">
+          <div class="db-lbl">Residential</div>
+          <div class="db-track"><div class="db-fill" id="db-rs" style="width:0%;background:#ff4081"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUMO Export -->
+    <div class="sec">
+      <div class="sec-head">SUMO Export</div>
+      <button class="ex-btn" id="ex-net" onclick="exportNet()"    disabled>🗺 Download .net.xml — Road Network</button>
+      <button class="ex-btn" id="ex-rou" onclick="exportRoutes()" disabled>🛣 Download .rou.xml — Vehicle Routes</button>
+      <button class="ex-btn" id="ex-cfg" onclick="exportConfig()" disabled>⚙ Download .sumocfg — Run Config</button>
+      <div class="ex-note">
+        Run in SUMO GUI:<br>
+        <code>sumo-gui -c city.sumocfg</code><br>
+        Headless mode:<br>
+        <code>sumo -c city.sumocfg --tripinfo-output out.xml</code>
+      </div>
+    </div>
+
+  </div><!-- /sidebar -->
+
+  <!-- ── MAP AREA ── -->
+  <div id="map-area">
+    <div id="map"></div>
+    <canvas id="veh-canvas"></canvas>
+
+    <!-- Loading -->
+    <div id="loading">
+      <div class="spinner"></div>
+      <div class="load-title" id="load-title">FETCHING ROAD NETWORK</div>
+      <div class="load-sub"  id="load-sub">Querying OpenStreetMap…</div>
+    </div>
+
+    <!-- Welcome -->
+    <div id="welcome">
+      <div class="welcome-card">
+        <h2>URBANFLOW</h2>
+        <div class="sub">OPEN-SOURCE TRAFFIC SIMULATION</div>
+        <p>Simulate real urban traffic on actual road networks anywhere in the world. Powered by OpenStreetMap data and SUMO-compatible output.</p>
+        <div class="feat-list">
+          <div class="feat"><div class="feat-dot"></div>Live road network from OpenStreetMap for any city</div>
+          <div class="feat"><div class="feat-dot"></div>Agent-based vehicle simulation with road physics</div>
+          <div class="feat"><div class="feat-dot"></div>Real-time speed, congestion &amp; density analytics</div>
+          <div class="feat"><div class="feat-dot a"></div>Export SUMO-ready .net.xml + .rou.xml + .sumocfg</div>
+        </div>
+        <div class="hint">← Search a city name in the sidebar to begin</div>
+      </div>
+    </div>
+
+    <!-- City banner -->
+    <div id="city-banner"></div>
+
+    <!-- Legend -->
+    <div id="legend">
+      <div class="leg-title">VEHICLE SPEED</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#00e5ff"></div>Fast  &gt; 40 km/h</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#00e676"></div>Medium 20–40 km/h</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#ffb300"></div>Slow  10–20 km/h</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#ff4081"></div>Congested &lt; 10 km/h</div>
+    </div>
+  </div><!-- /map-area -->
+
+</div><!-- /body -->
+
+<script>
+// ═══════════════════════════════════════════════
+//  MAP SETUP
+// ═══════════════════════════════════════════════
+const map = L.map('map',{
+  center:[20,0], zoom:2,
+  zoomControl:true,
+  preferCanvas:true
+});
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+  attribution:'© <a href="https://www.openstreetmap.org/copyright">OSM</a> © <a href="https://carto.com/attributions">CARTO</a>',
+  subdomains:'abcd', maxZoom:19
+}).addTo(map);
+
+// Canvas for vehicle rendering
+const canvas = document.getElementById('veh-canvas');
+const ctx    = canvas.getContext('2d');
+
+function syncCanvas(){
+  const r = document.getElementById('map-area').getBoundingClientRect();
+  canvas.width  = r.width;
+  canvas.height = r.height;
+}
+syncCanvas();
+window.addEventListener('resize', syncCanvas);
+map.on('resize', syncCanvas);
+
+// ═══════════════════════════════════════════════
+//  CONSTANTS
+// ═══════════════════════════════════════════════
+const SPEEDS = {
+  motorway:90, trunk:70, primary:50, secondary:40,
+  tertiary:30, residential:20, unclassified:22,
+  living_street:12, service:12, default:20
+};
+const ROAD_COLORS = {
+  motorway:'#00e5ff', trunk:'#00b8d4',
+  primary:'#ffb300', secondary:'#e89e00',
+  tertiary:'#00e676', residential:'#2a3a55',
+  unclassified:'#253347', living_street:'#1e2d40',
+  service:'#1a2535', default:'#1e2d40'
+};
+const ROAD_WEIGHT = {
+  motorway:4, trunk:3.5, primary:3,
+  secondary:2.5, tertiary:2, default:1
+};
+const SPD_COLORS = [
+  {thr:40, c:'#00e5ff'},
+  {thr:20, c:'#00e676'},
+  {thr:10, c:'#ffb300'},
+  {thr:0,  c:'#ff4081'}
+];
+
+// ═══════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════
+let G = {nodes:{}, edges:[], adj:{}};   // road graph
+let vehicles = [];
+let running   = false;
+let simTime   = 0;
+let lastTs    = null;
+let rafId     = null;
+let cityMeta  = null;
+let roadLayer = null;
+
+// ═══════════════════════════════════════════════
+//  GEOCODER — Nominatim autocomplete
+// ═══════════════════════════════════════════════
+const cityInput   = document.getElementById('city-input');
+const suggestBox  = document.getElementById('suggestions');
+let debTimer;
+
+cityInput.addEventListener('input', ()=>{
+  clearTimeout(debTimer);
+  const q = cityInput.value.trim();
+  if(q.length < 3){ suggestBox.style.display='none'; return; }
+  debTimer = setTimeout(()=>fetchSuggestions(q), 380);
+});
+
+cityInput.addEventListener('keydown', e => {
+  if(e.key==='Enter') onLoadCity();
+});
+
+document.addEventListener('click', e=>{
+  if(!e.target.closest('.search-wrap')) suggestBox.style.display='none';
+});
+
+async function fetchSuggestions(q){
+  try{
+    const r = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=6`,
+      {headers:{'Accept-Language':'en'}}
+    );
+    const data = await r.json();
+    suggestBox.innerHTML = '';
+    if(!data.length){ suggestBox.style.display='none'; return; }
+    data.forEach(p=>{
+      const d = document.createElement('div');
+      d.className = 'sug-item';
+      d.textContent = p.display_name;
+      d.onclick = ()=>{
+        cityInput.value = p.display_name;
+        suggestBox.style.display='none';
+        onLoadCity(p);
+      };
+      suggestBox.appendChild(d);
+    });
+    suggestBox.style.display='block';
+  } catch(e){ suggestBox.style.display='none'; }
+}
+
+// ═══════════════════════════════════════════════
+//  LOAD CITY
+// ═══════════════════════════════════════════════
+async function onLoadCity(place=null){
+  const q = cityInput.value.trim();
+  if(!q) return;
+  suggestBox.style.display='none';
+  document.getElementById('load-btn').disabled=true;
+  setLoading(true,'GEOCODING CITY','Looking up coordinates…');
+
+  try{
+    if(!place){
+      const r = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`,
+        {headers:{'Accept-Language':'en'}}
+      );
+      const data = await r.json();
+      if(!data.length) throw new Error('City not found — try a different spelling');
+      place = data[0];
+    }
+
+    cityMeta = place;
+    const lat = parseFloat(place.lat);
+    const lon = parseFloat(place.lon);
+    const radiusKm = parseFloat(document.getElementById('v-radius').value);
+
+    map.setView([lat,lon], radiusKm < 1 ? 15 : radiusKm < 2 ? 14 : radiusKm < 4 ? 13 : 12);
+
+    setLoading(true,'FETCHING ROAD NETWORK','Querying Overpass API…');
+    resetSim(false);
+    await fetchNetwork(lat, lon, radiusKm * 1000);
+
+    setLoading(false);
+    document.getElementById('welcome').style.display='none';
+    document.getElementById('legend').style.display='block';
+
+    // City banner
+    const banner = document.getElementById('city-banner');
+    const cityName = place.display_name.split(',').slice(0,2).join(',');
+    banner.textContent = '📍 ' + cityName;
+    banner.style.display='block';
+
+    setStatus('NETWORK LOADED','');
+    enableAll();
+
+  } catch(err){
+    setLoading(false);
+    setStatus('ERROR','error');
+    alert('⚠ ' + err.message);
+    console.error(err);
+  } finally{
+    document.getElementById('load-btn').disabled=false;
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  OVERPASS — fetch road network
+// ═══════════════════════════════════════════════
+async function fetchNetwork(lat, lon, radiusM){
+  // Bounding box (slightly elongated)
+  const dLat = radiusM / 111320;
+  const dLon = radiusM / (111320 * Math.cos(lat * Math.PI/180));
+  const bbox = `${(lat-dLat).toFixed(5)},${(lon-dLon).toFixed(5)},${(lat+dLat).toFixed(5)},${(lon+dLon).toFixed(5)}`;
+
+  const query = `[out:json][timeout:60];
+(
+  way["highway"~"^(motorway|trunk|primary|secondary|tertiary|residential|unclassified|living_street|service)$"](${bbox});
+);
+out body;>;out skel qt;`;
+
+  const res = await fetch('https://overpass-api.de/api/interpreter',{
+    method:'POST',
+    body:'data=' + encodeURIComponent(query)
+  });
+  if(!res.ok) throw new Error(`Overpass API error (${res.status}). Try a smaller radius.`);
+  const data = await res.json();
+
+  if(!data.elements || data.elements.length === 0)
+    throw new Error('No road data returned for this area.');
+
+  buildGraph(data.elements, lat, lon);
+  drawRoads();
+  updateStats();
+}
+
+// ═══════════════════════════════════════════════
+//  GRAPH BUILDER
+// ═══════════════════════════════════════════════
+function buildGraph(elements, refLat, refLon){
+  G = {nodes:{}, edges:[], adj:{}};
+
+  // Index OSM nodes
+  elements.filter(e=>e.type==='node').forEach(n=>{
+    G.nodes[n.id] = {id:n.id, lat:n.lat, lng:n.lon};
+    G.adj[n.id]   = [];
+  });
+
+  // Build directed edges from ways
+  elements.filter(e=>e.type==='way').forEach(way=>{
+    const hw     = way.tags?.highway || 'default';
+    const oneway = way.tags?.oneway === 'yes';
+    const speed  = SPEEDS[hw] || SPEEDS.default;
+    const nds    = way.nodes.filter(id => G.nodes[id]);
+
+    for(let i=0; i<nds.length-1; i++){
+      const a = nds[i], b = nds[i+1];
+      if(!G.nodes[a] || !G.nodes[b]) continue;
+      const dist = haversine(G.nodes[a], G.nodes[b]);
+
+      const ei = G.edges.length;
+      G.edges.push({from:a, to:b, hw, speed, dist, name:way.tags?.name||''});
+      G.adj[a].push({to:b, ei});
+
+      if(!oneway){
+        const ej = G.edges.length;
+        G.edges.push({from:b, to:a, hw, speed, dist, name:way.tags?.name||''});
+        G.adj[b].push({to:a, ei:ej});
+      }
+    }
+  });
+}
+
+function haversine(a, b){
+  const R = 6371000, f = Math.PI/180;
+  const φ1 = a.lat*f, φ2 = b.lat*f;
+  const dφ = (b.lat-a.lat)*f, dλ = (b.lng-a.lng)*f;
+  const s = Math.sin(dφ/2)*Math.sin(dφ/2)
+          + Math.cos(φ1)*Math.cos(φ2)*Math.sin(dλ/2)*Math.sin(dλ/2);
+  return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1-s));
+}
+
+// ═══════════════════════════════════════════════
+//  ROAD DRAWING
+// ═══════════════════════════════════════════════
+function drawRoads(){
+  if(roadLayer) map.removeLayer(roadLayer);
+  roadLayer = L.layerGroup();
+
+  const order = ['service','living_street','residential','unclassified',
+                 'tertiary','secondary','primary','trunk','motorway'];
+
+  // Group edges by highway type
+  const byType = {};
+  G.edges.forEach(e=>{
+    if(!byType[e.hw]) byType[e.hw]=[];
+    byType[e.hw].push(e);
+  });
+
+  order.forEach(type=>{
+    (byType[type]||[]).forEach(e=>{
+      const A = G.nodes[e.from], B = G.nodes[e.to];
+      if(!A||!B) return;
+      L.polyline([[A.lat,A.lng],[B.lat,B.lng]],{
+        color: ROAD_COLORS[type] || ROAD_COLORS.default,
+        weight: ROAD_WEIGHT[type] || ROAD_WEIGHT.default,
+        opacity: type === 'service' ? 0.25 : type === 'residential' ? 0.35 : 0.65,
+        interactive: false
+      }).addTo(roadLayer);
+    });
+  });
+
+  roadLayer.addTo(map);
+}
+
+// ═══════════════════════════════════════════════
+//  SIMULATION
+// ═══════════════════════════════════════════════
+function startSim(){
+  if(!Object.keys(G.nodes).length) return;
+  const n = parseInt(document.getElementById('v-count').value);
+  spawnVehicles(n);
+  running = true;
+  lastTs  = null;
+  simTime = 0;
+  rafId   = requestAnimationFrame(simLoop);
+  document.getElementById('btn-start').disabled = true;
+  document.getElementById('btn-pause').disabled = false;
+  document.getElementById('btn-reset').disabled = false;
+  document.getElementById('btn-spawn').disabled = false;
+  setStatus('SIMULATING','running');
+}
+
+function togglePause(){
+  running = !running;
+  const btn = document.getElementById('btn-pause');
+  btn.textContent = running ? '⏸ PAUSE' : '▶ RESUME';
+  if(running){
+    lastTs = null;
+    rafId  = requestAnimationFrame(simLoop);
+    setStatus('SIMULATING','running');
+  } else {
+    cancelAnimationFrame(rafId);
+    setStatus('PAUSED','');
+  }
+}
+
+function resetSim(restoreButtons=true){
+  cancelAnimationFrame(rafId);
+  running  = false;
+  simTime  = 0;
+  lastTs   = null;
+  vehicles = [];
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  if(restoreButtons){
+    document.getElementById('btn-start').disabled = false;
+    document.getElementById('btn-pause').disabled = true;
+    document.getElementById('btn-pause').textContent = '⏸ PAUSE';
+    document.getElementById('btn-reset').disabled = true;
+    document.getElementById('btn-spawn').disabled = true;
+    setStatus('NETWORK LOADED','');
+  }
+  updateStats();
+}
+
+function spawnMore(){
+  spawnVehicles(25);
+}
+
+function spawnVehicles(count){
+  const connectedNodes = Object.keys(G.adj).filter(id => G.adj[id]?.length > 0);
+  if(!connectedNodes.length) return;
+
+  for(let i=0;i<count;i++){
+    const startId = connectedNodes[Math.floor(Math.random()*connectedNodes.length)];
+    const adj     = G.adj[startId];
+    if(!adj||!adj.length) continue;
+
+    const firstLink = adj[Math.floor(Math.random()*adj.length)];
+    const edge      = G.edges[firstLink.ei];
+    const targetId  = connectedNodes[Math.floor(Math.random()*connectedNodes.length)];
+
+    vehicles.push({
+      cur:   startId,
+      nxt:   edge.to,
+      prog:  Math.random(),    // start at random progress
+      spd:   edge.speed * (0.55 + Math.random()*0.45),
+      hw:    edge.hw,
+      dist:  edge.dist,
+      dst:   targetId,
+      wait:  0
+    });
+  }
+}
+
+// ── SIM LOOP ──
+function simLoop(ts){
+  if(!running) return;
+  if(!lastTs) lastTs = ts;
+
+  const dtMs = Math.min(ts - lastTs, 80);
+  lastTs = ts;
+  const multiplier = parseFloat(document.getElementById('v-speed').value);
+  const dt = (dtMs/1000) * multiplier;
+  simTime += dt;
+
+  vehicles.forEach(v=>{
+    if(v.wait > 0){ v.wait -= dt; return; }
+
+    // Move along current edge
+    const mps = (v.spd * 1000) / 3600;
+    v.prog += (mps * dt) / Math.max(v.dist, 1);
+
+    if(v.prog >= 1){
+      v.prog = 0;
+      v.cur  = v.nxt;
+      nextStep(v);
+    }
+  });
+
+  renderVehicles();
+  updateStats();
+  rafId = requestAnimationFrame(simLoop);
+}
+
+function nextStep(v){
+  const adj = G.adj[v.cur];
+  if(!adj||!adj.length){
+    // teleport to avoid dead end
+    const all = Object.keys(G.adj).filter(id=>G.adj[id]?.length>0);
+    if(all.length) v.cur = all[Math.floor(Math.random()*all.length)];
+    return;
+  }
+
+  // Light target bias (30% of the time try to approach destination)
+  let pick;
+  if(v.dst && Math.random()<0.3 && G.nodes[v.dst]){
+    const tgt = G.nodes[v.dst];
+    let best=null, bd=Infinity;
+    adj.forEach(a=>{
+      const nb = G.nodes[G.edges[a.ei].to];
+      if(!nb) return;
+      const d = Math.abs(nb.lat-tgt.lat)+Math.abs(nb.lng-tgt.lng);
+      if(d<bd){ bd=d; best=a; }
+    });
+    pick = best || adj[Math.floor(Math.random()*adj.length)];
+  } else {
+    pick = adj[Math.floor(Math.random()*adj.length)];
+  }
+
+  const e  = G.edges[pick.ei];
+  v.nxt   = e.to;
+  v.spd   = e.speed * (0.55 + Math.random()*0.45);
+  v.hw    = e.hw;
+  v.dist  = e.dist;
+
+  // Reached destination? Pick new one + brief wait
+  if(v.cur === v.dst){
+    const all = Object.keys(G.nodes);
+    v.dst  = all[Math.floor(Math.random()*all.length)];
+    v.wait = 0.3 + Math.random()*2.2;
+  }
+}
+
+// ── CANVAS RENDER ──
+function renderVehicles(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  vehicles.forEach(v=>{
+    const A = G.nodes[v.cur];
+    const B = G.nodes[v.nxt];
+    if(!A||!B) return;
+
+    const lat = A.lat + (B.lat-A.lat)*v.prog;
+    const lng = A.lng + (B.lng-A.lng)*v.prog;
+    const pt  = map.latLngToContainerPoint([lat,lng]);
+
+    // Speed colour
+    let col = SPD_COLORS[SPD_COLORS.length-1].c;
+    for(const s of SPD_COLORS){
+      if(v.spd >= s.thr){ col=s.c; break; }
+    }
+
+    const r = ['motorway','trunk','primary'].includes(v.hw) ? 3 : 2;
+
+    // Glow for fast vehicles
+    if(v.spd > 35){
+      ctx.beginPath();
+      ctx.arc(pt.x,pt.y,r+2.5,0,Math.PI*2);
+      ctx.fillStyle = col+'28';
+      ctx.fill();
+    }
+
+    ctx.beginPath();
+    ctx.arc(pt.x,pt.y,r,0,Math.PI*2);
+    ctx.fillStyle = col;
+    ctx.fill();
+  });
+}
+
+// Redraw on map pan/zoom
+map.on('move zoom', ()=>{ if(vehicles.length) renderVehicles(); });
+
+// ═══════════════════════════════════════════════
+//  STATS UPDATE
+// ═══════════════════════════════════════════════
+function updateStats(){
+  const nNodes = Object.keys(G.nodes).length;
+  const nEdges = Math.round(G.edges.length / 2);
+
+  document.getElementById('s-nodes').textContent = fmt(nNodes);
+  document.getElementById('s-edges').textContent = fmt(nEdges);
+  document.getElementById('s-veh').textContent   = vehicles.length;
+
+  if(vehicles.length > 0){
+    const avgSpd  = vehicles.reduce((s,v)=>s+v.spd,0)/vehicles.length;
+    const nCong   = vehicles.filter(v=>v.spd<10).length;
+    document.getElementById('s-spd').textContent  = Math.round(avgSpd)+' km/h';
+    document.getElementById('s-cong').textContent = Math.round(nCong/vehicles.length*100)+'%';
+
+    const byHw = {};
+    vehicles.forEach(v=>{ byHw[v.hw]=(byHw[v.hw]||0)+1; });
+    const tot = vehicles.length;
+    setBar('db-mw', ((byHw.motorway||0)+(byHw.trunk||0))/tot*100);
+    setBar('db-pr',  (byHw.primary||0)/tot*100);
+    setBar('db-sc', ((byHw.secondary||0)+(byHw.tertiary||0))/tot*100);
+    setBar('db-rs', ((byHw.residential||0)+(byHw.unclassified||0)+(byHw.living_street||0)+(byHw.service||0))/tot*100);
+  } else {
+    document.getElementById('s-spd').textContent  = '—';
+    document.getElementById('s-cong').textContent = '0%';
+  }
+
+  const m = Math.floor(simTime/60), s = Math.floor(simTime%60);
+  document.getElementById('s-time').textContent =
+    String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+}
+
+function fmt(n){ return n>=1000 ? (n/1000).toFixed(1)+'k' : n; }
+function setBar(id, pct){
+  const el = document.getElementById(id);
+  if(el) el.style.width = Math.min(pct,100).toFixed(1)+'%';
+}
+
+// ═══════════════════════════════════════════════
+//  SUMO EXPORT
+// ═══════════════════════════════════════════════
+function exportNet(){
+  if(!G.edges.length){ alert('Load a city first.'); return; }
+
+  const refLat = parseFloat(cityMeta?.lat || 0);
+  const refLon = parseFloat(cityMeta?.lon || 0);
+
+  let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+  xml += `<!-- UrbanFlow SUMO Network Export -->\n`;
+  xml += `<!-- City: ${cityMeta?.display_name || 'Unknown'} -->\n`;
+  xml += `<!-- Generated: ${new Date().toISOString()} -->\n`;
+  xml += `<net version="1.9" junctionCornerDetail="5" limitTurnSpeed="5.83"\n`;
+  xml += `     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"\n`;
+  xml += `     xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/net_file.xsd">\n\n`;
+
+  // Junctions
+  xml += `  <!-- ${Object.keys(G.nodes).length} junctions -->\n`;
+  Object.values(G.nodes).slice(0,8000).forEach(n=>{
+    const x = ((n.lng-refLon)*Math.cos(refLat*Math.PI/180)*111320).toFixed(2);
+    const y = ((n.lat-refLat)*111320).toFixed(2);
+    xml += `  <junction id="n${n.id}" type="priority" x="${x}" y="${y}" incLanes="" intLanes="" shape=""/>\n`;
+  });
+
+  xml += `\n  <!-- ${G.edges.length} directed edges -->\n`;
+  G.edges.slice(0,16000).forEach((e,i)=>{
+    const spd    = (e.speed/3.6).toFixed(2);
+    const lanes  = e.hw==='motorway'?3 : e.hw==='trunk'?2 : e.hw==='primary'?2 : 1;
+    const prio   = e.hw==='motorway'?13 : e.hw==='trunk'?12 : e.hw==='primary'?11 :
+                   e.hw==='secondary'?9  : e.hw==='tertiary'?7 : 4;
+    xml += `  <edge id="e${i}" from="n${e.from}" to="n${e.to}" priority="${prio}" numLanes="${lanes}" speed="${spd}" spreadType="center"/>\n`;
+  });
+
+  xml += `\n</net>\n`;
+  download('city.net.xml', xml);
+}
+
+function exportRoutes(){
+  const nodeIds = Object.keys(G.adj).filter(id=>G.adj[id]?.length>0);
+  if(!nodeIds.length){ alert('Load a city first.'); return; }
+
+  let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+  xml += `<!-- UrbanFlow SUMO Routes Export -->\n`;
+  xml += `<!-- City: ${cityMeta?.display_name || 'Unknown'} -->\n`;
+  xml += `<!-- Generated: ${new Date().toISOString()} -->\n`;
+  xml += `<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"\n`;
+  xml += `        xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/routes_file.xsd">\n\n`;
+
+  // Vehicle types
+  xml += `  <vType id="car"   accel="2.6" decel="4.5" sigma="0.5" length="4.5"  minGap="2.5" maxSpeed="55.56" guiShape="passenger"/>\n`;
+  xml += `  <vType id="bus"   accel="1.2" decel="4.0" sigma="0.3" length="12.0" minGap="3.0" maxSpeed="22.22" guiShape="bus"/>\n`;
+  xml += `  <vType id="truck" accel="1.3" decel="3.5" sigma="0.5" length="10.0" minGap="3.0" maxSpeed="33.33" guiShape="truck"/>\n\n`;
+
+  // Routes — 300 random OD pairs
+  const n = Math.min(300, nodeIds.length);
+  for(let i=0;i<n;i++){
+    const from = nodeIds[Math.floor(Math.random()*nodeIds.length)];
+    const to   = nodeIds[Math.floor(Math.random()*nodeIds.length)];
+    const rnd  = Math.random();
+    const vtyp = rnd<0.88?'car': rnd<0.95?'bus':'truck';
+    const dep  = (i*3).toFixed(1);
+    xml += `  <vehicle id="veh${i}" type="${vtyp}" depart="${dep}" departLane="best" departSpeed="max">\n`;
+    xml += `    <route edges="e${Math.floor(Math.random()*Math.min(G.edges.length,16000))}"/>\n`;
+    xml += `  </vehicle>\n`;
+  }
+
+  xml += `\n</routes>\n`;
+  download('city.rou.xml', xml);
+}
+
+function exportConfig(){
+  const name = (cityMeta?.display_name||'city').split(',')[0].replace(/\s+/g,'_');
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<!-- UrbanFlow SUMO Configuration -->
+<!-- City: ${cityMeta?.display_name || 'Unknown'} -->
+<!-- Generated: ${new Date().toISOString()} -->
+<configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
+
+  <input>
+    <net-file value="city.net.xml"/>
+    <route-files value="city.rou.xml"/>
+  </input>
+
+  <time>
+    <begin value="0"/>
+    <end value="7200"/>
+    <step-length value="0.1"/>
+  </time>
+
+  <processing>
+    <ignore-route-errors value="true"/>
+    <lateral-resolution value="0.8"/>
+    <time-to-teleport value="300"/>
+  </processing>
+
+  <routing>
+    <device.rerouting.probability value="0.8"/>
+    <device.rerouting.period value="60"/>
+    <device.rerouting.pre-period value="60"/>
+  </routing>
+
+  <output>
+    <tripinfo-output value="${name}_tripinfo.xml"/>
+    <summary-output value="${name}_summary.xml"/>
+    <edgedata-output value="${name}_edgedata.xml"/>
+  </output>
+
+  <gui_only>
+    <start value="true"/>
+    <quit-on-end value="false"/>
+    <zoom value="100"/>
+  </gui_only>
+
+</configuration>
+`;
+  download('city.sumocfg', xml);
+}
+
+function download(filename, content){
+  const blob = new Blob([content],{type:'application/xml'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href=url; a.download=filename; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
+
+// ═══════════════════════════════════════════════
+//  UI HELPERS
+// ═══════════════════════════════════════════════
+function setLoading(on, title='', sub=''){
+  const el = document.getElementById('loading');
+  el.classList.toggle('on', on);
+  if(title) document.getElementById('load-title').textContent = title;
+  if(sub)   document.getElementById('load-sub').textContent   = sub;
+}
+
+function setStatus(txt, mode=''){
+  const el = document.getElementById('status-pill');
+  el.textContent = txt;
+  el.className = mode ? `${mode}` : '';
+  el.id='status-pill';
+}
+
+function enableAll(){
+  ['btn-start','ex-net','ex-rou','ex-cfg'].forEach(id=>{
+    document.getElementById(id).disabled=false;
+  });
+}
+
+// ═══════════════════════════════════════════════
+//  PWA
+// ═══════════════════════════════════════════════
+(()=>{
+  // Generate icon via canvas
+  const ic = document.createElement('canvas');
+  ic.width=ic.height=192;
+  const ix = ic.getContext('2d');
+  ix.fillStyle='#070b12'; ix.fillRect(0,0,192,192);
+  // Draw road grid icon
+  ix.strokeStyle='#00e5ff'; ix.lineWidth=8;
+  ix.beginPath(); ix.moveTo(96,10); ix.lineTo(96,182); ix.stroke();
+  ix.beginPath(); ix.moveTo(10,96); ix.lineTo(182,96); ix.stroke();
+  ix.strokeStyle='rgba(0,229,255,.3)'; ix.lineWidth=4;
+  ix.beginPath(); ix.moveTo(50,10); ix.lineTo(50,182); ix.stroke();
+  ix.beginPath(); ix.moveTo(142,10); ix.lineTo(142,182); ix.stroke();
+  ix.beginPath(); ix.moveTo(10,50); ix.lineTo(182,50); ix.stroke();
+  ix.beginPath(); ix.moveTo(10,142); ix.lineTo(182,142); ix.stroke();
+  // Vehicles
+  ['#00e5ff','#ffb300','#00e676'].forEach((c,i)=>{
+    ix.fillStyle=c;
+    ix.beginPath(); ix.arc(50,50+i*32,5,0,Math.PI*2); ix.fill();
+  });
+  const iconData = ic.toDataURL('image/png');
+
+  const manifest = {
+    name:'UrbanFlow — Traffic Simulator',
+    short_name:'UrbanFlow',
+    start_url:'.',
+    display:'standalone',
+    background_color:'#070b12',
+    theme_color:'#00e5ff',
+    icons:[{src:iconData, sizes:'192x192', type:'image/png'}]
+  };
+  const mb = new Blob([JSON.stringify(manifest)],{type:'application/manifest+json'});
+  document.getElementById('pwa-manifest').href = URL.createObjectURL(mb);
+
+  // Service worker
+  if('serviceWorker' in navigator){
+    const sw = `
+self.addEventListener('install',  e=>self.skipWaiting());
+self.addEventListener('activate', e=>e.waitUntil(clients.claim()));
+self.addEventListener('fetch',    e=>e.respondWith(
+  fetch(e.request).catch(()=>new Response('Offline - check connection'))
+));`;
+    const swBlob = new Blob([sw],{type:'text/javascript'});
+    navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(()=>{});
+  }
+})();
+</script>
+</body>
+</html>
