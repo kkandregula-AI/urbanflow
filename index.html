@@ -2,1376 +2,1055 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>UrbanFlow — Urban Traffic Simulator</title>
-<link rel="manifest" id="pwa-manifest">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>UrbanFlow Drive</title>
+<link rel="manifest" id="mf">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root {
-  --bg: #070b12;
-  --surface: #0e1525;
-  --surface2: #162035;
-  --surface3: #1e2d48;
-  --cyan: #00e5ff;
-  --cyan2: #00b8d4;
-  --cyan-glow: rgba(0,229,255,0.12);
-  --cyan-border: rgba(0,229,255,0.25);
-  --amber: #ffb300;
-  --amber-glow: rgba(255,179,0,0.12);
-  --green: #00e676;
-  --green-glow: rgba(0,230,118,0.12);
-  --red: #ff4081;
-  --red-glow: rgba(255,64,129,0.12);
-  --text: #cdd5e0;
-  --text-dim: #4a5e7a;
-  --text-mid: #7a90aa;
-  --border: rgba(0,229,255,0.15);
-  --border-faint: rgba(255,255,255,0.04);
-  --sidebar-w: 310px;
-}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#000;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
 
-*{margin:0;padding:0;box-sizing:border-box}
+/* ── 3D MAP WRAPPER ──────────────────────────────────────
+   180% size so tiles fill screen during any rotation angle.
+   transform-origin at vehicle position (center-x, 62% y)
+*/
+#map3d{
+  position:fixed;
+  width:180vw;height:180vh;
+  left:-40vw;top:-40vh;
+  z-index:1;
+  transform-origin:50% 61%;
+  will-change:transform;
+}
+#map{width:100%;height:100%}
+#vc{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:10}
 
-body {
-  font-family:'Rajdhani',sans-serif;
-  background:var(--bg);
-  color:var(--text);
-  height:100vh;
-  overflow:hidden;
-  display:flex;
-  flex-direction:column;
-}
+/* ── HUD LAYER (never rotates) ─────────────────────────── */
+#hud{position:fixed;inset:0;z-index:200;pointer-events:none}
+#hud *{pointer-events:auto}
 
-/* ── TOPBAR ── */
-#topbar {
-  height:52px;
-  background:var(--surface);
-  border-bottom:1px solid var(--border);
-  display:flex;
-  align-items:center;
-  padding:0 18px;
-  gap:14px;
-  flex-shrink:0;
-  z-index:1000;
-  position:relative;
+/* TOP NAV STRIP */
+#nav-strip{
+  position:absolute;top:0;left:0;right:0;
+  background:linear-gradient(rgba(0,0,0,.82),transparent);
+  padding:12px 14px 28px;
 }
-#topbar::after {
-  content:'';
-  position:absolute;
-  bottom:0;left:0;right:0;height:1px;
-  background:linear-gradient(90deg,transparent,var(--cyan),transparent);
-  opacity:0.4;
-}
-.logo {
-  font-family:'Orbitron',sans-serif;
-  font-size:17px;
-  font-weight:900;
-  letter-spacing:3px;
-  color:var(--cyan);
-  white-space:nowrap;
-}
-.logo em { color:var(--amber); font-style:normal; }
-.tagline {
-  font-family:'Share Tech Mono',monospace;
-  font-size:10px;
-  color:var(--text-dim);
-  letter-spacing:1px;
-  border-left:1px solid var(--border);
-  padding-left:14px;
-}
-.spacer{flex:1}
-#status-pill {
-  font-family:'Share Tech Mono',monospace;
-  font-size:10px;
-  padding:4px 12px;
-  border-radius:2px;
-  border:1px solid var(--cyan-border);
-  background:var(--cyan-glow);
-  color:var(--cyan);
-  letter-spacing:1.5px;
-  transition:all .3s;
-}
-#status-pill.running { border-color:rgba(0,230,118,.4); background:var(--green-glow); color:var(--green); }
-#status-pill.error   { border-color:rgba(255,64,129,.4); background:var(--red-glow);   color:var(--red); }
-#status-pill.loading { border-color:var(--cyan-border); background:var(--cyan-glow);  color:var(--cyan);
-  animation:pulse 1s ease-in-out infinite; }
-@keyframes pulse{ 0%,100%{opacity:1} 50%{opacity:.5} }
+#nav-arrow{font-size:32px;line-height:1;margin-bottom:2px;text-shadow:0 0 12px rgba(255,255,255,.4)}
+#nav-road{font-weight:700;font-size:16px;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.9);letter-spacing:.3px}
+#nav-dist{font-size:12px;color:rgba(255,255,255,.65);margin-top:2px;font-family:'Courier New',monospace}
 
-/* ── BODY LAYOUT ── */
-#body {
-  display:flex;
-  flex:1;
-  overflow:hidden;
+/* COMPASS */
+#compass{
+  position:absolute;top:14px;right:14px;
+  width:44px;height:44px;border-radius:50%;
+  background:rgba(0,0,0,.7);border:1.5px solid rgba(255,255,255,.2);
+  display:none;align-items:center;justify-content:center;
+  font-size:18px;font-weight:900;color:#ff4444;
+  font-family:'Courier New',monospace;
+  box-shadow:0 2px 12px rgba(0,0,0,.5);
 }
+#compass span{font-size:9px;position:absolute;bottom:4px;color:rgba(255,255,255,.5);font-weight:400;letter-spacing:1px}
 
-/* ── SIDEBAR ── */
-#sidebar {
-  width:var(--sidebar-w);
-  background:var(--surface);
-  border-right:1px solid var(--border);
-  display:flex;
-  flex-direction:column;
-  overflow-y:auto;
-  flex-shrink:0;
-  z-index:100;
+/* SPEED BADGE (top-left during drive) */
+#spd-badge{
+  position:absolute;top:14px;left:14px;display:none;
+  background:rgba(0,0,0,.75);border:2px solid rgba(255,255,255,.2);
+  border-radius:12px;padding:6px 10px;text-align:center;
+  min-width:56px;
 }
-#sidebar::-webkit-scrollbar{width:3px}
-#sidebar::-webkit-scrollbar-thumb{background:rgba(0,229,255,.2);border-radius:2px}
+#spd-num{font-family:'Courier New',monospace;font-size:26px;font-weight:900;color:#fff;line-height:1}
+#spd-unit{font-size:8px;color:rgba(255,255,255,.5);letter-spacing:2px;text-transform:uppercase}
+#spd-limit{font-size:9px;color:#ffcc00;font-family:'Courier New',monospace;margin-top:1px}
 
-.sec {
-  padding:14px 16px;
-  border-bottom:1px solid var(--border-faint);
+/* BOTTOM DASHBOARD */
+#dashboard{
+  position:absolute;bottom:0;left:0;right:0;
+  background:linear-gradient(transparent,rgba(0,0,0,.92) 20%);
+  padding:30px 14px 20px;display:none;
 }
+#dash-gauges{display:flex;align-items:flex-end;gap:12px;margin-bottom:12px}
+#speedo-canvas{flex-shrink:0;display:block}
+#dash-mid{flex:1}
+#dash-spd-large{font-family:'Courier New',monospace;font-size:48px;font-weight:900;color:#fff;line-height:1;text-shadow:0 0 20px rgba(0,229,255,.35)}
+#dash-spd-unit{font-size:10px;color:rgba(255,255,255,.4);letter-spacing:3px;text-transform:uppercase;font-family:'Courier New',monospace}
+#dash-road-name{font-size:13px;color:rgba(200,230,255,.8);margin-top:6px;font-weight:600}
+#dash-remain{font-size:11px;color:rgba(255,255,255,.4);font-family:'Courier New',monospace;margin-top:2px}
+#dash-veh-lbl{font-size:10px;color:rgba(255,179,0,.7);letter-spacing:1px;font-family:'Courier New',monospace;margin-top:3px}
+#rpm-bar-wrap{width:100%;height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;margin-top:8px}
+#rpm-bar{height:100%;border-radius:3px;transition:width .1s,background .3s}
 
-.sec-head {
-  font-family:'Share Tech Mono',monospace;
-  font-size:9px;
-  color:var(--text-dim);
-  letter-spacing:2.5px;
-  text-transform:uppercase;
-  margin-bottom:12px;
-  display:flex;
-  align-items:center;
-  gap:8px;
-}
-.sec-head::before {
-  content:'';
-  width:3px;height:3px;
-  border-radius:50%;
-  background:var(--cyan);
-  flex-shrink:0;
-}
-.sec-head::after {
-  content:'';flex:1;height:1px;
-  background:var(--border-faint);
-}
+#drive-btns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.db{padding:14px 4px;border-radius:14px;font-family:'Courier New',monospace;font-size:10px;font-weight:700;letter-spacing:.5px;cursor:pointer;border:1.5px solid;text-align:center;transition:all .12s;user-select:none;-webkit-user-select:none}
+.db:active{transform:scale(.94)}
+.db-acc{border-color:rgba(0,220,100,.7);color:#00dc64;background:rgba(0,220,100,.12)}
+.db-brk{border-color:rgba(255,60,90,.6);color:#ff3c5a;background:rgba(255,60,90,.1)}
+.db-ov{border-color:rgba(255,180,0,.65);color:#ffb400;background:rgba(255,180,0,.1)}
+.db-end{grid-column:1/-1;border-color:rgba(180,180,180,.25);color:rgba(180,180,180,.5);background:transparent;font-size:9px;padding:10px}
 
-/* SEARCH */
-.search-wrap { position:relative; }
-#city-input {
-  width:100%;
-  background:var(--surface2);
-  border:1px solid var(--border);
-  border-radius:3px;
-  padding:9px 12px;
-  color:var(--text);
-  font-family:'Rajdhani',sans-serif;
-  font-size:14px;
-  outline:none;
-  transition:border-color .2s;
+/* OVERVIEW CONTROLS (non-drive) */
+#overview{
+  position:absolute;bottom:0;left:0;right:0;
+  background:linear-gradient(transparent,rgba(6,12,26,.96) 30%);
+  padding:30px 12px 18px;display:none;
 }
-#city-input:focus{ border-color:var(--cyan); }
-#city-input::placeholder{ color:var(--text-dim); }
-#suggestions {
-  display:none;
-  position:absolute;
-  top:100%;left:0;right:0;
-  background:var(--surface3);
-  border:1px solid var(--border);
-  border-top:none;
-  border-radius:0 0 3px 3px;
-  z-index:9999;
-  max-height:180px;
-  overflow-y:auto;
-}
-.sug-item {
-  padding:8px 12px;
-  font-size:12px;
-  cursor:pointer;
-  border-bottom:1px solid var(--border-faint);
-  transition:background .15s;
-}
-.sug-item:hover{ background:var(--cyan-glow); color:var(--cyan); }
+#ov-stats{display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;scrollbar-width:none}
+#ov-stats::-webkit-scrollbar{display:none}
+.osc{flex-shrink:0;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:8px 12px;min-width:70px}
+.osl{font-size:9px;color:rgba(120,160,200,.5);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px}
+.osv{font-family:'Courier New',monospace;font-size:18px;font-weight:700;color:#00e5ff}
+.osv.a{color:#ffb300}.osv.g{color:#00e676}
+#ov-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ovb{padding:14px;border-radius:14px;font-family:'Courier New',monospace;font-size:11px;font-weight:700;letter-spacing:.5px;cursor:pointer;border:1.5px solid;text-align:center;transition:all .2s}
+.ovb:active{transform:scale(.96)}
+.ovb-r{border-color:rgba(0,229,255,.6);color:#00e5ff;background:rgba(0,229,255,.08)}
+.ovb-s{border-color:rgba(0,220,100,.6);color:#00dc64;background:rgba(0,220,100,.08)}
+.ovb-s:disabled{opacity:.3;cursor:not-allowed}
 
-.load-btn {
-  width:100%;margin-top:8px;
-  padding:9px;
-  background:linear-gradient(135deg,var(--cyan-glow),transparent);
-  border:1px solid var(--cyan-border);
-  border-radius:3px;
-  color:var(--cyan);
-  font-family:'Orbitron',sans-serif;
-  font-size:10px;
-  font-weight:700;
-  letter-spacing:1.5px;
-  cursor:pointer;
-  transition:all .2s;
+/* SEARCH (overview only) */
+#searchbar{
+  position:absolute;top:10px;left:12px;right:12px;
+  background:rgba(6,12,26,.96);border:1.5px solid rgba(0,229,255,.3);border-radius:14px;
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  box-shadow:0 4px 20px rgba(0,0,0,.5);
 }
-.load-btn:hover:not(:disabled){ background:var(--cyan); color:var(--bg); }
-.load-btn:disabled{ opacity:.35;cursor:not-allowed; }
+#si{display:flex;align-items:center;gap:10px;padding:12px 14px}
+#si-icon{font-size:16px;opacity:.55;flex-shrink:0}
+#ci{flex:1;background:none;border:none;outline:none;color:#ddeeff;font-size:16px;caret-color:#00e5ff}
+#ci::placeholder{color:rgba(100,150,200,.4);font-size:14px}
+#clr{background:none;border:none;color:rgba(100,150,200,.4);font-size:22px;cursor:pointer;display:none;padding:0 2px;line-height:1}
+#sts{padding:0 14px 10px;font-size:11px;color:rgba(0,229,255,.6);font-family:'Courier New',monospace;display:none}
+#sug{display:none;position:absolute;top:100%;left:0;right:0;background:rgba(6,12,26,.98);border:1px solid rgba(0,229,255,.2);border-top:none;border-radius:0 0 14px 14px;overflow:hidden;max-height:250px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.6)}
+.sui{padding:13px 15px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.04)}
+.sui:active{background:rgba(0,229,255,.1)}
+.sn{font-size:15px;font-weight:600;color:#ddeeff}
+.sc2{font-size:11px;color:rgba(100,150,200,.5);margin-top:2px}
 
-/* CONTROLS */
-.ctrl { margin-bottom:12px; }
-.ctrl-hd {
-  display:flex;
-  justify-content:space-between;
-  font-size:12px;
-  color:var(--text-mid);
-  margin-bottom:5px;
+/* ROUTE PANEL */
+#route-panel{
+  position:fixed;bottom:0;left:0;right:0;z-index:300;
+  background:rgba(4,10,22,.98);border-top:1.5px solid rgba(0,229,255,.2);
+  border-radius:20px 20px 0 0;padding:20px 16px 24px;
+  display:none;backdrop-filter:blur(20px);
+  box-shadow:0 -8px 40px rgba(0,0,0,.7);
 }
-.ctrl-hd .val {
-  font-family:'Share Tech Mono',monospace;
-  font-size:11px;
-  color:var(--amber);
-}
-input[type=range]{
-  width:100%;
-  height:4px;
-  accent-color:var(--cyan);
-  cursor:pointer;
-}
+.rp-h{width:36px;height:4px;background:rgba(255,255,255,.15);border-radius:2px;margin:0 auto 16px}
+.rp-t{font-family:'Courier New',monospace;font-size:10px;color:rgba(0,229,255,.7);letter-spacing:2px;text-align:center;margin-bottom:16px;text-transform:uppercase}
+.rp-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;border:1.5px solid;cursor:pointer;margin-bottom:8px;transition:all .2s}
+.rp-a{border-color:rgba(0,220,100,.35);background:rgba(0,220,100,.04)}
+.rp-b{border-color:rgba(255,60,90,.35);background:rgba(255,60,90,.04)}
+.rp-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0}
+.rp-txt{flex:1}.rp-lbl{font-size:9px;color:rgba(100,150,200,.5);letter-spacing:1.5px;font-family:'Courier New',monospace}
+.rp-val{font-size:13px;color:#ddeeff;margin-top:2px}
+.rp-set{padding:6px 12px;border-radius:8px;border:1px solid;font-size:10px;font-family:'Courier New',monospace;cursor:pointer;background:transparent}
+#rp-info{text-align:center;font-family:'Courier New',monospace;font-size:11px;color:rgba(0,229,255,.6);min-height:20px;margin:8px 0}
+#rp-go{width:100%;padding:14px;border-radius:14px;border:none;font-family:'Courier New',monospace;font-size:12px;font-weight:700;letter-spacing:2px;cursor:pointer;background:linear-gradient(135deg,#004499,#0077ff);color:#fff;margin-top:6px;display:none;transition:all .2s}
+#rp-go:active{transform:scale(.97)}
+#rp-cancel{width:100%;padding:10px;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:transparent;color:rgba(180,200,230,.4);font-size:12px;cursor:pointer;margin-top:6px;font-family:'Courier New',monospace}
+.rp-hint{text-align:center;font-size:11px;color:rgba(0,229,255,.45);font-family:'Courier New',monospace;padding:6px 0;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 
-.btn-grid {
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:6px;
-  margin-top:2px;
+/* VEHICLE SELECTOR */
+#vsel{
+  position:fixed;bottom:0;left:0;right:0;z-index:300;
+  background:rgba(4,10,22,.98);border-top:1.5px solid rgba(0,229,255,.2);
+  border-radius:20px 20px 0 0;padding:20px 16px 24px;
+  display:none;backdrop-filter:blur(20px);
 }
-.btn {
-  padding:8px 6px;
-  border-radius:3px;
-  font-family:'Orbitron',sans-serif;
-  font-size:9px;
-  font-weight:700;
-  letter-spacing:.5px;
-  cursor:pointer;
-  border:1px solid;
-  transition:all .2s;
-  white-space:nowrap;
-}
-.btn:disabled{ opacity:.28;cursor:not-allowed; }
-.btn-g{ border-color:var(--green);  color:var(--green);  background:var(--green-glow); }
-.btn-a{ border-color:var(--amber);  color:var(--amber);  background:var(--amber-glow); }
-.btn-r{ border-color:var(--red);    color:var(--red);    background:var(--red-glow); }
-.btn-c{ border-color:var(--cyan);   color:var(--cyan);   background:var(--cyan-glow); }
-.btn-g:hover:not(:disabled){ background:var(--green); color:var(--bg); }
-.btn-a:hover:not(:disabled){ background:var(--amber); color:var(--bg); }
-.btn-r:hover:not(:disabled){ background:var(--red);   color:#fff; }
-.btn-c:hover:not(:disabled){ background:var(--cyan);  color:var(--bg); }
+.vs-h{font-family:'Courier New',monospace;font-size:10px;color:rgba(0,229,255,.7);letter-spacing:2px;text-align:center;margin-bottom:16px;text-transform:uppercase}
+#vs-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px}
+.vc-btn{padding:10px 4px;border-radius:12px;border:1.5px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);cursor:pointer;text-align:center;transition:all .2s}
+.vc-btn.sel{box-shadow:0 0 14px var(--vc);background:rgba(0,0,0,.3)}
+.vc-btn:active{transform:scale(.93)}
+.vc-icon{font-size:26px;display:block;margin-bottom:4px}
+.vc-lbl{font-size:8px;font-family:'Courier New',monospace;color:rgba(180,210,240,.6);letter-spacing:.5px}
+#vs-go{width:100%;padding:14px;border-radius:14px;border:none;font-family:'Courier New',monospace;font-size:12px;font-weight:700;letter-spacing:2px;cursor:pointer;background:linear-gradient(135deg,#004499,#0077ff);color:#fff;transition:all .2s}
+#vs-go:active{transform:scale(.97)}
 
-/* STATS */
-.stat-grid {
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:6px;
+/* OVERTAKE FLASH */
+#ov-flash{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  z-index:800;display:none;pointer-events:none;
+  font-family:'Courier New',monospace;font-size:18px;font-weight:900;
+  color:#ffb400;text-shadow:0 0 24px rgba(255,180,0,.9);letter-spacing:4px;
+  animation:flash .8s ease forwards;
 }
-.stat-card {
-  background:var(--surface2);
-  border:1px solid var(--border-faint);
-  border-radius:3px;
-  padding:8px 10px;
-}
-.stat-lbl {
-  font-size:9px;
-  color:var(--text-dim);
-  letter-spacing:1.5px;
-  text-transform:uppercase;
-  margin-bottom:3px;
-}
-.stat-val {
-  font-family:'Share Tech Mono',monospace;
-  font-size:18px;
-  color:var(--cyan);
-  line-height:1;
-}
-.stat-val.a{ color:var(--amber); }
-.stat-val.g{ color:var(--green); }
-.stat-val.r{ color:var(--red); }
+@keyframes flash{0%{opacity:0;transform:translate(-50%,-50%) scale(.7)}30%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}75%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(1.15)}}
 
-/* DENSITY BARS */
-.db-section { margin-top:12px; }
-.db-row {
-  display:flex;
-  align-items:center;
-  gap:8px;
-  margin-bottom:5px;
+/* ARRIVAL CARD */
+#arrival{
+  position:fixed;inset:0;z-index:900;display:none;
+  background:rgba(0,0,0,.88);align-items:center;justify-content:center;
+  backdrop-filter:blur(10px);padding:20px;
 }
-.db-lbl{ width:75px; font-size:10px; color:var(--text-dim); }
-.db-track{
-  flex:1;height:5px;
-  background:rgba(255,255,255,.04);
-  border-radius:3px;
-  overflow:hidden;
-}
-.db-fill{ height:100%; border-radius:3px; transition:width .6s ease; }
-
-/* EXPORT */
-.ex-btn {
-  width:100%;
-  margin-bottom:6px;
-  padding:8px 12px;
-  background:var(--surface2);
-  border:1px solid var(--border-faint);
-  border-radius:3px;
-  color:var(--text-mid);
-  font-family:'Rajdhani',sans-serif;
-  font-size:13px;
-  cursor:pointer;
-  text-align:left;
-  display:flex;
-  align-items:center;
-  gap:8px;
-  transition:all .2s;
-}
-.ex-btn:hover:not(:disabled){
-  border-color:var(--amber);
-  color:var(--amber);
-  background:var(--amber-glow);
-}
-.ex-btn:disabled{ opacity:.28;cursor:not-allowed; }
-.ex-note {
-  margin-top:8px;
-  padding:8px 10px;
-  background:var(--surface2);
-  border-left:2px solid var(--amber);
-  border-radius:0 3px 3px 0;
-  font-size:10px;
-  color:var(--text-mid);
-  line-height:1.7;
-}
-.ex-note code{
-  font-family:'Share Tech Mono',monospace;
-  color:var(--amber);
-  font-size:9px;
-}
-
-/* ── MAP AREA ── */
-#map-area {
-  flex:1;
-  position:relative;
-  overflow:hidden;
-}
-#map {
-  width:100%;height:100%;
-}
-#veh-canvas {
-  position:absolute;
-  inset:0;
-  width:100%;height:100%;
-  pointer-events:none;
-  z-index:500;
-}
+.arr{background:rgba(4,10,22,.98);border:1.5px solid rgba(0,229,255,.3);border-radius:20px;padding:28px 24px;text-align:center;max-width:340px;width:100%;box-shadow:0 0 60px rgba(0,229,255,.1)}
+.arr-e{font-size:52px;margin-bottom:12px}
+.arr-t{font-family:'Courier New',monospace;font-size:18px;font-weight:900;color:#00ffff;letter-spacing:3px;margin-bottom:5px}
+.arr-s{font-size:12px;color:rgba(180,210,240,.6);margin-bottom:18px}
+.arr-g{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px}
+.arr-c{background:rgba(255,255,255,.04);border-radius:10px;padding:12px}
+.arr-cl{font-size:9px;color:rgba(100,150,200,.5);letter-spacing:1.5px;margin-bottom:4px;font-family:'Courier New',monospace}
+.arr-cv{font-family:'Courier New',monospace;font-size:20px;font-weight:700;color:#00e5ff}
+.arr-btn{width:100%;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,#004499,#0077ff);color:#fff;font-family:'Courier New',monospace;font-size:12px;font-weight:700;letter-spacing:2px;cursor:pointer}
 
 /* LOADING */
-#loading {
-  display:none;
-  position:absolute;
-  inset:0;
-  background:rgba(7,11,18,.88);
-  backdrop-filter:blur(4px);
-  z-index:900;
-  align-items:center;
-  justify-content:center;
-  flex-direction:column;
-  gap:14px;
-}
-#loading.on{ display:flex; }
-.spinner {
-  width:44px;height:44px;
-  border:2px solid rgba(0,229,255,.1);
-  border-top-color:var(--cyan);
-  border-right-color:var(--cyan2);
-  border-radius:50%;
-  animation:spin .7s linear infinite;
-}
+#lov{display:none;position:fixed;inset:0;z-index:1000;background:rgba(2,6,16,.95);backdrop-filter:blur(12px);flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px}
+#lov.on{display:flex}
+.spin{width:48px;height:48px;border:2px solid rgba(0,229,255,.12);border-top-color:#00e5ff;border-right-color:#00b8d4;border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.load-title{
-  font-family:'Share Tech Mono',monospace;
-  font-size:12px;
-  color:var(--cyan);
-  letter-spacing:2px;
-}
-.load-sub{
-  font-size:11px;
-  color:var(--text-dim);
-  letter-spacing:1px;
-}
+#lt{font-family:'Courier New',monospace;font-size:12px;color:#00e5ff;letter-spacing:2px}
+#ls{font-size:11px;color:rgba(140,180,220,.5);max-width:290px;line-height:1.6}
 
-/* WELCOME */
-#welcome {
-  position:absolute;
-  inset:0;
-  background:rgba(7,11,18,.75);
-  backdrop-filter:blur(6px);
-  z-index:400;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-.welcome-card {
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:6px;
-  padding:36px 40px;
-  max-width:500px;
-  text-align:center;
-  box-shadow:0 0 60px rgba(0,229,255,.06);
-}
-.welcome-card h2 {
-  font-family:'Orbitron',sans-serif;
-  font-size:24px;
-  font-weight:900;
-  color:var(--cyan);
-  letter-spacing:4px;
-  margin-bottom:6px;
-}
-.welcome-card .sub {
-  font-family:'Share Tech Mono',monospace;
-  font-size:10px;
-  color:var(--amber);
-  letter-spacing:2px;
-  margin-bottom:16px;
-}
-.welcome-card p {
-  font-size:13px;
-  color:var(--text-mid);
-  line-height:1.7;
-  margin-bottom:20px;
-}
-.feat-list {
-  display:flex;
-  flex-direction:column;
-  gap:7px;
-  text-align:left;
-  margin-bottom:20px;
-}
-.feat {
-  display:flex;
-  align-items:center;
-  gap:10px;
-  font-size:13px;
-  color:var(--text);
-}
-.feat-dot{
-  width:5px;height:5px;
-  border-radius:50%;
-  flex-shrink:0;
-  background:var(--cyan);
-}
-.feat-dot.a{ background:var(--amber); }
-.hint{
-  font-size:11px;
-  color:var(--text-dim);
-  letter-spacing:.5px;
-}
+/* TOAST */
+#toast{position:fixed;top:80px;left:50%;transform:translateX(-50%);background:rgba(6,12,26,.96);border:1px solid rgba(0,229,255,.3);border-radius:12px;padding:9px 16px;font-size:11px;color:#00e5ff;z-index:1100;max-width:90%;text-align:center;display:none;pointer-events:none;font-family:'Courier New',monospace;transition:opacity .4s}
 
-/* LEGEND */
-#legend {
-  display:none;
-  position:absolute;
-  bottom:18px;right:18px;
-  background:rgba(14,21,37,.92);
-  border:1px solid var(--border);
-  border-radius:4px;
-  padding:12px 14px;
-  z-index:600;
-  backdrop-filter:blur(10px);
-}
-.leg-title{
-  font-family:'Share Tech Mono',monospace;
-  font-size:9px;
-  color:var(--text-dim);
-  letter-spacing:2px;
-  margin-bottom:8px;
-}
-.leg-item{
-  display:flex;align-items:center;
-  gap:8px;margin-bottom:4px;
-  font-size:11px;color:var(--text);
-}
-.leg-dot{width:9px;height:9px;border-radius:50%;}
+/* MAP VIEW TOGGLE */
+#map-toggle{position:fixed;right:14px;top:70px;z-index:250;background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:6px 10px;font-size:10px;color:rgba(255,255,255,.7);cursor:pointer;font-family:'Courier New',monospace;display:none}
 
-/* CITY INFO */
-#city-banner {
-  display:none;
-  position:absolute;
-  top:12px;left:50%;
-  transform:translateX(-50%);
-  background:rgba(14,21,37,.9);
-  border:1px solid var(--border);
-  border-radius:3px;
-  padding:6px 16px;
-  font-family:'Share Tech Mono',monospace;
-  font-size:11px;
-  color:var(--cyan);
-  letter-spacing:1px;
-  z-index:600;
-  backdrop-filter:blur(8px);
-  white-space:nowrap;
-  max-width:400px;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
+/* MARKERS */
+.mk-a{width:16px;height:16px;border-radius:50%;background:#00e676;border:3px solid #fff;box-shadow:0 0 14px #00e676,0 2px 8px rgba(0,0,0,.5)}
+.mk-b{width:16px;height:16px;border-radius:50%;background:#ff3c5a;border:3px solid #fff;box-shadow:0 0 14px #ff3c5a,0 2px 8px rgba(0,0,0,.5)}
 </style>
 </head>
 <body>
 
-<!-- TOPBAR -->
-<div id="topbar">
-  <div class="logo">URBAN<em>FLOW</em></div>
-  <div class="tagline">OSM + SUMO TRAFFIC SIMULATION ENGINE</div>
-  <div class="spacer"></div>
-  <div id="status-pill">READY</div>
+<!-- ── 3D MAP SCENE ── -->
+<div id="map3d">
+  <div id="map"></div>
+  <canvas id="vc"></canvas>
 </div>
 
-<div id="body">
+<!-- ── ALWAYS-UPRIGHT HUD ── -->
+<div id="hud">
 
-  <!-- ── SIDEBAR ── -->
-  <div id="sidebar">
-
-    <!-- City Search -->
-    <div class="sec">
-      <div class="sec-head">City Target</div>
-      <div class="search-wrap">
-        <input id="city-input" type="text" placeholder="Search any city worldwide…" autocomplete="off">
-        <div id="suggestions"></div>
-      </div>
-      <button class="load-btn" id="load-btn" onclick="onLoadCity()">⟶ LOAD ROAD NETWORK</button>
+  <!-- SEARCH (overview) -->
+  <div id="searchbar">
+    <div id="si">
+      <span id="si-icon">🔍</span>
+      <input id="ci" type="text" placeholder="Search city — Hyderabad, Tokyo…" autocomplete="off" autocorrect="off" spellcheck="false">
+      <button id="clr" onclick="clearQ()">×</button>
     </div>
+    <div id="sts"></div>
+    <div id="sug"></div>
+  </div>
 
-    <!-- Simulation Controls -->
-    <div class="sec">
-      <div class="sec-head">Simulation Parameters</div>
+  <!-- DRIVE: top nav strip -->
+  <div id="nav-strip" style="display:none">
+    <div id="nav-arrow">⬆</div>
+    <div id="nav-road">Loading…</div>
+    <div id="nav-dist">Calculating route…</div>
+  </div>
 
-      <div class="ctrl">
-        <div class="ctrl-hd">Vehicles <span class="val" id="v-count-lbl">150</span></div>
-        <input type="range" id="v-count" min="50" max="600" value="150" step="10"
-               oninput="document.getElementById('v-count-lbl').textContent=this.value">
-      </div>
-      <div class="ctrl">
-        <div class="ctrl-hd">Sim Speed <span class="val" id="v-speed-lbl">1.0×</span></div>
-        <input type="range" id="v-speed" min="0.5" max="8" value="1" step="0.5"
-               oninput="document.getElementById('v-speed-lbl').textContent=this.value+'×'">
-      </div>
-      <div class="ctrl">
-        <div class="ctrl-hd">Area Radius <span class="val" id="v-radius-lbl">2.0 km</span></div>
-        <input type="range" id="v-radius" min="0.5" max="6" value="2" step="0.5"
-               oninput="document.getElementById('v-radius-lbl').textContent=this.value+' km'">
-      </div>
+  <!-- DRIVE: speed badge -->
+  <div id="spd-badge">
+    <div id="spd-num">0</div>
+    <div id="spd-unit">km/h</div>
+    <div id="spd-limit"></div>
+  </div>
 
-      <div class="btn-grid">
-        <button class="btn btn-g" id="btn-start"  onclick="startSim()"  disabled>▶ START</button>
-        <button class="btn btn-a" id="btn-pause"  onclick="togglePause()"disabled>⏸ PAUSE</button>
-        <button class="btn btn-r" id="btn-reset"  onclick="resetSim()"  disabled>⟳ RESET</button>
-        <button class="btn btn-c" id="btn-spawn"  onclick="spawnMore()" disabled>+ SPAWN</button>
-      </div>
-    </div>
+  <!-- COMPASS -->
+  <div id="compass">N<span>NORTH</span></div>
 
-    <!-- Live Stats -->
-    <div class="sec">
-      <div class="sec-head">Live Statistics</div>
-      <div class="stat-grid">
-        <div class="stat-card">
-          <div class="stat-lbl">Vehicles</div>
-          <div class="stat-val" id="s-veh">0</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-lbl">Avg Speed</div>
-          <div class="stat-val a" id="s-spd">—</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-lbl">Nodes</div>
-          <div class="stat-val g" id="s-nodes">0</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-lbl">Edges</div>
-          <div class="stat-val g" id="s-edges">0</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-lbl">Sim Time</div>
-          <div class="stat-val" id="s-time">00:00</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-lbl">Congested</div>
-          <div class="stat-val r" id="s-cong">0%</div>
-        </div>
-      </div>
+  <!-- Map view toggle -->
+  <button id="map-toggle" onclick="toggleMapStyle()">🛰 SAT</button>
 
-      <div class="db-section">
-        <div class="db-row">
-          <div class="db-lbl">Motorway</div>
-          <div class="db-track"><div class="db-fill" id="db-mw" style="width:0%;background:#00e5ff"></div></div>
-        </div>
-        <div class="db-row">
-          <div class="db-lbl">Primary</div>
-          <div class="db-track"><div class="db-fill" id="db-pr" style="width:0%;background:#ffb300"></div></div>
-        </div>
-        <div class="db-row">
-          <div class="db-lbl">Secondary</div>
-          <div class="db-track"><div class="db-fill" id="db-sc" style="width:0%;background:#00e676"></div></div>
-        </div>
-        <div class="db-row">
-          <div class="db-lbl">Residential</div>
-          <div class="db-track"><div class="db-fill" id="db-rs" style="width:0%;background:#ff4081"></div></div>
-        </div>
+  <!-- DRIVE: bottom dashboard -->
+  <div id="dashboard">
+    <div id="dash-gauges">
+      <canvas id="speedo-canvas" width="90" height="90"></canvas>
+      <div id="dash-mid">
+        <div id="dash-spd-large">0</div>
+        <div id="dash-spd-unit">KM / H</div>
+        <div id="dash-road-name">—</div>
+        <div id="dash-remain">—</div>
+        <div id="dash-veh-lbl">—</div>
+        <div id="rpm-bar-wrap"><div id="rpm-bar" style="width:0%;background:#00e676"></div></div>
       </div>
     </div>
-
-    <!-- SUMO Export -->
-    <div class="sec">
-      <div class="sec-head">SUMO Export</div>
-      <button class="ex-btn" id="ex-net" onclick="exportNet()"    disabled>🗺 Download .net.xml — Road Network</button>
-      <button class="ex-btn" id="ex-rou" onclick="exportRoutes()" disabled>🛣 Download .rou.xml — Vehicle Routes</button>
-      <button class="ex-btn" id="ex-cfg" onclick="exportConfig()" disabled>⚙ Download .sumocfg — Run Config</button>
-      <div class="ex-note">
-        Run in SUMO GUI:<br>
-        <code>sumo-gui -c city.sumocfg</code><br>
-        Headless mode:<br>
-        <code>sumo -c city.sumocfg --tripinfo-output out.xml</code>
-      </div>
+    <div id="drive-btns">
+      <button class="db db-acc" onpointerdown="accel(1)" onpointerup="accel(0)" onpointerout="accel(0)">⬆ ACCEL</button>
+      <button class="db db-ov"  onclick="doOvertake()">⚡ OVERTAKE</button>
+      <button class="db db-brk" onpointerdown="brake(1)" onpointerup="brake(0)" onpointerout="brake(0)">⬇ BRAKE</button>
+      <button class="db db-end" onclick="endDrive()">✕ END DRIVE &amp; BACK TO MAP</button>
     </div>
+  </div>
 
-  </div><!-- /sidebar -->
-
-  <!-- ── MAP AREA ── -->
-  <div id="map-area">
-    <div id="map"></div>
-    <canvas id="veh-canvas"></canvas>
-
-    <!-- Loading -->
-    <div id="loading">
-      <div class="spinner"></div>
-      <div class="load-title" id="load-title">FETCHING ROAD NETWORK</div>
-      <div class="load-sub"  id="load-sub">Querying OpenStreetMap…</div>
+  <!-- OVERVIEW: stats + buttons -->
+  <div id="overview">
+    <div id="ov-stats">
+      <div class="osc"><div class="osl">Roads</div> <div class="osv g" id="s-roads">0</div></div>
+      <div class="osc"><div class="osl">Vehicles</div><div class="osv"   id="s-vehs">0</div></div>
+      <div class="osc"><div class="osl">Avg Spd</div><div class="osv a" id="s-spd">—</div></div>
+      <div class="osc"><div class="osl">Sim Time</div><div class="osv"   id="s-time">00:00</div></div>
     </div>
-
-    <!-- Welcome -->
-    <div id="welcome">
-      <div class="welcome-card">
-        <h2>URBANFLOW</h2>
-        <div class="sub">OPEN-SOURCE TRAFFIC SIMULATION</div>
-        <p>Simulate real urban traffic on actual road networks anywhere in the world. Powered by OpenStreetMap data and SUMO-compatible output.</p>
-        <div class="feat-list">
-          <div class="feat"><div class="feat-dot"></div>Live road network from OpenStreetMap for any city</div>
-          <div class="feat"><div class="feat-dot"></div>Agent-based vehicle simulation with road physics</div>
-          <div class="feat"><div class="feat-dot"></div>Real-time speed, congestion &amp; density analytics</div>
-          <div class="feat"><div class="feat-dot a"></div>Export SUMO-ready .net.xml + .rou.xml + .sumocfg</div>
-        </div>
-        <div class="hint">← Search a city name in the sidebar to begin</div>
-      </div>
+    <div id="ov-btns">
+      <button class="ovb ovb-r" onclick="openRoutePlanner()">🗺 Plan Route &amp; Drive</button>
+      <button class="ovb ovb-s" id="btn-sim" onclick="toggleBgSim()" disabled>▶ Traffic Sim</button>
     </div>
+  </div>
 
-    <!-- City banner -->
-    <div id="city-banner"></div>
+</div><!-- /hud -->
 
-    <!-- Legend -->
-    <div id="legend">
-      <div class="leg-title">VEHICLE SPEED</div>
-      <div class="leg-item"><div class="leg-dot" style="background:#00e5ff"></div>Fast  &gt; 40 km/h</div>
-      <div class="leg-item"><div class="leg-dot" style="background:#00e676"></div>Medium 20–40 km/h</div>
-      <div class="leg-item"><div class="leg-dot" style="background:#ffb300"></div>Slow  10–20 km/h</div>
-      <div class="leg-item"><div class="leg-dot" style="background:#ff4081"></div>Congested &lt; 10 km/h</div>
+<!-- ROUTE PANEL -->
+<div id="route-panel">
+  <div class="rp-h"></div>
+  <div class="rp-t">📍 Set Your Route</div>
+  <div class="rp-row rp-a" onclick="setPick('A')">
+    <div class="rp-dot" style="background:#00e676"></div>
+    <div class="rp-txt"><div class="rp-lbl">START POINT</div><div class="rp-val" id="rpa-val">Tap map to place</div></div>
+    <button class="rp-set" style="border-color:rgba(0,220,100,.4);color:#00dc64">SET</button>
+  </div>
+  <div class="rp-row rp-b" onclick="setPick('B')">
+    <div class="rp-dot" style="background:#ff3c5a"></div>
+    <div class="rp-txt"><div class="rp-lbl">DESTINATION</div><div class="rp-val" id="rpb-val">Tap map to place</div></div>
+    <button class="rp-set" style="border-color:rgba(255,60,90,.4);color:#ff3c5a">SET</button>
+  </div>
+  <div id="rp-info"></div>
+  <div class="rp-hint" id="rp-hint" style="display:none">👆 Tap the map to place marker</div>
+  <button id="rp-go" onclick="openVehicleSel()">Choose Vehicle & Drive →</button>
+  <button id="rp-cancel" onclick="cancelRoute()">Cancel</button>
+</div>
+
+<!-- VEHICLE SELECTOR -->
+<div id="vsel">
+  <div class="vs-h">Choose Your Vehicle</div>
+  <div id="vs-grid"></div>
+  <button id="vs-go" onclick="startDrive()">🚗 START DRIVING</button>
+</div>
+
+<!-- OVERTAKE FLASH -->
+<div id="ov-flash">⚡ OVERTAKING!</div>
+
+<!-- ARRIVAL -->
+<div id="arrival" style="display:none">
+  <div class="arr">
+    <div class="arr-e">🏁</div>
+    <div class="arr-t">ARRIVED!</div>
+    <div class="arr-s" id="arr-s">You reached your destination</div>
+    <div class="arr-g">
+      <div class="arr-c"><div class="arr-cl">Distance</div><div class="arr-cv" id="arr-dist">—</div></div>
+      <div class="arr-c"><div class="arr-cl">Time</div>    <div class="arr-cv" id="arr-time">—</div></div>
+      <div class="arr-c"><div class="arr-cl">Avg Speed</div><div class="arr-cv" id="arr-spd">—</div></div>
+      <div class="arr-c"><div class="arr-cl">Vehicle</div> <div class="arr-cv" id="arr-veh">—</div></div>
     </div>
-  </div><!-- /map-area -->
+    <button class="arr-btn" onclick="closeArrival()">DRIVE AGAIN</button>
+  </div>
+</div>
 
-</div><!-- /body -->
+<div id="lov"><div class="spin"></div><div id="lt">LOADING</div><div id="ls">Please wait…</div></div>
+<div id="toast"></div>
 
 <script>
-// ═══════════════════════════════════════════════
-//  MAP SETUP
-// ═══════════════════════════════════════════════
-const map = L.map('map',{
-  center:[20,0], zoom:2,
-  zoomControl:true,
-  preferCanvas:true
-});
-
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
-  attribution:'© <a href="https://www.openstreetmap.org/copyright">OSM</a> © <a href="https://carto.com/attributions">CARTO</a>',
-  subdomains:'abcd', maxZoom:19
-}).addTo(map);
-
-// Canvas for vehicle rendering
-const canvas = document.getElementById('veh-canvas');
-const ctx    = canvas.getContext('2d');
-
-function syncCanvas(){
-  const r = document.getElementById('map-area').getBoundingClientRect();
-  canvas.width  = r.width;
-  canvas.height = r.height;
-}
-syncCanvas();
-window.addEventListener('resize', syncCanvas);
-map.on('resize', syncCanvas);
-
-// ═══════════════════════════════════════════════
-//  CONSTANTS
-// ═══════════════════════════════════════════════
-const SPEEDS = {
-  motorway:90, trunk:70, primary:50, secondary:40,
-  tertiary:30, residential:20, unclassified:22,
-  living_street:12, service:12, default:20
-};
-const ROAD_COLORS = {
-  motorway:'#00e5ff', trunk:'#00b8d4',
-  primary:'#ffb300', secondary:'#e89e00',
-  tertiary:'#00e676', residential:'#2a3a55',
-  unclassified:'#253347', living_street:'#1e2d40',
-  service:'#1a2535', default:'#1e2d40'
-};
-const ROAD_WEIGHT = {
-  motorway:4, trunk:3.5, primary:3,
-  secondary:2.5, tertiary:2, default:1
-};
-const SPD_COLORS = [
-  {thr:40, c:'#00e5ff'},
-  {thr:20, c:'#00e676'},
-  {thr:10, c:'#ffb300'},
-  {thr:0,  c:'#ff4081'}
+'use strict';
+// ══ CITY DB ══════════════════════════════════════════
+const CITIES=[
+  {n:"Hyderabad",c:"India",la:17.385,lo:78.4867},{n:"Mumbai",c:"India",la:19.076,lo:72.8777},
+  {n:"Delhi",c:"India",la:28.6139,lo:77.209},{n:"Bangalore",c:"India",la:12.9716,lo:77.5946},
+  {n:"Chennai",c:"India",la:13.0827,lo:80.2707},{n:"Pune",c:"India",la:18.5204,lo:73.8567},
+  {n:"Kolkata",c:"India",la:22.5726,lo:88.3639},{n:"Jaipur",c:"India",la:26.9124,lo:75.7873},
+  {n:"Ahmedabad",c:"India",la:23.0225,lo:72.5714},{n:"Visakhapatnam",c:"India",la:17.6868,lo:83.2185},
+  {n:"Tokyo",c:"Japan",la:35.6762,lo:139.6503},{n:"Osaka",c:"Japan",la:34.6937,lo:135.5023},
+  {n:"Beijing",c:"China",la:39.9042,lo:116.4074},{n:"Shanghai",c:"China",la:31.2304,lo:121.4737},
+  {n:"Seoul",c:"South Korea",la:37.5665,lo:126.978},{n:"Bangkok",c:"Thailand",la:13.7563,lo:100.5018},
+  {n:"Singapore",c:"Singapore",la:1.3521,lo:103.8198},{n:"Dubai",c:"UAE",la:25.2048,lo:55.2708},
+  {n:"Istanbul",c:"Turkey",la:41.0082,lo:28.9784},{n:"Cairo",c:"Egypt",la:30.0444,lo:31.2357},
+  {n:"London",c:"UK",la:51.5074,lo:-.1278},{n:"Paris",c:"France",la:48.8566,lo:2.3522},
+  {n:"Berlin",c:"Germany",la:52.52,lo:13.405},{n:"Amsterdam",c:"Netherlands",la:52.3676,lo:4.9041},
+  {n:"New York",c:"USA",la:40.7128,lo:-74.006},{n:"Los Angeles",c:"USA",la:34.0522,lo:-118.2437},
+  {n:"Chicago",c:"USA",la:41.8781,lo:-87.6298},{n:"Toronto",c:"Canada",la:43.6532,lo:-79.3832},
+  {n:"São Paulo",c:"Brazil",la:-23.5505,lo:-46.6333},{n:"Sydney",c:"Australia",la:-33.8688,lo:151.2093},
 ];
 
-// ═══════════════════════════════════════════════
-//  STATE
-// ═══════════════════════════════════════════════
-let G = {nodes:{}, edges:[], adj:{}};   // road graph
-let vehicles = [];
-let running   = false;
-let simTime   = 0;
-let lastTs    = null;
-let rafId     = null;
-let cityMeta  = null;
-let roadLayer = null;
+// ══ VEHICLE TYPES ════════════════════════════════════
+const VT={
+  car:  {icon:'🚗',n:'Car',       col:'#00ffff',w:10,h:5,  maxSpd:90, acc:8,  pct:.55},
+  bike: {icon:'🏍',n:'Motorbike', col:'#00ff88',w:6, h:3,  maxSpd:110,acc:12, pct:.15},
+  bus:  {icon:'🚌',n:'Bus',       col:'#ffaa00',w:18,h:7,  maxSpd:60, acc:4,  pct:.10},
+  truck:{icon:'🚛',n:'Truck',     col:'#aa88ff',w:16,h:6,  maxSpd:70, acc:3,  pct:.08},
+  auto: {icon:'🛺',n:'Auto',      col:'#ffdd00',w:8, h:5,  maxSpd:50, acc:6,  pct:.12},
+};
+const VTK=Object.keys(VT);
 
-// ═══════════════════════════════════════════════
-//  GEOCODER — Nominatim autocomplete
-// ═══════════════════════════════════════════════
-const cityInput   = document.getElementById('city-input');
-const suggestBox  = document.getElementById('suggestions');
-let debTimer;
+// ══ ROAD CONSTANTS ═══════════════════════════════════
+const SPD={motorway:90,trunk:70,primary:50,secondary:40,tertiary:30,residential:20,unclassified:22,living_street:12,service:12,default:20};
+const RCOL={motorway:'#ff5500',trunk:'#ff7700',primary:'#0077ff',secondary:'#0055bb',tertiary:'#004488',residential:'#001e55',unclassified:'#001540',living_street:'#001030',service:'#000e28',default:'#000e28'};
+const RWT={motorway:5,trunk:4,primary:3.5,secondary:2.5,tertiary:2,default:1.2};
 
-cityInput.addEventListener('input', ()=>{
-  clearTimeout(debTimer);
-  const q = cityInput.value.trim();
-  if(q.length < 3){ suggestBox.style.display='none'; return; }
-  debTimer = setTimeout(()=>fetchSuggestions(q), 380);
+// ══ MAP SETUP ════════════════════════════════════════
+const map=L.map('map',{center:[20,0],zoom:2,zoomControl:false,preferCanvas:true,attributionControl:false});
+L.control.zoom({position:'topright'}).addTo(map);
+L.control.attribution({position:'bottomleft'}).addTo(map);
+
+// Street (dark) tiles
+const streetTiles=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  attribution:'© OpenStreetMap',subdomains:['a','b','c'],maxZoom:19
+});
+// Satellite tiles (Esri)
+const satTiles=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{
+  attribution:'© Esri',maxZoom:19
+});
+// Street name overlay for satellite
+const labelTiles=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  subdomains:['a','b','c'],maxZoom:19,opacity:.5
 });
 
-cityInput.addEventListener('keydown', e => {
-  if(e.key==='Enter') onLoadCity();
-});
+streetTiles.addTo(map);
+// Dark filter on street tiles (overview mode)
+document.getElementById('map').classList.add('dark');
 
-document.addEventListener('click', e=>{
-  if(!e.target.closest('.search-wrap')) suggestBox.style.display='none';
-});
-
-async function fetchSuggestions(q){
-  try{
-    const r = await fetch(
-      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=6`,
-      {headers:{'Accept-Language':'en'}}
-    );
-    const data = await r.json();
-    suggestBox.innerHTML = '';
-    if(!data.length){ suggestBox.style.display='none'; return; }
-    data.forEach(p=>{
-      const d = document.createElement('div');
-      d.className = 'sug-item';
-      d.textContent = p.display_name;
-      d.onclick = ()=>{
-        cityInput.value = p.display_name;
-        suggestBox.style.display='none';
-        onLoadCity(p);
-      };
-      suggestBox.appendChild(d);
-    });
-    suggestBox.style.display='block';
-  } catch(e){ suggestBox.style.display='none'; }
+let satMode=false;
+function toggleMapStyle(){
+  satMode=!satMode;
+  document.getElementById('map-toggle').textContent=satMode?'🗺 MAP':'🛰 SAT';
+  if(satMode){streetTiles.remove();satTiles.addTo(map);labelTiles.addTo(map);}
+  else{satTiles.remove();labelTiles.remove();streetTiles.addTo(map);}
 }
 
-// ═══════════════════════════════════════════════
-//  LOAD CITY
-// ═══════════════════════════════════════════════
-async function onLoadCity(place=null){
-  const q = cityInput.value.trim();
-  if(!q) return;
-  suggestBox.style.display='none';
-  document.getElementById('load-btn').disabled=true;
-  setLoading(true,'GEOCODING CITY','Looking up coordinates…');
+// Apply dark filter only in overview/street mode
+const mapEl=document.getElementById('map');
+function setMapDark(on){
+  mapEl.style.filter=on&&!satMode?'invert(1) hue-rotate(180deg) brightness(.84) saturate(1.3)':'none';
+}
+setMapDark(true);
 
+// ══ CANVAS ═══════════════════════════════════════════
+const canvas=document.getElementById('vc');
+const ctx=canvas.getContext('2d');
+function syncCanvas(){
+  // Canvas size = map3d container size (180vw × 180vh)
+  canvas.width=window.innerWidth*1.8;
+  canvas.height=window.innerHeight*1.8;
+}
+syncCanvas();
+window.addEventListener('resize',syncCanvas);
+
+// ══ STATE ════════════════════════════════════════════
+let G={nodes:{},edges:[],adj:{}};
+let rlayer=null;
+let vehs=[];
+let bgRunning=false,bgLast=null,bgRaf=null,bgT=0;
+let mode='idle'; // idle|loaded|route|drive
+let pickMode=null;
+let ptA=null,ptB=null,mkA=null,mkB=null,routeLayer=null;
+let routePath=null;
+let pv=null; // player vehicle state
+let playerType='car';
+let accelOn=false,brakeOn=false;
+let driveT0=0,driveDist=0,driveSpeeds=[];
+let cityMeta=null,pendLat=0,pendLon=0,pendName='';
+let audioCtx=null,engOsc=null,engGain=null;
+let currentHdg=0; // current map rotation (degrees) for smooth interpolation
+
+// ══ 3D CAMERA ════════════════════════════════════════
+let targetHdgDeg=0, smoothHdgDeg=0;
+
+function updateCamera3D(immediate){
+  if(!pv||pv.done)return;
+
+  const hdg=pv.heading; // radians (atan2 result, screen space)
+  const hdgDeg=hdg*180/Math.PI;
+  targetHdgDeg=-(hdgDeg+90); // rotate so forward=up
+
+  if(immediate)smoothHdgDeg=targetHdgDeg;
+  else{
+    // Smooth rotation interpolation (avoid 360° jumps)
+    let diff=targetHdgDeg-smoothHdgDeg;
+    while(diff>180)diff-=360;
+    while(diff<-180)diff+=360;
+    smoothHdgDeg+=diff*0.08; // easing factor
+  }
+
+  // Look-ahead: place camera so vehicle appears in lower-center
+  // Move map center slightly AHEAD of vehicle
+  const lookM=60;
+  const lookDeg=lookM/111320;
+  // heading 0 = east (right), π/2 = south (down in screen = -lat)
+  const dLat=-Math.sin(hdg)*lookDeg;
+  const dLon= Math.cos(hdg)*lookDeg/(Math.cos(pv.lat*Math.PI/180)||1);
+  const centerLat=pv.lat+dLat;
+  const centerLon=pv.lng+dLon;
+
+  // Speed-adaptive zoom: faster = zoom out for more awareness
+  const spd=pv.spd;
+  const z=spd>60?15:spd>40?15.5:spd>20?16:spd>10?16.5:17;
+  map.setView([centerLat,centerLon],z,{animate:false});
+
+  // Apply 3D CSS transform to the whole scene
+  const tilt=52; // perspective tilt degrees
+  const w3=document.getElementById('map3d');
+  w3.style.transform=`perspective(750px) rotateX(${tilt}deg) rotate(${smoothHdgDeg}deg)`;
+
+  // Update compass
+  const compassEl=document.getElementById('compass');
+  const northAngle=-smoothHdgDeg;
+  compassEl.style.transform=`rotate(${northAngle}deg)`;
+}
+
+// ══ WEB AUDIO ENGINE SOUND ═══════════════════════════
+function initAudio(){
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(!AC)return;
+    audioCtx=new AC();
+    // Layered engine: base tone + harmonic
+    engOsc=audioCtx.createOscillator();
+    const osc2=audioCtx.createOscillator();
+    const dist=audioCtx.createWaveShaper();
+    engGain=audioCtx.createGain();
+    const gain2=audioCtx.createGain();
+
+    // Make distortion curve for engine rumble
+    const curve=new Float32Array(256);
+    for(let i=0;i<256;i++){const x=i*2/256-1;curve[i]=x<0?-Math.pow(-x,.7):Math.pow(x,.7);}
+    dist.curve=curve;
+
+    engOsc.type='sawtooth';
+    osc2.type='square';
+    gain2.gain.value=0.3;
+
+    engOsc.connect(dist);
+    dist.connect(engGain);
+    osc2.connect(gain2);
+    gain2.connect(engGain);
+    engGain.connect(audioCtx.destination);
+    engGain.gain.value=0;
+    engOsc.frequency.value=60;
+    osc2.frequency.value=120;
+    engOsc.start();osc2.start();
+  }catch(e){console.warn('Audio init failed:',e.message);}
+}
+
+function updateEngineSound(spd,maxSpd,acc){
+  if(!audioCtx||!engOsc||!engGain)return;
+  if(audioCtx.state==='suspended')audioCtx.resume();
+  const rpm=700+(spd/maxSpd)*3500+(acc?800:0);
+  const freq=rpm/60*1.5;
+  const vol=0.03+spd/maxSpd*0.055+(acc?0.015:0);
+  engOsc.frequency.setTargetAtTime(freq,audioCtx.currentTime,0.08);
+  engGain.gain.setTargetAtTime(vol,audioCtx.currentTime,0.1);
+}
+
+function stopEngineSound(){
+  if(engGain)engGain.gain.setTargetAtTime(0,audioCtx.currentTime,0.3);
+}
+
+// ══ SEARCH ═══════════════════════════════════════════
+const cinput=document.getElementById('ci'),sugbox=document.getElementById('sug');
+let deb;
+cinput.addEventListener('input',()=>{
+  clearTimeout(deb);const q=cinput.value.trim();
+  document.getElementById('clr').style.display=q?'block':'none';
+  document.getElementById('sts').style.display='none';sugbox.style.display='none';
+  if(!q)return;deb=setTimeout(()=>doSearch(q),220);
+});
+cinput.addEventListener('keydown',e=>{if(e.key==='Enter'){sugbox.style.display='none';doLoad();}if(e.key==='Escape')clearQ();});
+document.addEventListener('touchstart',e=>{if(!e.target.closest('#searchbar'))sugbox.style.display='none';},{passive:true});
+document.addEventListener('click',e=>{if(!e.target.closest('#searchbar'))sugbox.style.display='none';});
+function clearQ(){cinput.value='';document.getElementById('clr').style.display='none';document.getElementById('sts').style.display='none';sugbox.style.display='none';}
+function doSearch(q){
+  const ql=q.toLowerCase();
+  const m=CITIES.filter(c=>c.n.toLowerCase().startsWith(ql)||c.n.toLowerCase().includes(ql)||c.c.toLowerCase().includes(ql)).slice(0,7);
+  if(m.length)showSug(m.map(c=>({name:c.n,sub:c.c,lat:c.la,lon:c.lo})));
+  else{document.getElementById('sts').textContent='Searching…';document.getElementById('sts').style.display='block';clearTimeout(deb);deb=setTimeout(()=>aiSearch(q),500);}
+}
+async function aiSearch(q){
+  try{const t=await claude('List 6 cities matching "'+q+'". ONLY JSON: [{"name":"City","country":"Country","lat":0.0,"lon":0.0}]',300);const a=jarr(t);if(a&&a.length){showSug(a.filter(p=>p&&parseFloat(p.lat)!==0).map(p=>({name:String(p.name),sub:String(p.country||''),lat:parseFloat(p.lat),lon:parseFloat(p.lon)})));document.getElementById('sts').style.display='none';return;}}catch(e){}
+  document.getElementById('sts').textContent='Press Enter to search';
+}
+function showSug(pl){
+  sugbox.innerHTML='';
+  pl.forEach(p=>{const d=document.createElement('div');d.className='sui';d.innerHTML='<div class="sn">'+esc(p.name)+'</div>'+(p.sub?'<div class="sc2">'+esc(p.sub)+'</div>':'');const pick=()=>{cinput.value=p.name+(p.sub?', '+p.sub:'');document.getElementById('clr').style.display='block';sugbox.style.display='none';document.getElementById('sts').style.display='none';doLoad({name:p.name,sub:p.sub,lat:p.lat,lon:p.lon});};d.addEventListener('click',pick);d.addEventListener('touchend',e=>{e.preventDefault();pick();});sugbox.appendChild(d);});
+  sugbox.style.display='block';
+}
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+// ══ LOAD CITY ════════════════════════════════════════
+async function doLoad(place){
+  const q=cinput.value.trim();if(!q&&!place)return;
+  sugbox.style.display='none';document.getElementById('sts').style.display='none';
+  setOv(true,'LOCATING CITY','Finding "'+( place?place.name:q)+'"…');
   try{
     if(!place){
-      const r = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`,
-        {headers:{'Accept-Language':'en'}}
-      );
-      const data = await r.json();
-      if(!data.length) throw new Error('City not found — try a different spelling');
-      place = data[0];
+      const ql=q.toLowerCase();
+      const m=CITIES.find(c=>c.n.toLowerCase()===ql||(c.n+', '+c.c).toLowerCase()===ql);
+      if(m)place={name:m.n,sub:m.c,lat:m.la,lon:m.lo};
     }
+    if(!place){
+      try{const t=await claude('GPS of '+q+'? ONLY JSON: {"name":"City","country":"Country","lat":0.0,"lon":0.0}',100);const p=jobj(t);if(p&&parseFloat(p.lat)!==0)place={name:String(p.name||q),sub:String(p.country||''),lat:parseFloat(p.lat),lon:parseFloat(p.lon)};}catch(e){}
+    }
+    if(!place)throw new Error('"'+q+'" not found');
+    cityMeta=place;pendLat=place.lat;pendLon=place.lon;pendName=place.name;
+    map.setView([place.lat,place.lon],14);
+    setOv(true,'FETCHING ROADS','Loading road network for '+place.name+'…');
+    const ok=await tryOSM(place.lat,place.lon,2500);
+    if(!ok)await genAIRoads(place.name,place.lat,place.lon,2.5);
+    setOv(false);
+    mode='loaded';
+    // Reset 3D transform for overview
+    document.getElementById('map3d').style.transform='none';
+    setMapDark(true);
+    document.getElementById('searchbar').style.display='block';
+    document.getElementById('overview').style.display='block';
+    document.getElementById('map-toggle').style.display='block';
+    document.getElementById('btn-sim').disabled=false;
+    spawnBg(100);startBgSim();
+    toast('✅ '+place.name+' — Plan a route or start traffic sim',5000);
+  }catch(err){setOv(false);toast('⚠ '+err.message,5000);console.error(err);}
+}
 
-    cityMeta = place;
-    const lat = parseFloat(place.lat);
-    const lon = parseFloat(place.lon);
-    const radiusKm = parseFloat(document.getElementById('v-radius').value);
-
-    map.setView([lat,lon], radiusKm < 1 ? 15 : radiusKm < 2 ? 14 : radiusKm < 4 ? 13 : 12);
-
-    setLoading(true,'FETCHING ROAD NETWORK','Querying Overpass API…');
-    resetSim(false);
-    await fetchNetwork(lat, lon, radiusKm * 1000);
-
-    setLoading(false);
-    document.getElementById('welcome').style.display='none';
-    document.getElementById('legend').style.display='block';
-
-    // City banner
-    const banner = document.getElementById('city-banner');
-    const cityName = place.display_name.split(',').slice(0,2).join(',');
-    banner.textContent = '📍 ' + cityName;
-    banner.style.display='block';
-
-    setStatus('NETWORK LOADED','');
-    enableAll();
-
-  } catch(err){
-    setLoading(false);
-    setStatus('ERROR','error');
-    alert('⚠ ' + err.message);
-    console.error(err);
-  } finally{
-    document.getElementById('load-btn').disabled=false;
+// ══ OSM ══════════════════════════════════════════════
+async function tryOSM(lat,lon,r){
+  const q='[out:json][timeout:30];(way["highway"~"^(motorway|trunk|primary|secondary|tertiary|residential|unclassified|living_street)$"](around:'+Math.round(r)+','+lat.toFixed(5)+','+lon.toFixed(5)+'););out body;>;out skel qt;';
+  for(const s of['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter']){
+    try{
+      const c=new AbortController(),t=setTimeout(()=>c.abort(),30000);
+      const res=await fetch(s+'?data='+encodeURIComponent(q),{signal:c.signal});
+      clearTimeout(t);if(!res.ok)continue;
+      const d=await res.json();if(!d.elements||d.elements.length<10)continue;
+      buildOSM(d.elements);drawRoads();return true;
+    }catch(e){if(e.name!=='AbortError')console.warn('OSM:',e.message);}
   }
+  return false;
 }
 
-// ═══════════════════════════════════════════════
-//  OVERPASS — fetch road network
-// ═══════════════════════════════════════════════
-async function fetchNetwork(lat, lon, radiusM){
-  // Bounding box (slightly elongated)
-  const dLat = radiusM / 111320;
-  const dLon = radiusM / (111320 * Math.cos(lat * Math.PI/180));
-  const bbox = `${(lat-dLat).toFixed(5)},${(lon-dLon).toFixed(5)},${(lat+dLat).toFixed(5)},${(lon+dLon).toFixed(5)}`;
-
-  const query = `[out:json][timeout:60];
-(
-  way["highway"~"^(motorway|trunk|primary|secondary|tertiary|residential|unclassified|living_street|service)$"](${bbox});
-);
-out body;>;out skel qt;`;
-
-  const res = await fetch('https://overpass-api.de/api/interpreter',{
-    method:'POST',
-    body:'data=' + encodeURIComponent(query)
-  });
-  if(!res.ok) throw new Error(`Overpass API error (${res.status}). Try a smaller radius.`);
-  const data = await res.json();
-
-  if(!data.elements || data.elements.length === 0)
-    throw new Error('No road data returned for this area.');
-
-  buildGraph(data.elements, lat, lon);
-  drawRoads();
-  updateStats();
-}
-
-// ═══════════════════════════════════════════════
-//  GRAPH BUILDER
-// ═══════════════════════════════════════════════
-function buildGraph(elements, refLat, refLon){
-  G = {nodes:{}, edges:[], adj:{}};
-
-  // Index OSM nodes
-  elements.filter(e=>e.type==='node').forEach(n=>{
-    G.nodes[n.id] = {id:n.id, lat:n.lat, lng:n.lon};
-    G.adj[n.id]   = [];
-  });
-
-  // Build directed edges from ways
-  elements.filter(e=>e.type==='way').forEach(way=>{
-    const hw     = way.tags?.highway || 'default';
-    const oneway = way.tags?.oneway === 'yes';
-    const speed  = SPEEDS[hw] || SPEEDS.default;
-    const nds    = way.nodes.filter(id => G.nodes[id]);
-
-    for(let i=0; i<nds.length-1; i++){
-      const a = nds[i], b = nds[i+1];
-      if(!G.nodes[a] || !G.nodes[b]) continue;
-      const dist = haversine(G.nodes[a], G.nodes[b]);
-
-      const ei = G.edges.length;
-      G.edges.push({from:a, to:b, hw, speed, dist, name:way.tags?.name||''});
-      G.adj[a].push({to:b, ei});
-
-      if(!oneway){
-        const ej = G.edges.length;
-        G.edges.push({from:b, to:a, hw, speed, dist, name:way.tags?.name||''});
-        G.adj[b].push({to:a, ei:ej});
-      }
+function buildOSM(els){
+  G={nodes:{},edges:[],adj:{}};
+  els.filter(e=>e.type==='node').forEach(n=>{G.nodes[n.id]={id:n.id,lat:n.lat,lng:n.lon};G.adj[n.id]=[];});
+  els.filter(e=>e.type==='way').forEach(w=>{
+    const hw=(w.tags&&w.tags.highway)||'default',ow=w.tags&&w.tags.oneway==='yes',spd=SPD[hw]||20,name=(w.tags&&w.tags.name)||'';
+    const ns=w.nodes.filter(id=>G.nodes[id]);
+    for(let i=0;i<ns.length-1;i++){
+      const a=ns[i],b=ns[i+1];if(!G.nodes[a]||!G.nodes[b])continue;
+      const dist=hvs(G.nodes[a],G.nodes[b]);
+      G.edges.push({from:a,to:b,hw,speed:spd,dist,name});G.adj[a].push({to:b,ei:G.edges.length-1});
+      if(!ow){G.edges.push({from:b,to:a,hw,speed:spd,dist,name});G.adj[b].push({to:a,ei:G.edges.length-1});}
     }
   });
 }
 
-function haversine(a, b){
-  const R = 6371000, f = Math.PI/180;
-  const φ1 = a.lat*f, φ2 = b.lat*f;
-  const dφ = (b.lat-a.lat)*f, dλ = (b.lng-a.lng)*f;
-  const s = Math.sin(dφ/2)*Math.sin(dφ/2)
-          + Math.cos(φ1)*Math.cos(φ2)*Math.sin(dλ/2)*Math.sin(dλ/2);
-  return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1-s));
+// ══ AI ROAD GEN ══════════════════════════════════════
+async function genAIRoads(name,lat,lon,rad){
+  setOv(true,'AI CREATING ROADS','Generating realistic '+name+' street network…');
+  const spread=(rad*0.009).toFixed(4);
+  try{
+    const t=await claude('Create a realistic road network for '+name+' at lat='+lat.toFixed(4)+',lon='+lon.toFixed(4)+'. Spread up to '+spread+' degrees.\nReturn ONLY JSON:\n{"roads":[{"name":"Street Name","type":"primary|secondary|residential|trunk","coords":[[lat,lon],[lat,lon],[lat,lon]]}]}\n30 roads, authentic local names, curves and diagonals not just grid.',2500);
+    const o=jobj(t);
+    if(o&&o.roads&&o.roads.length>0){buildAI(o.roads);drawRoads();toast('🤖 AI road network for '+name,3000);return;}
+  }catch(e){console.warn('AI roads:',e);}
+  buildGrid(lat,lon,name);
 }
 
-// ═══════════════════════════════════════════════
-//  ROAD DRAWING
-// ═══════════════════════════════════════════════
+function buildAI(roads){
+  G={nodes:{},edges:[],adj:{}};let nid=1;const nm={};
+  const gn=(la,lo)=>{const k=la.toFixed(6)+','+lo.toFixed(6);if(!nm[k]){nm[k]=nid;G.nodes[nid]={id:nid,lat:la,lng:lo};G.adj[nid]=[];nid++;}return nm[k];};
+  roads.forEach(r=>{
+    if(!r.coords||r.coords.length<2)return;
+    const hw=r.type||'residential',spd=SPD[hw]||20;
+    const ns=r.coords.map(c=>{if(!c||c.length<2)return null;const la=parseFloat(c[0]),lo=parseFloat(c[1]);return isNaN(la)||isNaN(lo)?null:gn(la,lo);}).filter(Boolean);
+    for(let i=0;i<ns.length-1;i++){
+      const a=ns[i],b=ns[i+1];if(a===b)continue;const dist=hvs(G.nodes[a],G.nodes[b]);if(dist<1)continue;
+      G.edges.push({from:a,to:b,hw,speed:spd,dist,name:r.name||''});G.adj[a].push({to:b,ei:G.edges.length-1});
+      G.edges.push({from:b,to:a,hw,speed:spd,dist,name:r.name||''});G.adj[b].push({to:a,ei:G.edges.length-1});
+    }
+  });
+}
+
+function buildGrid(lat,lon,name){
+  G={nodes:{},edges:[],adj:{}};let nid=1;const S=0.0022,R=12,C=12,grid=[];
+  const jit=()=>(Math.random()-.5)*S*.2;
+  for(let r=0;r<R;r++){grid.push([]);for(let c=0;c<C;c++){G.nodes[nid]={id:nid,lat:lat+(r-R/2)*S+jit(),lng:lon+(c-C/2)*S+jit()};G.adj[nid]=[];grid[r].push(nid);nid++;}}
+  const ae=(a,b,hw,n)=>{if(!G.nodes[a]||!G.nodes[b])return;const d=hvs(G.nodes[a],G.nodes[b]),s=SPD[hw]||20;G.edges.push({from:a,to:b,hw,speed:s,dist:d,name:n});G.adj[a].push({to:b,ei:G.edges.length-1});G.edges.push({from:b,to:a,hw,speed:s,dist:d,name:n});G.adj[b].push({to:a,ei:G.edges.length-1});};
+  const mid=Math.floor(R/2),midc=Math.floor(C/2);
+  for(let r=0;r<R;r++)for(let c=0;c<C;c++){const ip=r===mid||c===midc,is=!ip&&(r%3===0||c%3===0),hw=ip?'primary':is?'secondary':'residential',n=ip?(r===mid?name+' Main Road':name+' Central Ave'):is?'Street '+(r+1):'Lane '+(r*C+c+1);if(c<C-1)ae(grid[r][c],grid[r][c+1],hw,n);if(r<R-1)ae(grid[r][c],grid[r+1][c],hw,n);}
+  for(let c=0;c<C-1;c++){ae(grid[0][c],grid[0][c+1],'trunk','Ring Road');ae(grid[R-1][c],grid[R-1][c+1],'trunk','Ring Road');}
+  for(let r=0;r<R-1;r++){ae(grid[r][0],grid[r+1][0],'trunk','Ring Road');ae(grid[r][C-1],grid[r+1][C-1],'trunk','Ring Road');}
+  drawRoads();toast('Road grid ready for '+name,2000);
+}
+
+// ══ DRAW ROADS ═══════════════════════════════════════
 function drawRoads(){
-  if(roadLayer) map.removeLayer(roadLayer);
-  roadLayer = L.layerGroup();
-
-  const order = ['service','living_street','residential','unclassified',
-                 'tertiary','secondary','primary','trunk','motorway'];
-
-  // Group edges by highway type
-  const byType = {};
-  G.edges.forEach(e=>{
-    if(!byType[e.hw]) byType[e.hw]=[];
-    byType[e.hw].push(e);
-  });
-
-  order.forEach(type=>{
-    (byType[type]||[]).forEach(e=>{
-      const A = G.nodes[e.from], B = G.nodes[e.to];
-      if(!A||!B) return;
-      L.polyline([[A.lat,A.lng],[B.lat,B.lng]],{
-        color: ROAD_COLORS[type] || ROAD_COLORS.default,
-        weight: ROAD_WEIGHT[type] || ROAD_WEIGHT.default,
-        opacity: type === 'service' ? 0.25 : type === 'residential' ? 0.35 : 0.65,
-        interactive: false
-      }).addTo(roadLayer);
-    });
-  });
-
-  roadLayer.addTo(map);
+  if(rlayer)map.removeLayer(rlayer);rlayer=L.layerGroup();
+  const order=['service','living_street','residential','unclassified','tertiary','secondary','primary','trunk','motorway'];
+  const byT={};G.edges.forEach(e=>{if(!byT[e.hw])byT[e.hw]=[];byT[e.hw].push(e);});
+  order.forEach(t=>{(byT[t]||[]).forEach(e=>{const A=G.nodes[e.from],B=G.nodes[e.to];if(!A||!B)return;L.polyline([[A.lat,A.lng],[B.lat,B.lng]],{color:RCOL[t]||RCOL.default,weight:RWT[t]||RWT.default,opacity:t==='service'?.18:t==='residential'?.3:.6,interactive:false}).addTo(rlayer);});});
+  rlayer.addTo(map);
+  document.getElementById('s-roads').textContent=Math.round(G.edges.length/2);
 }
 
-// ═══════════════════════════════════════════════
-//  SIMULATION
-// ═══════════════════════════════════════════════
-function startSim(){
-  if(!Object.keys(G.nodes).length) return;
-  const n = parseInt(document.getElementById('v-count').value);
-  spawnVehicles(n);
-  running = true;
-  lastTs  = null;
-  simTime = 0;
-  rafId   = requestAnimationFrame(simLoop);
-  document.getElementById('btn-start').disabled = true;
-  document.getElementById('btn-pause').disabled = false;
-  document.getElementById('btn-reset').disabled = false;
-  document.getElementById('btn-spawn').disabled = false;
-  setStatus('SIMULATING','running');
+// ══ HAVERSINE ════════════════════════════════════════
+function hvs(a,b){const R=6371000,f=Math.PI/180,φ1=a.lat*f,φ2=b.lat*f,dφ=(b.lat-a.lat)*f,dλ=(b.lng-a.lng)*f,x=Math.sin(dφ/2)**2+Math.cos(φ1)*Math.cos(φ2)*Math.sin(dλ/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
+
+// ══ DIJKSTRA ════════════════════════════════════════
+class PQ{constructor(){this.h=[];}push(v){this.h.push(v);this._u(this.h.length-1);}pop(){const t=this.h[0],l=this.h.pop();if(this.h.length){this.h[0]=l;this._d(0);}return t;}get size(){return this.h.length;}_u(i){while(i>0){const p=Math.floor((i-1)/2);if(this.h[p].d<=this.h[i].d)break;[this.h[p],this.h[i]]=[this.h[i],this.h[p]];i=p;}}_d(i){const n=this.h.length;while(1){let s=i,l=2*i+1,r=2*i+2;if(l<n&&this.h[l].d<this.h[s].d)s=l;if(r<n&&this.h[r].d<this.h[s].d)s=r;if(s===i)break;[this.h[s],this.h[i]]=[this.h[i],this.h[s]];i=s;}}}
+
+function nearest(lat,lon){let best=null,bd=Infinity;Object.values(G.nodes).forEach(n=>{const d=Math.abs(n.lat-lat)+Math.abs(n.lng-lon);if(d<bd){bd=d;best=n.id;}});return best;}
+
+function dijkstra(s,e){
+  if(!G.nodes[s]||!G.nodes[e])return null;
+  const dist={[s]:0},prev={},pq=new PQ(),vis=new Set();
+  pq.push({id:s,d:0});
+  while(pq.size>0){const {id,d}=pq.pop();if(vis.has(id))continue;vis.add(id);if(id==e)break;(G.adj[id]||[]).forEach(({to,ei})=>{if(vis.has(to))return;const nd=d+G.edges[ei].dist/(Math.max(G.edges[ei].speed,1));if(dist[to]===undefined||nd<dist[to]){dist[to]=nd;prev[to]={from:id,ei};pq.push({id:to,d:nd});}});}
+  if(dist[e]===undefined)return null;
+  const path=[],edges=[];let cur=e;while(cur!==undefined){path.unshift(cur);const p=prev[cur];if(p)edges.unshift(p.ei);cur=p?p.from:undefined;}
+  return{nodes:path,edges};
 }
 
-function togglePause(){
-  running = !running;
-  const btn = document.getElementById('btn-pause');
-  btn.textContent = running ? '⏸ PAUSE' : '▶ RESUME';
-  if(running){
-    lastTs = null;
-    rafId  = requestAnimationFrame(simLoop);
-    setStatus('SIMULATING','running');
-  } else {
-    cancelAnimationFrame(rafId);
-    setStatus('PAUSED','');
-  }
+// ══ ROUTE PLANNING ═══════════════════════════════════
+map.on('click',e=>{
+  if(pickMode==='A'){ptA={lat:e.latlng.lat,lon:e.latlng.lng};setMk('A',ptA);document.getElementById('rpa-val').textContent=ptA.lat.toFixed(4)+', '+ptA.lon.toFixed(4);document.getElementById('rp-hint').style.display='none';pickMode=null;calcRoute();}
+  else if(pickMode==='B'){ptB={lat:e.latlng.lat,lon:e.latlng.lng};setMk('B',ptB);document.getElementById('rpb-val').textContent=ptB.lat.toFixed(4)+', '+ptB.lon.toFixed(4);document.getElementById('rp-hint').style.display='none';pickMode=null;calcRoute();}
+});
+function setMk(t,p){const ico=L.divIcon({className:'',html:'<div class="mk-'+t.toLowerCase()+'"></div>',iconSize:[16,16],iconAnchor:[8,8]});if(t==='A'){if(mkA)map.removeLayer(mkA);mkA=L.marker([p.lat,p.lon],{icon:ico}).addTo(map);}else{if(mkB)map.removeLayer(mkB);mkB=L.marker([p.lat,p.lon],{icon:ico}).addTo(map);}}
+function openRoutePlanner(){if(mode!=='loaded'&&mode!=='route'){toast('Load a city first');return;}mode='route';document.getElementById('route-panel').style.display='block';document.getElementById('overview').style.display='none';}
+function setPick(t){pickMode=t;document.getElementById('rp-hint').textContent='👆 Tap the map to place '+(t==='A'?'START':'DESTINATION');document.getElementById('rp-hint').style.display='block';}
+function calcRoute(){
+  if(!ptA||!ptB)return;
+  const na=nearest(ptA.lat,ptA.lon),nb=nearest(ptB.lat,ptB.lon);
+  const r=dijkstra(na,nb);
+  if(!r||r.nodes.length<2){document.getElementById('rp-info').textContent='⚠ No path found — try different points';return;}
+  routePath=r;
+  let totalDist=0;r.nodes.forEach((id,i)=>{if(i===0)return;totalDist+=hvs(G.nodes[r.nodes[i-1]],G.nodes[id]);});
+  const eta=Math.round(totalDist/45*3.6/60);
+  document.getElementById('rp-info').textContent='📏 '+( totalDist/1000).toFixed(2)+' km  ⏱ ~'+eta+' min';
+  document.getElementById('rp-go').style.display='block';
+  if(routeLayer)map.removeLayer(routeLayer);
+  const coords=r.nodes.map(id=>{const n=G.nodes[id];return n?[n.lat,n.lng]:null;}).filter(Boolean);
+  routeLayer=L.polyline(coords,{color:'#00ffff',weight:6,opacity:.9,dashArray:'10,5'}).addTo(map);
+  map.fitBounds(routeLayer.getBounds(),{padding:[60,60]});
+}
+function cancelRoute(){
+  mode='loaded';pickMode=null;ptA=ptB=routePath=null;
+  if(mkA)map.removeLayer(mkA);if(mkB)map.removeLayer(mkB);mkA=mkB=null;
+  if(routeLayer)map.removeLayer(routeLayer);routeLayer=null;
+  document.getElementById('route-panel').style.display='none';
+  document.getElementById('overview').style.display='block';
 }
 
-function resetSim(restoreButtons=true){
-  cancelAnimationFrame(rafId);
-  running  = false;
-  simTime  = 0;
-  lastTs   = null;
-  vehicles = [];
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  if(restoreButtons){
-    document.getElementById('btn-start').disabled = false;
-    document.getElementById('btn-pause').disabled = true;
-    document.getElementById('btn-pause').textContent = '⏸ PAUSE';
-    document.getElementById('btn-reset').disabled = true;
-    document.getElementById('btn-spawn').disabled = true;
-    setStatus('NETWORK LOADED','');
-  }
-  updateStats();
+// ══ VEHICLE SELECTOR ═════════════════════════════════
+function openVehicleSel(){
+  if(!routePath)return;
+  const g=document.getElementById('vs-grid');g.innerHTML='';
+  VTK.forEach(k=>{const v=VT[k];const d=document.createElement('div');d.className='vc-btn'+(k===playerType?' sel':'');d.style.setProperty('--vc',v.col);if(k===playerType)d.style.borderColor=v.col;d.innerHTML='<span class="vc-icon">'+v.icon+'</span><span class="vc-lbl">'+v.n+'</span>';d.onclick=()=>{playerType=k;document.querySelectorAll('.vc-btn').forEach(b=>{b.classList.remove('sel');b.style.borderColor='';b.style.boxShadow='';});d.classList.add('sel');d.style.borderColor=v.col;};g.appendChild(d);});
+  document.getElementById('route-panel').style.display='none';
+  document.getElementById('vsel').style.display='block';
 }
+function startDrive(){document.getElementById('vsel').style.display='none';enterDrive();}
 
-function spawnMore(){
-  spawnVehicles(25);
-}
+// ══ ENTER DRIVE MODE ═════════════════════════════════
+function enterDrive(){
+  if(!routePath||routePath.nodes.length<2)return;
+  mode='drive';stopBgSim();
 
-function spawnVehicles(count){
-  const connectedNodes = Object.keys(G.adj).filter(id => G.adj[id]?.length > 0);
-  if(!connectedNodes.length) return;
+  // Switch to satellite
+  if(!satMode)toggleMapStyle();
+  setMapDark(false);
 
-  for(let i=0;i<count;i++){
-    const startId = connectedNodes[Math.floor(Math.random()*connectedNodes.length)];
-    const adj     = G.adj[startId];
-    if(!adj||!adj.length) continue;
-
-    const firstLink = adj[Math.floor(Math.random()*adj.length)];
-    const edge      = G.edges[firstLink.ei];
-    const targetId  = connectedNodes[Math.floor(Math.random()*connectedNodes.length)];
-
-    vehicles.push({
-      cur:   startId,
-      nxt:   edge.to,
-      prog:  Math.random(),    // start at random progress
-      spd:   edge.speed * (0.55 + Math.random()*0.45),
-      hw:    edge.hw,
-      dist:  edge.dist,
-      dst:   targetId,
-      wait:  0
-    });
-  }
-}
-
-// ── SIM LOOP ──
-function simLoop(ts){
-  if(!running) return;
-  if(!lastTs) lastTs = ts;
-
-  const dtMs = Math.min(ts - lastTs, 80);
-  lastTs = ts;
-  const multiplier = parseFloat(document.getElementById('v-speed').value);
-  const dt = (dtMs/1000) * multiplier;
-  simTime += dt;
-
-  vehicles.forEach(v=>{
-    if(v.wait > 0){ v.wait -= dt; return; }
-
-    // Move along current edge
-    const mps = (v.spd * 1000) / 3600;
-    v.prog += (mps * dt) / Math.max(v.dist, 1);
-
-    if(v.prog >= 1){
-      v.prog = 0;
-      v.cur  = v.nxt;
-      nextStep(v);
-    }
-  });
-
-  renderVehicles();
-  updateStats();
-  rafId = requestAnimationFrame(simLoop);
-}
-
-function nextStep(v){
-  const adj = G.adj[v.cur];
-  if(!adj||!adj.length){
-    // teleport to avoid dead end
-    const all = Object.keys(G.adj).filter(id=>G.adj[id]?.length>0);
-    if(all.length) v.cur = all[Math.floor(Math.random()*all.length)];
-    return;
-  }
-
-  // Light target bias (30% of the time try to approach destination)
-  let pick;
-  if(v.dst && Math.random()<0.3 && G.nodes[v.dst]){
-    const tgt = G.nodes[v.dst];
-    let best=null, bd=Infinity;
-    adj.forEach(a=>{
-      const nb = G.nodes[G.edges[a.ei].to];
-      if(!nb) return;
-      const d = Math.abs(nb.lat-tgt.lat)+Math.abs(nb.lng-tgt.lng);
-      if(d<bd){ bd=d; best=a; }
-    });
-    pick = best || adj[Math.floor(Math.random()*adj.length)];
-  } else {
-    pick = adj[Math.floor(Math.random()*adj.length)];
-  }
-
-  const e  = G.edges[pick.ei];
-  v.nxt   = e.to;
-  v.spd   = e.speed * (0.55 + Math.random()*0.45);
-  v.hw    = e.hw;
-  v.dist  = e.dist;
-
-  // Reached destination? Pick new one + brief wait
-  if(v.cur === v.dst){
-    const all = Object.keys(G.nodes);
-    v.dst  = all[Math.floor(Math.random()*all.length)];
-    v.wait = 0.3 + Math.random()*2.2;
-  }
-}
-
-// ── CANVAS RENDER ──
-function renderVehicles(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-
-  vehicles.forEach(v=>{
-    const A = G.nodes[v.cur];
-    const B = G.nodes[v.nxt];
-    if(!A||!B) return;
-
-    const lat = A.lat + (B.lat-A.lat)*v.prog;
-    const lng = A.lng + (B.lng-A.lng)*v.prog;
-    const pt  = map.latLngToContainerPoint([lat,lng]);
-
-    // Speed colour
-    let col = SPD_COLORS[SPD_COLORS.length-1].c;
-    for(const s of SPD_COLORS){
-      if(v.spd >= s.thr){ col=s.c; break; }
-    }
-
-    const r = ['motorway','trunk','primary'].includes(v.hw) ? 3 : 2;
-
-    // Glow for fast vehicles
-    if(v.spd > 35){
-      ctx.beginPath();
-      ctx.arc(pt.x,pt.y,r+2.5,0,Math.PI*2);
-      ctx.fillStyle = col+'28';
-      ctx.fill();
-    }
-
-    ctx.beginPath();
-    ctx.arc(pt.x,pt.y,r,0,Math.PI*2);
-    ctx.fillStyle = col;
-    ctx.fill();
-  });
-}
-
-// Redraw on map pan/zoom
-map.on('move zoom', ()=>{ if(vehicles.length) renderVehicles(); });
-
-// ═══════════════════════════════════════════════
-//  STATS UPDATE
-// ═══════════════════════════════════════════════
-function updateStats(){
-  const nNodes = Object.keys(G.nodes).length;
-  const nEdges = Math.round(G.edges.length / 2);
-
-  document.getElementById('s-nodes').textContent = fmt(nNodes);
-  document.getElementById('s-edges').textContent = fmt(nEdges);
-  document.getElementById('s-veh').textContent   = vehicles.length;
-
-  if(vehicles.length > 0){
-    const avgSpd  = vehicles.reduce((s,v)=>s+v.spd,0)/vehicles.length;
-    const nCong   = vehicles.filter(v=>v.spd<10).length;
-    document.getElementById('s-spd').textContent  = Math.round(avgSpd)+' km/h';
-    document.getElementById('s-cong').textContent = Math.round(nCong/vehicles.length*100)+'%';
-
-    const byHw = {};
-    vehicles.forEach(v=>{ byHw[v.hw]=(byHw[v.hw]||0)+1; });
-    const tot = vehicles.length;
-    setBar('db-mw', ((byHw.motorway||0)+(byHw.trunk||0))/tot*100);
-    setBar('db-pr',  (byHw.primary||0)/tot*100);
-    setBar('db-sc', ((byHw.secondary||0)+(byHw.tertiary||0))/tot*100);
-    setBar('db-rs', ((byHw.residential||0)+(byHw.unclassified||0)+(byHw.living_street||0)+(byHw.service||0))/tot*100);
-  } else {
-    document.getElementById('s-spd').textContent  = '—';
-    document.getElementById('s-cong').textContent = '0%';
-  }
-
-  const m = Math.floor(simTime/60), s = Math.floor(simTime%60);
-  document.getElementById('s-time').textContent =
-    String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
-}
-
-function fmt(n){ return n>=1000 ? (n/1000).toFixed(1)+'k' : n; }
-function setBar(id, pct){
-  const el = document.getElementById(id);
-  if(el) el.style.width = Math.min(pct,100).toFixed(1)+'%';
-}
-
-// ═══════════════════════════════════════════════
-//  SUMO EXPORT
-// ═══════════════════════════════════════════════
-function exportNet(){
-  if(!G.edges.length){ alert('Load a city first.'); return; }
-
-  const refLat = parseFloat(cityMeta?.lat || 0);
-  const refLon = parseFloat(cityMeta?.lon || 0);
-
-  let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
-  xml += `<!-- UrbanFlow SUMO Network Export -->\n`;
-  xml += `<!-- City: ${cityMeta?.display_name || 'Unknown'} -->\n`;
-  xml += `<!-- Generated: ${new Date().toISOString()} -->\n`;
-  xml += `<net version="1.9" junctionCornerDetail="5" limitTurnSpeed="5.83"\n`;
-  xml += `     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"\n`;
-  xml += `     xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/net_file.xsd">\n\n`;
-
-  // Junctions
-  xml += `  <!-- ${Object.keys(G.nodes).length} junctions -->\n`;
-  Object.values(G.nodes).slice(0,8000).forEach(n=>{
-    const x = ((n.lng-refLon)*Math.cos(refLat*Math.PI/180)*111320).toFixed(2);
-    const y = ((n.lat-refLat)*111320).toFixed(2);
-    xml += `  <junction id="n${n.id}" type="priority" x="${x}" y="${y}" incLanes="" intLanes="" shape=""/>\n`;
-  });
-
-  xml += `\n  <!-- ${G.edges.length} directed edges -->\n`;
-  G.edges.slice(0,16000).forEach((e,i)=>{
-    const spd    = (e.speed/3.6).toFixed(2);
-    const lanes  = e.hw==='motorway'?3 : e.hw==='trunk'?2 : e.hw==='primary'?2 : 1;
-    const prio   = e.hw==='motorway'?13 : e.hw==='trunk'?12 : e.hw==='primary'?11 :
-                   e.hw==='secondary'?9  : e.hw==='tertiary'?7 : 4;
-    xml += `  <edge id="e${i}" from="n${e.from}" to="n${e.to}" priority="${prio}" numLanes="${lanes}" speed="${spd}" spreadType="center"/>\n`;
-  });
-
-  xml += `\n</net>\n`;
-  download('city.net.xml', xml);
-}
-
-function exportRoutes(){
-  const nodeIds = Object.keys(G.adj).filter(id=>G.adj[id]?.length>0);
-  if(!nodeIds.length){ alert('Load a city first.'); return; }
-
-  let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
-  xml += `<!-- UrbanFlow SUMO Routes Export -->\n`;
-  xml += `<!-- City: ${cityMeta?.display_name || 'Unknown'} -->\n`;
-  xml += `<!-- Generated: ${new Date().toISOString()} -->\n`;
-  xml += `<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"\n`;
-  xml += `        xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/routes_file.xsd">\n\n`;
-
-  // Vehicle types
-  xml += `  <vType id="car"   accel="2.6" decel="4.5" sigma="0.5" length="4.5"  minGap="2.5" maxSpeed="55.56" guiShape="passenger"/>\n`;
-  xml += `  <vType id="bus"   accel="1.2" decel="4.0" sigma="0.3" length="12.0" minGap="3.0" maxSpeed="22.22" guiShape="bus"/>\n`;
-  xml += `  <vType id="truck" accel="1.3" decel="3.5" sigma="0.5" length="10.0" minGap="3.0" maxSpeed="33.33" guiShape="truck"/>\n\n`;
-
-  // Routes — 300 random OD pairs
-  const n = Math.min(300, nodeIds.length);
-  for(let i=0;i<n;i++){
-    const from = nodeIds[Math.floor(Math.random()*nodeIds.length)];
-    const to   = nodeIds[Math.floor(Math.random()*nodeIds.length)];
-    const rnd  = Math.random();
-    const vtyp = rnd<0.88?'car': rnd<0.95?'bus':'truck';
-    const dep  = (i*3).toFixed(1);
-    xml += `  <vehicle id="veh${i}" type="${vtyp}" depart="${dep}" departLane="best" departSpeed="max">\n`;
-    xml += `    <route edges="e${Math.floor(Math.random()*Math.min(G.edges.length,16000))}"/>\n`;
-    xml += `  </vehicle>\n`;
-  }
-
-  xml += `\n</routes>\n`;
-  download('city.rou.xml', xml);
-}
-
-function exportConfig(){
-  const name = (cityMeta?.display_name||'city').split(',')[0].replace(/\s+/g,'_');
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<!-- UrbanFlow SUMO Configuration -->
-<!-- City: ${cityMeta?.display_name || 'Unknown'} -->
-<!-- Generated: ${new Date().toISOString()} -->
-<configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-               xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
-
-  <input>
-    <net-file value="city.net.xml"/>
-    <route-files value="city.rou.xml"/>
-  </input>
-
-  <time>
-    <begin value="0"/>
-    <end value="7200"/>
-    <step-length value="0.1"/>
-  </time>
-
-  <processing>
-    <ignore-route-errors value="true"/>
-    <lateral-resolution value="0.8"/>
-    <time-to-teleport value="300"/>
-  </processing>
-
-  <routing>
-    <device.rerouting.probability value="0.8"/>
-    <device.rerouting.period value="60"/>
-    <device.rerouting.pre-period value="60"/>
-  </routing>
-
-  <output>
-    <tripinfo-output value="${name}_tripinfo.xml"/>
-    <summary-output value="${name}_summary.xml"/>
-    <edgedata-output value="${name}_edgedata.xml"/>
-  </output>
-
-  <gui_only>
-    <start value="true"/>
-    <quit-on-end value="false"/>
-    <zoom value="100"/>
-  </gui_only>
-
-</configuration>
-`;
-  download('city.sumocfg', xml);
-}
-
-function download(filename, content){
-  const blob = new Blob([content],{type:'application/xml'});
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href=url; a.download=filename; a.click();
-  setTimeout(()=>URL.revokeObjectURL(url), 1000);
-}
-
-// ═══════════════════════════════════════════════
-//  UI HELPERS
-// ═══════════════════════════════════════════════
-function setLoading(on, title='', sub=''){
-  const el = document.getElementById('loading');
-  el.classList.toggle('on', on);
-  if(title) document.getElementById('load-title').textContent = title;
-  if(sub)   document.getElementById('load-sub').textContent   = sub;
-}
-
-function setStatus(txt, mode=''){
-  const el = document.getElementById('status-pill');
-  el.textContent = txt;
-  el.className = mode ? `${mode}` : '';
-  el.id='status-pill';
-}
-
-function enableAll(){
-  ['btn-start','ex-net','ex-rou','ex-cfg'].forEach(id=>{
-    document.getElementById(id).disabled=false;
-  });
-}
-
-// ═══════════════════════════════════════════════
-//  PWA
-// ═══════════════════════════════════════════════
-(()=>{
-  // Generate icon via canvas
-  const ic = document.createElement('canvas');
-  ic.width=ic.height=192;
-  const ix = ic.getContext('2d');
-  ix.fillStyle='#070b12'; ix.fillRect(0,0,192,192);
-  // Draw road grid icon
-  ix.strokeStyle='#00e5ff'; ix.lineWidth=8;
-  ix.beginPath(); ix.moveTo(96,10); ix.lineTo(96,182); ix.stroke();
-  ix.beginPath(); ix.moveTo(10,96); ix.lineTo(182,96); ix.stroke();
-  ix.strokeStyle='rgba(0,229,255,.3)'; ix.lineWidth=4;
-  ix.beginPath(); ix.moveTo(50,10); ix.lineTo(50,182); ix.stroke();
-  ix.beginPath(); ix.moveTo(142,10); ix.lineTo(142,182); ix.stroke();
-  ix.beginPath(); ix.moveTo(10,50); ix.lineTo(182,50); ix.stroke();
-  ix.beginPath(); ix.moveTo(10,142); ix.lineTo(182,142); ix.stroke();
-  // Vehicles
-  ['#00e5ff','#ffb300','#00e676'].forEach((c,i)=>{
-    ix.fillStyle=c;
-    ix.beginPath(); ix.arc(50,50+i*32,5,0,Math.PI*2); ix.fill();
-  });
-  const iconData = ic.toDataURL('image/png');
-
-  const manifest = {
-    name:'UrbanFlow — Traffic Simulator',
-    short_name:'UrbanFlow',
-    start_url:'.',
-    display:'standalone',
-    background_color:'#070b12',
-    theme_color:'#00e5ff',
-    icons:[{src:iconData, sizes:'192x192', type:'image/png'}]
+  // Build player vehicle state
+  const nodes=routePath.nodes;
+  const ei0=routePath.edges[0];
+  const e0=ei0!==undefined?G.edges[ei0]:null;
+  pv={
+    routeNodes:nodes,routeEdges:routePath.edges,
+    idx:0,prog:0,
+    lat:G.nodes[nodes[0]].lat,lng:G.nodes[nodes[0]].lng,
+    spd:0,targetSpd:e0?e0.speed:30,
+    hw:e0?e0.hw:'primary',
+    heading:0,type:playerType,done:false,
   };
-  const mb = new Blob([JSON.stringify(manifest)],{type:'application/manifest+json'});
-  document.getElementById('pwa-manifest').href = URL.createObjectURL(mb);
+  driveT0=Date.now();driveDist=0;driveSpeeds=[];
+  accelOn=false;brakeOn=false;smoothHdgDeg=0;
 
-  // Service worker
-  if('serviceWorker' in navigator){
-    const sw = `
-self.addEventListener('install',  e=>self.skipWaiting());
-self.addEventListener('activate', e=>e.waitUntil(clients.claim()));
-self.addEventListener('fetch',    e=>e.respondWith(
-  fetch(e.request).catch(()=>new Response('Offline - check connection'))
-));`;
-    const swBlob = new Blob([sw],{type:'text/javascript'});
-    navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(()=>{});
+  // UI switches
+  document.getElementById('searchbar').style.display='none';
+  document.getElementById('overview').style.display='none';
+  document.getElementById('map-toggle').style.display='none';
+  document.getElementById('nav-strip').style.display='block';
+  document.getElementById('spd-badge').style.display='block';
+  document.getElementById('compass').style.display='flex';
+  document.getElementById('dashboard').style.display='block';
+  document.getElementById('dash-veh-lbl').textContent=VT[playerType].icon+' '+VT[playerType].n.toUpperCase();
+
+  // Init audio on first user interaction
+  if(!audioCtx)initAudio();
+
+  // Spawn background traffic
+  spawnBg(50);
+
+  map.setView([pv.lat,pv.lng],16);
+  updateCamera3D(true);
+  lastTs=null;
+  requestAnimationFrame(driveLoop);
+}
+
+// ══ DRIVE LOOP ════════════════════════════════════════
+let lastTs=null;
+function driveLoop(ts){
+  if(mode!=='drive')return;
+  if(!lastTs)lastTs=ts;
+  const dt=Math.min((ts-lastTs)/1000,.05);lastTs=ts;
+  updatePV(dt);
+  updateBgVehs(dt*1.5);
+  renderAll();
+  updateDashboard();
+  updateCamera3D(false);
+  requestAnimationFrame(driveLoop);
+}
+
+function updatePV(dt){
+  if(!pv||pv.done)return;
+  const nodes=pv.routeNodes,vtcfg=VT[pv.type];
+  if(pv.idx>=nodes.length-1){arrive();return;}
+  const A=G.nodes[nodes[pv.idx]],B=G.nodes[nodes[pv.idx+1]];
+  if(!A||!B)return;
+  const ei=pv.routeEdges[pv.idx];
+  const edge=ei!==undefined?G.edges[ei]:null;
+  const roadSpd=edge?edge.speed:30;
+  const roadName=edge?(edge.name||edge.hw):'road';
+  pv.hw=edge?edge.hw:'primary';
+
+  // Physics: smooth acceleration toward target
+  let ts2=roadSpd;
+  if(accelOn)ts2=Math.min(vtcfg.maxSpd,ts2+vtcfg.acc*4);
+  if(brakeOn)ts2=Math.max(0,ts2-vtcfg.acc*6);
+  pv.targetSpd=ts2;
+  const diff=pv.targetSpd-pv.spd;
+  pv.spd+=diff*dt*(accelOn?2.5:brakeOn?4.5:1.8);
+  pv.spd=Math.max(0,Math.min(vtcfg.maxSpd,pv.spd));
+
+  // Move
+  const dist=hvs(A,B)||1;
+  pv.prog+=pv.spd*1000/3600*dt/dist;
+  driveDist+=pv.spd*1000/3600*dt;
+  driveSpeeds.push(pv.spd);
+
+  // Position
+  pv.lat=A.lat+(B.lat-A.lat)*pv.prog;
+  pv.lng=A.lng+(B.lng-A.lng)*pv.prog;
+
+  // Heading from screen-space direction
+  const pA=map.latLngToContainerPoint([A.lat,A.lng]);
+  const pB=map.latLngToContainerPoint([B.lat,B.lng]);
+  pv.heading=Math.atan2(pB.y-pA.y,pB.x-pA.x);
+
+  if(pv.prog>=1){pv.prog=0;pv.idx++;}
+
+  // Nav info
+  let rem=0;for(let i=pv.idx;i<nodes.length-1;i++){const na=G.nodes[nodes[i]],nb=G.nodes[nodes[i+1]];if(na&&nb)rem+=hvs(na,nb);}
+  document.getElementById('nav-road').textContent=roadName;
+  document.getElementById('nav-dist').textContent=rem>1000?(rem/1000).toFixed(1)+' km remaining':Math.round(rem)+' m remaining';
+  document.getElementById('dash-road-name').textContent=roadName;
+  document.getElementById('dash-remain').textContent=rem>1000?(rem/1000).toFixed(1)+' km to destination':(Math.round(rem)+' m to destination');
+
+  // Turn arrow
+  setTurnArrow(nodes,pv.idx);
+
+  // Engine sound
+  updateEngineSound(pv.spd,vtcfg.maxSpd,accelOn);
+}
+
+function setTurnArrow(nodes,idx){
+  if(idx>=nodes.length-2){document.getElementById('nav-arrow').textContent='⬆';return;}
+  const A=G.nodes[nodes[idx]],B=G.nodes[nodes[idx+1]],C=G.nodes[nodes[Math.min(idx+2,nodes.length-1)]];
+  if(!A||!B||!C)return;
+  const a1=Math.atan2(B.lat-A.lat,B.lng-A.lng);
+  const a2=Math.atan2(C.lat-B.lat,C.lng-B.lng);
+  let diff=(a2-a1)*180/Math.PI;while(diff>180)diff-=360;while(diff<-180)diff+=360;
+  if(diff>25)document.getElementById('nav-arrow').textContent='↗';
+  else if(diff>50)document.getElementById('nav-arrow').textContent='➡';
+  else if(diff<-25)document.getElementById('nav-arrow').textContent='↖';
+  else if(diff<-50)document.getElementById('nav-arrow').textContent='⬅';
+  else document.getElementById('nav-arrow').textContent='⬆';
+}
+
+function accel(on){accelOn=!!on;}
+function brake(on){brakeOn=!!on;}
+function doOvertake(){
+  if(!pv)return;
+  const vtcfg=VT[pv.type];
+  pv.spd=Math.min(vtcfg.maxSpd,pv.spd+35);
+  pv.targetSpd=vtcfg.maxSpd*.9;
+  const f=document.getElementById('ov-flash');f.style.display='block';f.style.animation='none';
+  void f.offsetWidth;f.style.animation='flash .8s ease forwards';
+  setTimeout(()=>f.style.display='none',900);
+}
+
+// ══ RENDER VEHICLES ══════════════════════════════════
+function renderAll(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const zl=map.getZoom();
+  const base=zl<13?.5:zl<15?.9:zl<17?1.3:1.8;
+
+  // Background vehicles
+  vehs.forEach(v=>{
+    const A=G.nodes[v.cur],B=G.nodes[v.nxt];if(!A||!B)return;
+    const lat=A.lat+(B.lat-A.lat)*v.prog,lng=A.lng+(B.lng-A.lng)*v.prog;
+    const pt=map.latLngToContainerPoint([lat,lng]);
+    const pA2=map.latLngToContainerPoint([A.lat,A.lng]),pB2=map.latLngToContainerPoint([B.lat,B.lng]);
+    const h=Math.atan2(pB2.y-pA2.y,pB2.x-pA2.x);
+    drawV(ctx,pt.x,pt.y,h,v.type,VT[v.type].col,base*.75);
+  });
+
+  // Player vehicle: larger + glow
+  if(pv&&!pv.done){
+    const pt=map.latLngToContainerPoint([pv.lat,pv.lng]);
+    const vc=VT[pv.type];
+    // Glow shadow
+    ctx.save();ctx.shadowBlur=24;ctx.shadowColor=vc.col;
+    drawV(ctx,pt.x,pt.y,pv.heading,pv.type,vc.col,base*2);
+    ctx.restore();
+    // White halo
+    ctx.save();ctx.globalAlpha=.3;
+    drawV(ctx,pt.x,pt.y,pv.heading,pv.type,'#ffffff',base*2.5);
+    ctx.restore();
+    // Vehicle
+    drawV(ctx,pt.x,pt.y,pv.heading,pv.type,vc.col,base*2);
   }
-})();
+}
+
+function drawV(c,x,y,h,type,col,sc){
+  const cfg=VT[type]||VT.car,w=cfg.w*sc,ht=cfg.h*sc;
+  c.save();c.translate(x,y);c.rotate(h);
+  if(type==='bike'){c.fillStyle=col;c.beginPath();c.ellipse(0,0,w/2,ht/2,0,0,Math.PI*2);c.fill();c.fillStyle='rgba(255,255,255,.7)';c.beginPath();c.arc(w*.3,0,ht*.25,0,Math.PI*2);c.fill();}
+  else if(type==='auto'){c.fillStyle=col;c.beginPath();c.moveTo(w*.5,0);c.lineTo(-w*.4,ht*.45);c.lineTo(-w*.4,-ht*.45);c.closePath();c.fill();}
+  else{
+    rr(c,-w/2,-ht/2,w,ht,ht*.35);c.fillStyle=col;c.fill();
+    if(type==='car'){c.fillStyle='rgba(140,220,255,.5)';rr(c,w*.05,-ht*.42,w*.38,ht*.84,ht*.18);c.fill();}
+    else if(type==='bus'){for(let i=-2;i<=1;i++){c.fillStyle='rgba(140,220,255,.3)';c.fillRect(i*w*.22+w*.01,-ht*.38,w*.18,ht*.76);}}
+    else if(type==='truck'){c.fillStyle='rgba(140,220,255,.4)';rr(c,w*.15,-ht*.42,w*.32,ht*.84,ht*.18);c.fill();}
+    c.fillStyle='rgba(255,245,140,.95)';c.beginPath();c.arc(w*.46,-ht*.28,ht*.16,0,Math.PI*2);c.fill();c.beginPath();c.arc(w*.46,ht*.28,ht*.16,0,Math.PI*2);c.fill();
+    c.fillStyle='rgba(255,50,50,.9)';c.beginPath();c.arc(-w*.46,-ht*.28,ht*.13,0,Math.PI*2);c.fill();c.beginPath();c.arc(-w*.46,ht*.28,ht*.13,0,Math.PI*2);c.fill();
+  }
+  c.restore();
+}
+function rr(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.lineTo(x+w-r,y);c.quadraticCurveTo(x+w,y,x+w,y+r);c.lineTo(x+w,y+h-r);c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);c.lineTo(x+r,y+h);c.quadraticCurveTo(x,y+h,x,y+h-r);c.lineTo(x,y+r);c.quadraticCurveTo(x,y,x+r,y);c.closePath();}
+
+map.on('move zoom',()=>{if(mode!=='drive')renderBg();});
+function renderBg(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const b=map.getZoom()<13?.5:map.getZoom()<15?.9:1.1;
+  vehs.forEach(v=>{const A=G.nodes[v.cur],B=G.nodes[v.nxt];if(!A||!B)return;const lat=A.lat+(B.lat-A.lat)*v.prog,lng=A.lng+(B.lng-A.lng)*v.prog;const pt=map.latLngToContainerPoint([lat,lng]);const pA=map.latLngToContainerPoint([A.lat,A.lng]),pB=map.latLngToContainerPoint([B.lat,B.lng]);drawV(ctx,pt.x,pt.y,Math.atan2(pB.y-pA.y,pB.x-pA.x),v.type,VT[v.type].col,b);});
+}
+
+// ══ DASHBOARD ═══════════════════════════════════════
+function updateDashboard(){
+  if(!pv)return;
+  const spd=Math.round(pv.spd);const vtcfg=VT[pv.type];
+  document.getElementById('spd-num').textContent=spd;
+  document.getElementById('spd-limit').textContent='⬆'+Math.round(vtcfg.maxSpd);
+  document.getElementById('dash-spd-large').textContent=spd;
+
+  // Speedometer canvas
+  drawSpeedo(pv.spd,vtcfg.maxSpd);
+
+  // RPM bar
+  const pct=pv.spd/vtcfg.maxSpd;
+  const bar=document.getElementById('rpm-bar');
+  bar.style.width=(pct*100).toFixed(1)+'%';
+  bar.style.background=pct>.8?'#ff3c5a':pct>.5?'#ffcc00':'#00dc64';
+}
+
+function drawSpeedo(spd,maxSpd){
+  const c=document.getElementById('speedo-canvas'),x=c.getContext('2d');
+  const cx=45,cy=45,r=36,sa=Math.PI*.78,ea=Math.PI*2.22;
+  c.clearRect(0,0,90,90);
+  // Track
+  x.beginPath();x.arc(cx,cy,r,sa,ea);x.strokeStyle='rgba(255,255,255,.1)';x.lineWidth=7;x.lineCap='round';x.stroke();
+  // Fill
+  const pct=Math.min(spd/maxSpd,1),angle=sa+pct*(ea-sa);
+  const col=pct>.8?'#ff3c5a':pct>.5?'#ffcc00':'#00e676';
+  x.beginPath();x.arc(cx,cy,r,sa,angle);x.strokeStyle=col;x.lineWidth=7;x.lineCap='round';x.shadowBlur=12;x.shadowColor=col;x.stroke();
+  x.shadowBlur=0;
+  // Speed text
+  x.fillStyle='#fff';x.font='bold 17px Courier New';x.textAlign='center';x.textBaseline='middle';x.fillText(Math.round(spd),cx,cy);
+}
+
+// ══ BACKGROUND TRAFFIC ═══════════════════════════════
+function spawnBg(n){
+  const ns=Object.keys(G.adj).filter(id=>G.adj[id]&&G.adj[id].length>0);if(!ns.length)return;
+  vehs=[];
+  for(let i=0;i<Math.min(n,ns.length);i++){
+    const sid=ns[Math.floor(Math.random()*ns.length)],adj=G.adj[sid];if(!adj?.length)continue;
+    const lk=adj[Math.floor(Math.random()*adj.length)],e=G.edges[lk.ei];
+    let tp='car';let rv=Math.random(),cu=0;for(const k of VTK){cu+=VT[k].pct;if(rv<=cu){tp=k;break;}}
+    vehs.push({cur:sid,nxt:e.to,prog:Math.random(),spd:e.speed*(0.55+Math.random()*.45),hw:e.hw,dist:e.dist,dst:ns[Math.floor(Math.random()*ns.length)],wait:0,type:tp});
+  }
+}
+function updateBgVehs(dt){
+  vehs.forEach(v=>{
+    if(v.wait>0){v.wait-=dt;return;}
+    v.prog+=v.spd*1000/3600*dt/Math.max(v.dist,1);
+    if(v.prog>=1){v.prog=0;v.cur=v.nxt;nextBgEdge(v);}
+  });
+}
+function nextBgEdge(v){
+  const adj=G.adj[v.cur];if(!adj?.length){const all=Object.keys(G.adj).filter(id=>G.adj[id]?.length>0);if(all.length)v.cur=all[Math.floor(Math.random()*all.length)];return;}
+  const lk=adj[Math.floor(Math.random()*adj.length)],e=G.edges[lk.ei];
+  v.nxt=e.to;v.spd=e.speed*(0.55+Math.random()*.45);v.hw=e.hw;v.dist=e.dist;
+}
+function startBgSim(){
+  bgRunning=true;bgLast=null;
+  const frame=ts=>{if(!bgRunning)return;if(!bgLast)bgLast=ts;const dt=Math.min((ts-bgLast)/1000,.08);bgLast=ts;updateBgVehs(dt);renderBg();updateOvStats();bgT+=dt;bgRaf=requestAnimationFrame(frame);};
+  bgRaf=requestAnimationFrame(frame);
+}
+function stopBgSim(){bgRunning=false;if(bgRaf)cancelAnimationFrame(bgRaf);}
+function toggleBgSim(){if(bgRunning){stopBgSim();ctx.clearRect(0,0,canvas.width,canvas.height);document.getElementById('btn-sim').textContent='▶ Traffic Sim';}else{if(!vehs.length)spawnBg(100);startBgSim();document.getElementById('btn-sim').textContent='⏹ Stop Sim';}}
+function updateOvStats(){document.getElementById('s-vehs').textContent=vehs.length;if(vehs.length>0){const a=vehs.reduce((s,v)=>s+v.spd,0)/vehs.length;document.getElementById('s-spd').textContent=Math.round(a)+'km/h';}const m=Math.floor(bgT/60),s=Math.floor(bgT%60);document.getElementById('s-time').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');}
+
+// ══ ARRIVAL ══════════════════════════════════════════
+function arrive(){
+  if(!pv||pv.done)return;pv.done=true;mode='arrived';stopEngineSound();
+  const elapsed=(Date.now()-driveT0)/1000;
+  const avgSpd=driveSpeeds.length?driveSpeeds.reduce((s,v)=>s+v,0)/driveSpeeds.length:0;
+  document.getElementById('arr-s').textContent='You drove '+VT[playerType].icon+' '+VT[playerType].n+' in '+pendName;
+  document.getElementById('arr-dist').textContent=(driveDist/1000).toFixed(2)+' km';
+  document.getElementById('arr-time').textContent=Math.floor(elapsed/60)+'m '+Math.floor(elapsed%60)+'s';
+  document.getElementById('arr-spd').textContent=Math.round(avgSpd)+' km/h';
+  document.getElementById('arr-veh').textContent=VT[playerType].icon;
+  document.getElementById('arrival').style.display='flex';
+}
+function closeArrival(){document.getElementById('arrival').style.display='none';endDrive();}
+function endDrive(){
+  mode='loaded';pv=null;accelOn=false;brakeOn=false;stopEngineSound();
+  // Restore overview
+  if(satMode)toggleMapStyle();
+  setMapDark(true);
+  document.getElementById('map3d').style.transform='none';
+  document.getElementById('nav-strip').style.display='none';
+  document.getElementById('spd-badge').style.display='none';
+  document.getElementById('compass').style.display='none';
+  document.getElementById('dashboard').style.display='none';
+  document.getElementById('searchbar').style.display='block';
+  document.getElementById('overview').style.display='block';
+  document.getElementById('map-toggle').style.display='block';
+  if(routeLayer)map.removeLayer(routeLayer);routeLayer=null;
+  if(mkA)map.removeLayer(mkA);if(mkB)map.removeLayer(mkB);mkA=mkB=null;
+  ptA=ptB=routePath=null;
+  map.setView([pendLat||20,pendLon||0],13);
+  spawnBg(100);startBgSim();
+}
+
+// ══ CLAUDE API ═══════════════════════════════════════
+async function claude(prompt,maxTok){
+  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:maxTok,messages:[{role:'user',content:prompt}]})});
+  if(!r.ok)throw new Error('API '+r.status);const d=await r.json();return(d.content&&d.content[0]&&d.content[0].text)||'';
+}
+function jarr(t){if(!t)return null;let s=t.replace(/```json\n?|```\n?/gi,'').trim();try{const r=JSON.parse(s);if(Array.isArray(r))return r;}catch(e){}const i1=s.indexOf('['),i2=s.lastIndexOf(']');if(i1>=0&&i2>i1){try{return JSON.parse(s.slice(i1,i2+1));}catch(e){}}return null;}
+function jobj(t){if(!t)return null;let s=t.replace(/```json\n?|```\n?/gi,'').trim();try{const r=JSON.parse(s);if(r&&typeof r==='object'&&!Array.isArray(r))return r;}catch(e){}const i1=s.indexOf('{'),i2=s.lastIndexOf('}');if(i1>=0&&i2>i1){try{return JSON.parse(s.slice(i1,i2+1));}catch(e){}}return null;}
+
+// ══ UI HELPERS ════════════════════════════════════════
+function setOv(on,t,s){document.getElementById('lov').classList.toggle('on',on);if(t)document.getElementById('lt').textContent=t;if(s)document.getElementById('ls').textContent=s;}
+let tT;
+function toast(msg,dur=4000){const e=document.getElementById('toast');e.textContent=msg;e.style.cssText='display:block;opacity:1';clearTimeout(tT);tT=setTimeout(()=>{e.style.opacity='0';setTimeout(()=>e.style.display='none',400);},dur);}
+
+// ══ PWA ═══════════════════════════════════════════════
+(function(){
+  const ic=document.createElement('canvas');ic.width=ic.height=192;const ix=ic.getContext('2d');
+  ix.fillStyle='#000';ix.fillRect(0,0,192,192);ix.strokeStyle='#00e5ff';ix.lineWidth=8;
+  ix.beginPath();ix.moveTo(96,10);ix.lineTo(96,182);ix.stroke();ix.beginPath();ix.moveTo(10,96);ix.lineTo(182,96);ix.stroke();
+  const m={name:'UrbanFlow Drive',short_name:'UrbanFlow',start_url:'.',display:'standalone',background_color:'#000',theme_color:'#00e5ff',icons:[{src:ic.toDataURL(),sizes:'192x192',type:'image/png'}]};
+  document.getElementById('mf').href=URL.createObjectURL(new Blob([JSON.stringify(m)],{type:'application/manifest+json'}));
+  if('serviceWorker' in navigator){const sw="self.addEventListener('install',e=>self.skipWaiting());self.addEventListener('activate',e=>e.waitUntil(clients.claim()));self.addEventListener('fetch',e=>e.respondWith(fetch(e.request).catch(()=>new Response('Offline'))));";navigator.serviceWorker.register(URL.createObjectURL(new Blob([sw],{type:'text/javascript'}))).catch(()=>{});}
+}());
 </script>
 </body>
 </html>
