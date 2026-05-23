@@ -387,7 +387,7 @@ function spawnTraffic(){
       spd:(18+Math.random()*32)*(same?1:-1),
       vt:vt,
       same:same,
-      lane:7+Math.random()*5
+      lane:14+Math.random()*6
     });
   }
 }
@@ -417,50 +417,73 @@ function renderAll(){
   var sc=getZScale();
   drawLaneMarkings();
   var N=routeCoords.length;
+
   trafficVs.forEach(function(v){
+    if(v.idx<0||v.idx>=N)return;
     var A=routeCoords[v.idx];
+    // Forward route segment (always A→next) for lane-offset only
     var Bfwd=routeCoords[Math.min(v.idx+1,N-1)];
     if(!A||!Bfwd)return;
     var pA=map.latLngToContainerPoint([A.lat,A.lng]);
     var pBfwd=map.latLngToContainerPoint([Bfwd.lat,Bfwd.lng]);
-    var fdx=pBfwd.x-pA.x,fdy=pBfwd.y-pA.y,flen=Math.sqrt(fdx*fdx+fdy*fdy)||1;
-    // Vehicle position (oncoming go backward along route)
-    var nxt=v.same?Math.min(v.idx+1,N-1):Math.max(v.idx-1,0);
-    var C=routeCoords[nxt];
-    var pC=map.latLngToContainerPoint([C.lat,C.lng]);
-    var cx=pA.x+(pC.x-pA.x)*v.prog, cy=pA.y+(pC.y-pA.y)*v.prog;
-    // LEFT perpendicular of FORWARD route direction (consistent for all vehicles)
+    var fdx=pBfwd.x-pA.x, fdy=pBfwd.y-pA.y, flen=Math.sqrt(fdx*fdx+fdy*fdy)||1;
+
+    // Vehicle actual target index (direction of travel)
+    var tgt=v.same?Math.min(v.idx+1,N-1):Math.max(v.idx-1,0);
+    var T=routeCoords[tgt];
+    var pT=map.latLngToContainerPoint([T.lat,T.lng]);
+    // Movement vector
+    var mvx=pT.x-pA.x, mvy=pT.y-pA.y, mvlen=Math.sqrt(mvx*mvx+mvy*mvy)||1;
+    // Vehicle position along movement vector
+    var cx=pA.x+mvx*v.prog, cy=pA.y+mvy*v.prog;
+
+    // Lane offset: perpendicular of FORWARD route direction (consistent reference)
+    // Left perp of (fdx,fdy) in screen = (fdy/flen, -fdx/flen)
     var lx=fdy/flen, ly=-fdx/flen;
-    // India LHD: same-dir LEFT (+1), oncoming RIGHT (-1)
+    // India LHD: same-dir on LEFT (+1), oncoming on RIGHT (−1)
     var side=v.same?1:-1;
     cx+=lx*v.lane*sc*side;
     cy+=ly*v.lane*sc*side;
-    // Emoji heading: 0=north,pi/2=east; oncoming = reverse
-    var fhdg=Math.atan2(fdx,-fdy);
-    var vhdg=v.same?fhdg:fhdg+Math.PI;
+
+    // Heading from ACTUAL movement direction, not route forward
+    // mvx/mvy is the screen vector the vehicle moves along
+    var vhdg=Math.atan2(mvx,-mvy);  // 0=up/north, PI/2=right/east
     drawEmoji(cx,cy,vhdg,v.vt.em,v.vt.sz*sc);
   });
-  // Player (canvas-drawn cyan car)
+
+  // Player vehicle
   if(pv&&!pv.done){
     var pp=map.latLngToContainerPoint([pv.lat,pv.lng]);
-    var fwdX=Math.sin(pv.heading),fwdY=-Math.cos(pv.heading);
-    var lx=fwdY,ly=-fwdX;
-    var off=10*sc;
-    var px=pp.x+lx*off,py=pp.y+ly*off;
-    vctx.save();vctx.shadowBlur=18*sc;vctx.shadowColor='rgba(0,200,255,.8)';
-    drawVehicle(px,py,pv.heading,{hw:6,hl:13,body:'#00d4ff',roof:'#0090aa'},sc*1.1);
+    // pv.heading = atan2(dLng,dLat) = route geo heading
+    // Convert to screen heading: atan2(sin(h),−cos(h)) already = atan2(dLng,−dLat)
+    // but we stored it as Math.atan2(B.lng−A.lng, B.lat−A.lat)
+    // forward screen: sin(pv.heading) → x, −cos(pv.heading) → y
+    var fwdX=Math.sin(pv.heading), fwdY=-Math.cos(pv.heading);
+    // Left perpendicular
+    var lpx=fwdY, lpy=-fwdX;
+    var laneOff=14*sc;   // wider lane separation
+    var px=pp.x+lpx*laneOff, py=pp.y+lpy*laneOff;
+    // Screen heading for the player
+    var playerHdg=Math.atan2(fwdX,-fwdY);  // atan2(x, -y) for north=0 convention
+    vctx.save(); vctx.shadowBlur=16*sc; vctx.shadowColor='rgba(0,200,255,.85)';
+    drawVehicle(px,py,pv.heading,{hw:6,hl:13,body:'#00d4ff',roof:'#0090aa'},sc*1.05);
     vctx.restore();
-    drawVehicle(px,py,pv.heading,{hw:6,hl:13,body:'#00d4ff',roof:'#0090aa'},sc*1.1);
+    drawVehicle(px,py,pv.heading,{hw:6,hl:13,body:'#00d4ff',roof:'#0090aa'},sc*1.05);
+    // YOU label
     var lw=30*sc,lh=13*sc,lbx=px-lw/2,lby=py-14*sc-lh-2;
-    vctx.fillStyle='rgba(0,15,30,.85)';rrect(lbx,lby,lw,lh,4);vctx.fill();
+    vctx.fillStyle='rgba(0,15,30,.85)'; rrect(lbx,lby,lw,lh,4); vctx.fill();
     vctx.fillStyle='#00d4ff';
     vctx.font='bold '+(Math.round(8.5*sc))+'px -apple-system,sans-serif';
-    vctx.textAlign='center';vctx.textBaseline='middle';
+    vctx.textAlign='center'; vctx.textBaseline='middle';
     vctx.fillText('YOU',px,lby+lh/2);
   }
 }
 
 function drawEmoji(x,y,hdg,em,sz){
+  // Emoji cars (e.g. 🚗) face RIGHT by default.
+  // Our hdg: 0=north/up, PI/2=east/right, PI=south/down
+  // To make emoji face hdg: rotate canvas by (hdg - PI/2)
+  // because at hdg=PI/2 (east), rotation=0 keeps emoji facing right ✓
   vctx.save();
   vctx.translate(x,y);
   vctx.rotate(hdg-Math.PI/2);
@@ -648,9 +671,10 @@ function setNav(arrow,action,street){
 function updateCam(ts){
   if(!pv||pv.done)return;
   if(ts-camLast<280)return;camLast=ts;
-  var lm=35,dLat=Math.cos(pv.heading)*lm/111320;
+  var lm=55,dLat=Math.cos(pv.heading)*lm/111320;
   var dLon=Math.sin(pv.heading)*lm/(111320*Math.cos(pv.lat*Math.PI/180));
-  var z=pv.spd>70?16.5:pv.spd>50?17:pv.spd>25?17.5:18;
+  // Pull back camera so more road/lane context is visible
+  var z=pv.spd>70?15.5:pv.spd>50?16:pv.spd>25?16.5:17;
   map.setView([pv.lat+dLat,pv.lng+dLon],z,{animate:false});
 }
 
