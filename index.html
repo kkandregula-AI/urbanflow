@@ -386,7 +386,7 @@ function spawnTraffic(){
       spd:(20+Math.random()*25)*(same?1:-1),
       vt:vt,
       same:same,
-      lane:3+Math.random()*1.5
+      lane:5+Math.random()*2
     });
   }
 }
@@ -431,9 +431,11 @@ function renderAll(){
     var dx=pB.x-pA.x,dy=pB.y-pA.y,len=Math.sqrt(dx*dx+dy*dy)||1;
     var cx=pA.x+dx*v.prog, cy=pA.y+dy*v.prog;
     // Left perpendicular in screen (90deg CW of forward): (dy/len, -dx/len)
-    var lx=dy/len, ly=-dx/len;
+    // India LHD: same-dir/player on RIGHT side of road
+    var lx=-dy/len, ly=dx/len;
     // India LHD: same-dir goes on LEFT lane, oncoming on their LEFT (our RIGHT)
-    var side=v.same?1:-1;
+    // India LHD: same-dir RIGHT(-1), oncoming LEFT(+1)
+    var side=v.same?-1:1;
     cx+=lx*v.lane*sc*side; cy+=ly*v.lane*sc*side;
     // heading: forward in screen space = atan2(dx,-dy) matches drawVehicle convention
     var A2=routeCoords[v.idx];var T2=routeCoords[v.same?Math.min(v.idx+1,N-1):Math.max(v.idx-1,0)];if(!A2||!T2)return;
@@ -648,7 +650,7 @@ function updateCam(ts){
   if(ts-camLast<280)return;camLast=ts;
   var lm=55,dLat=Math.cos(pv.heading)*lm/111320;
   var dLon=Math.sin(pv.heading)*lm/(111320*Math.cos(pv.lat*Math.PI/180));
-  var z=pv.spd>70?15.5:pv.spd>50?16:pv.spd>25?16.5:17;
+  var z=pv.spd>70?16:pv.spd>50?17:pv.spd>25?17.5:18;
   map.setView([pv.lat+dLat,pv.lng+dLon],z,{animate:false});
 }
 
