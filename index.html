@@ -209,18 +209,18 @@ var CITIES=[
 
 // Emoji vehicles
 var VEH=[
-  {em:'🚗',sz:16},
-  {em:'🚙',sz:16},
-  {em:'🚕',sz:16},
-  {em:'🛺',sz:14},
-  {em:'🚌',sz:20},
-  {em:'🚛',sz:18},
-  {em:'🏍️',sz:13},
-  {em:'🚐',sz:16},
-  {em:'🚗',sz:16},
-  {em:'🚕',sz:16},
-  {em:'🛺',sz:14},
-  {em:'🚙',sz:16},
+  {em:'🚗',sz:12},
+  {em:'🚙',sz:12},
+  {em:'🚕',sz:12},
+  {em:'🛺',sz:12},
+  {em:'🚌',sz:12},
+  {em:'🚛',sz:12},
+  {em:'🏍️',sz:12},
+  {em:'🚐',sz:12},
+  {em:'🚗',sz:12},
+  {em:'🚕',sz:12},
+  {em:'🛺',sz:12},
+  {em:'🚙',sz:12},
 ];
 
 var map,pickMode=null,ptA=null,ptB=null,mkA,mkB,rtLayer;
@@ -385,7 +385,7 @@ function spawnTraffic(){
       spd:(20+Math.random()*25)*(same?1:-1),
       vt:vt,
       same:same,
-      lane:8+Math.random()*2
+      lane:14+Math.random()*2
     });
   }
 }
@@ -450,7 +450,7 @@ function renderAll(){
     var fwdX=Math.sin(pv.heading),fwdY=-Math.cos(pv.heading);
     // Left perpendicular (India LHD: player on left lane)
     var lx=fwdY,ly=-fwdX; // 90deg CW
-    var laneOff=9*sc;
+    var laneOff=14*sc;
     var px=pp.x+lx*laneOff, py=pp.y+ly*laneOff;
     // Glow
     vctx.save();vctx.shadowBlur=20*sc;vctx.shadowColor='rgba(0,200,255,.8)';
@@ -649,7 +649,7 @@ function updateCam(ts){
   if(ts-camLast<280)return;camLast=ts;
   var lm=55,dLat=Math.cos(pv.heading)*lm/111320;
   var dLon=Math.sin(pv.heading)*lm/(111320*Math.cos(pv.lat*Math.PI/180));
-  var z=pv.spd>70?16.5:pv.spd>50?17.5:pv.spd>25?18:18.5;
+  var z=pv.spd>70?17:pv.spd>50?17.5:pv.spd>25?18.5:19;
   map.setView([pv.lat+dLat,pv.lng+dLon],z,{animate:false});
 }
 
