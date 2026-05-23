@@ -376,16 +376,17 @@ function startPreview(){
 function spawnTraffic(){
   trafficVs=[];
   var N=routeCoords.length;
-  for(var i=0;i<22;i++){
+  for(var i=0;i<18;i++){
     var vt=VEH[Math.floor(Math.random()*VEH.length)];
     var same=Math.random()>0.38;
+    var startIdx=Math.floor(i/18*(N-5));
     trafficVs.push({
-      idx:Math.floor(Math.random()*Math.max(1,N-5)),
+      idx:Math.max(0,startIdx+Math.floor(Math.random()*8-4)),
       prog:Math.random(),
-      spd:(18+Math.random()*32)*(same?1:-1),
+      spd:(20+Math.random()*25)*(same?1:-1),
       vt:vt,
       same:same,
-      lane:14+Math.random()*6
+      lane:3+Math.random()*1.5
     });
   }
 }
@@ -582,7 +583,13 @@ function stepSpeed(){
 function stepName(){
   if(!routeSteps.length)return '-';
   var d=0;
-  for(var i=0;i<routeSteps.length;i++){d+=routeSteps[i].distance||0;if(driveDist<d)return routeSteps[i].name||routeSteps[i].ref||'road';}
+  for(var i=0;i<routeSteps.length;i++){
+    d+=routeSteps[i].distance||0;
+    if(driveDist<d){
+      var n=routeSteps[i].name||routeSteps[i].ref||'';
+      return n.length>20?n.slice(0,18)+'....':n||'road';
+    }
+  }
   return routeSteps[routeSteps.length-1].name||'road';
 }
 
