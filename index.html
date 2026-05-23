@@ -207,21 +207,20 @@ var CITIES=[
   {n:"Sydney",c:"Australia",la:-33.8688,lo:151.2093,ic:"&#127944;"},
 ];
 
-// Vehicle templates: hw=half-width, hl=half-length (hl>hw = longer than wide)
+// Emoji vehicles - India traffic
 var VEH=[
-  {hw:5,hl:11,body:'#c0392b',roof:'#922b21'},  // red
-  {hw:5,hl:11,body:'#2980b9',roof:'#1a5276'},  // blue
-  {hw:5,hl:11,body:'#27ae60',roof:'#1d8348'},  // green
-  {hw:5,hl:11,body:'#d35400',roof:'#a04000'},  // orange
-  {hw:5,hl:11,body:'#8e44ad',roof:'#6c3483'},  // purple
-  {hw:5,hl:11,body:'#16a085',roof:'#0e6655'},  // teal
-  {hw:5,hl:11,body:'#f1c40f',roof:'#b7950b'},  // yellow
-  {hw:5,hl:11,body:'#7f8c8d',roof:'#566573'},  // silver
-  {hw:6,hl:13,body:'#2c3e50',roof:'#1a252f'},  // SUV dark
-  {hw:6,hl:13,body:'#e74c3c',roof:'#c0392b'},  // SUV red
-  {hw:7,hl:19,body:'#2980b9',roof:'#1f618d'},  // bus
-  {hw:6,hl:15,body:'#95a5a6',roof:'#717d7e'},  // truck
-  {hw:3,hl:8, body:'#f39c12',roof:'#d68910'},  // bike
+  {em:'🚗',sz:22},
+  {em:'🚙',sz:22},
+  {em:'🚕',sz:22},
+  {em:'🛺',sz:20},
+  {em:'🚌',sz:26},
+  {em:'🚛',sz:26},
+  {em:'🏍️',sz:20},
+  {em:'🚐',sz:22},
+  {em:'🚗',sz:22},
+  {em:'🚕',sz:22},
+  {em:'🛺',sz:20},
+  {em:'🚙',sz:22},
 ];
 
 var map,pickMode=null,ptA=null,ptB=null,mkA,mkB,rtLayer;
@@ -417,50 +416,59 @@ function renderAll(){
   vctx.clearRect(0,0,vc.width,vc.height);
   var sc=getZScale();
   drawLaneMarkings();
-  // Traffic
+  var N=routeCoords.length;
   trafficVs.forEach(function(v){
-    var N=routeCoords.length;
     var A=routeCoords[v.idx];
-    var nxt=v.same?Math.min(v.idx+1,N-1):Math.max(v.idx-1,0);
-    var B=routeCoords[nxt];
-    if(!A||!B)return;
+    var Bfwd=routeCoords[Math.min(v.idx+1,N-1)];
+    if(!A||!Bfwd)return;
     var pA=map.latLngToContainerPoint([A.lat,A.lng]);
-    var pB=map.latLngToContainerPoint([B.lat,B.lng]);
-    var dx=pB.x-pA.x,dy=pB.y-pA.y,len=Math.sqrt(dx*dx+dy*dy)||1;
-    var cx=pA.x+dx*v.prog, cy=pA.y+dy*v.prog;
-    // Left perpendicular in screen (90deg CW of forward): (dy/len, -dx/len)
-    var lx=dy/len, ly=-dx/len;
-    // India LHD: same-dir goes on LEFT lane, oncoming on their LEFT (our RIGHT)
+    var pBfwd=map.latLngToContainerPoint([Bfwd.lat,Bfwd.lng]);
+    var fdx=pBfwd.x-pA.x,fdy=pBfwd.y-pA.y,flen=Math.sqrt(fdx*fdx+fdy*fdy)||1;
+    // Vehicle position (oncoming go backward along route)
+    var nxt=v.same?Math.min(v.idx+1,N-1):Math.max(v.idx-1,0);
+    var C=routeCoords[nxt];
+    var pC=map.latLngToContainerPoint([C.lat,C.lng]);
+    var cx=pA.x+(pC.x-pA.x)*v.prog, cy=pA.y+(pC.y-pA.y)*v.prog;
+    // LEFT perpendicular of FORWARD route direction (consistent for all vehicles)
+    var lx=fdy/flen, ly=-fdx/flen;
+    // India LHD: same-dir LEFT (+1), oncoming RIGHT (-1)
     var side=v.same?1:-1;
-    cx+=lx*v.lane*sc*side; cy+=ly*v.lane*sc*side;
-    // heading: forward in screen space = atan2(dx,-dy) matches drawVehicle convention
-    var hdg=v.same?Math.atan2(dx,-dy):Math.atan2(-dx,dy);
-    drawVehicle(cx,cy,hdg,v.vt,sc);
+    cx+=lx*v.lane*sc*side;
+    cy+=ly*v.lane*sc*side;
+    // Emoji heading: 0=north,pi/2=east; oncoming = reverse
+    var fhdg=Math.atan2(fdx,-fdy);
+    var vhdg=v.same?fhdg:fhdg+Math.PI;
+    drawEmoji(cx,cy,vhdg,v.vt.em,v.vt.sz*sc);
   });
-  // Player
+  // Player (canvas-drawn cyan car)
   if(pv&&!pv.done){
     var pp=map.latLngToContainerPoint([pv.lat,pv.lng]);
-    // pv.heading = atan2(dLng,dLat) in geo space = atan2(dx_screen,-dy_screen) in pixel space
-    // So sin(pv.heading)=forward-x, -cos(pv.heading)=forward-y (screen)
     var fwdX=Math.sin(pv.heading),fwdY=-Math.cos(pv.heading);
-    // Left perpendicular (India LHD: player on left lane)
-    var lx=fwdY,ly=-fwdX; // 90deg CW
-    var laneOff=9*sc;
-    var px=pp.x+lx*laneOff, py=pp.y+ly*laneOff;
-    // Glow
-    vctx.save();vctx.shadowBlur=20*sc;vctx.shadowColor='rgba(0,200,255,.8)';
+    var lx=fwdY,ly=-fwdX;
+    var off=10*sc;
+    var px=pp.x+lx*off,py=pp.y+ly*off;
+    vctx.save();vctx.shadowBlur=18*sc;vctx.shadowColor='rgba(0,200,255,.8)';
     drawVehicle(px,py,pv.heading,{hw:6,hl:13,body:'#00d4ff',roof:'#0090aa'},sc*1.1);
     vctx.restore();
     drawVehicle(px,py,pv.heading,{hw:6,hl:13,body:'#00d4ff',roof:'#0090aa'},sc*1.1);
-    // YOU label
-    var lw=30*sc,lh=14*sc,lbx=px-lw/2,lby=py-14*sc-lh-3;
-    vctx.fillStyle='rgba(0,15,30,.85)';
-    rrect(lbx,lby,lw,lh,4);vctx.fill();
+    var lw=30*sc,lh=13*sc,lbx=px-lw/2,lby=py-14*sc-lh-2;
+    vctx.fillStyle='rgba(0,15,30,.85)';rrect(lbx,lby,lw,lh,4);vctx.fill();
     vctx.fillStyle='#00d4ff';
-    vctx.font='bold '+(Math.round(9*sc))+'px -apple-system,sans-serif';
+    vctx.font='bold '+(Math.round(8.5*sc))+'px -apple-system,sans-serif';
     vctx.textAlign='center';vctx.textBaseline='middle';
     vctx.fillText('YOU',px,lby+lh/2);
   }
+}
+
+function drawEmoji(x,y,hdg,em,sz){
+  vctx.save();
+  vctx.translate(x,y);
+  vctx.rotate(hdg-Math.PI/2);
+  vctx.font=sz+'px serif';
+  vctx.textAlign='center';
+  vctx.textBaseline='middle';
+  vctx.fillText(em,0,0);
+  vctx.restore();
 }
 
 function drawLaneMarkings(){
@@ -602,28 +610,39 @@ function updateDrive(dt){
 }
 
 function updateNav(){
-  if(!routeSteps.length){document.getElementById('nav-arrow').textContent='\u2191';document.getElementById('nav-action').textContent='Continue';return;}
-  var d=0;
-  for(var i=0;i<routeSteps.length;i++){
-    d+=routeSteps[i].distance||0;
-    if(driveDist<d-25){
-      var m=routeSteps[i].maneuver||{};
-      var mod=m.modifier||'',tp=m.type||'';
-      var ar='\u2191',tx='Continue';
-      if(mod==='right'||mod.indexOf('right')>=0){ar='\u21B1';tx='Turn right';}
-      else if(mod==='left'||mod.indexOf('left')>=0){ar='\u21B0';tx='Turn left';}
-      else if(mod==='slight right'){ar='\u2197';tx='Bear right';}
-      else if(mod==='slight left'){ar='\u2196';tx='Bear left';}
-      else if(tp==='roundabout'||tp==='rotary'){ar='\u21BB';tx='Roundabout';}
-      else if(tp==='arrive'){ar='\uD83C\uDFC1';tx='Arriving';}
-      document.getElementById('nav-arrow').textContent=ar;
-      document.getElementById('nav-action').textContent=tx;
-      document.getElementById('nav-street').textContent=routeSteps[i].name?'onto '+routeSteps[i].name:'';
-      return;
-    }
+  if(!routeSteps.length){
+    setNav('\u2191','Continue','');return;
   }
-  document.getElementById('nav-arrow').textContent='\uD83C\uDFC1';
-  document.getElementById('nav-action').textContent='Arriving';
+  var cumDist=0;
+  for(var i=0;i<routeSteps.length;i++){
+    var distToTurn=cumDist-driveDist;
+    var m=routeSteps[i].maneuver||{};
+    if(m.type!=='depart'&&distToTurn>-40){
+      showTurnInstruction(routeSteps[i],Math.max(0,distToTurn));return;
+    }
+    cumDist+=routeSteps[i].distance||0;
+  }
+  setNav('\uD83C\uDFC1','Arriving','');
+}
+
+function showTurnInstruction(step,dist){
+  var m=step.maneuver||{};
+  var mod=m.modifier||'',type=m.type||'';
+  var ar='\u2191',tx='Continue';
+  if(mod.indexOf('right')>=0){ar='\u21B1';tx='Turn right';}
+  else if(mod.indexOf('left')>=0){ar='\u21B0';tx='Turn left';}
+  else if(mod==='slight right'){ar='\u2197';tx='Bear right';}
+  else if(mod==='slight left'){ar='\u2196';tx='Bear left';}
+  else if(type==='roundabout'||type==='rotary'){ar='\u21BB';tx='Roundabout';}
+  else if(type==='arrive'){ar='\uD83C\uDFC1';tx='Arriving';}
+  var ds=dist<20?'NOW':dist<1000?'in '+Math.round(dist/10)*10+'m':'in '+(dist/1000).toFixed(1)+'km';
+  setNav(ar,tx+' '+ds,step.name?'onto '+step.name:'');
+}
+
+function setNav(arrow,action,street){
+  document.getElementById('nav-arrow').textContent=arrow;
+  document.getElementById('nav-action').textContent=action;
+  document.getElementById('nav-street').textContent=street;
 }
 
 function updateCam(ts){
