@@ -207,21 +207,20 @@ var CITIES=[
   {n:"Sydney",c:"Australia",la:-33.8688,lo:151.2093,ic:"&#127944;"},
 ];
 
-// Vehicle templates: hw=half-width, hl=half-length (hl>hw = longer than wide)
+// Emoji vehicles
 var VEH=[
-  {hw:5,hl:11,body:'#c0392b',roof:'#922b21'},  // red
-  {hw:5,hl:11,body:'#2980b9',roof:'#1a5276'},  // blue
-  {hw:5,hl:11,body:'#27ae60',roof:'#1d8348'},  // green
-  {hw:5,hl:11,body:'#d35400',roof:'#a04000'},  // orange
-  {hw:5,hl:11,body:'#8e44ad',roof:'#6c3483'},  // purple
-  {hw:5,hl:11,body:'#16a085',roof:'#0e6655'},  // teal
-  {hw:5,hl:11,body:'#f1c40f',roof:'#b7950b'},  // yellow
-  {hw:5,hl:11,body:'#7f8c8d',roof:'#566573'},  // silver
-  {hw:6,hl:13,body:'#2c3e50',roof:'#1a252f'},  // SUV dark
-  {hw:6,hl:13,body:'#e74c3c',roof:'#c0392b'},  // SUV red
-  {hw:7,hl:19,body:'#2980b9',roof:'#1f618d'},  // bus
-  {hw:6,hl:15,body:'#95a5a6',roof:'#717d7e'},  // truck
-  {hw:3,hl:8, body:'#f39c12',roof:'#d68910'},  // bike
+  {em:'🚗',sz:16},
+  {em:'🚙',sz:16},
+  {em:'🚕',sz:16},
+  {em:'🛺',sz:14},
+  {em:'🚌',sz:20},
+  {em:'🚛',sz:18},
+  {em:'🏍️',sz:13},
+  {em:'🚐',sz:16},
+  {em:'🚗',sz:16},
+  {em:'🚕',sz:16},
+  {em:'🛺',sz:14},
+  {em:'🚙',sz:16},
 ];
 
 var map,pickMode=null,ptA=null,ptB=null,mkA,mkB,rtLayer;
@@ -386,7 +385,7 @@ function spawnTraffic(){
       spd:(20+Math.random()*25)*(same?1:-1),
       vt:vt,
       same:same,
-      lane:5+Math.random()*2
+      lane:8+Math.random()*2
     });
   }
 }
@@ -431,11 +430,11 @@ function renderAll(){
     var dx=pB.x-pA.x,dy=pB.y-pA.y,len=Math.sqrt(dx*dx+dy*dy)||1;
     var cx=pA.x+dx*v.prog, cy=pA.y+dy*v.prog;
     // Left perpendicular in screen (90deg CW of forward): (dy/len, -dx/len)
-    // India LHD: same-dir/player on RIGHT side of road
-    var lx=-dy/len, ly=dx/len;
+    // India LHD: player on LEFT perp (correct for LHD)
+    var lx=dy/len, ly=-dx/len;
     // India LHD: same-dir goes on LEFT lane, oncoming on their LEFT (our RIGHT)
-    // India LHD: same-dir RIGHT(-1), oncoming LEFT(+1)
-    var side=v.same?-1:1;
+    // India LHD: same-dir on LEFT perp (+1), oncoming on RIGHT (-1)
+    var side=v.same?1:-1;
     cx+=lx*v.lane*sc*side; cy+=ly*v.lane*sc*side;
     // heading: forward in screen space = atan2(dx,-dy) matches drawVehicle convention
     var A2=routeCoords[v.idx];var T2=routeCoords[v.same?Math.min(v.idx+1,N-1):Math.max(v.idx-1,0)];if(!A2||!T2)return;
@@ -650,7 +649,7 @@ function updateCam(ts){
   if(ts-camLast<280)return;camLast=ts;
   var lm=55,dLat=Math.cos(pv.heading)*lm/111320;
   var dLon=Math.sin(pv.heading)*lm/(111320*Math.cos(pv.lat*Math.PI/180));
-  var z=pv.spd>70?16:pv.spd>50?17:pv.spd>25?17.5:18;
+  var z=pv.spd>70?16.5:pv.spd>50?17.5:pv.spd>25?18:18.5;
   map.setView([pv.lat+dLat,pv.lng+dLon],z,{animate:false});
 }
 
