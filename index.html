@@ -382,10 +382,11 @@ function spawnTraffic(){
     trafficVs.push({
       idx:Math.max(0,startIdx+Math.floor(Math.random()*8-4)),
       prog:Math.random(),
-      spd:(20+Math.random()*25)*(same?1:-1),
+      spd:(25+Math.random()*30)*(same?1:-1),
       vt:vt,
       same:same,
-      lane:14+Math.random()*2
+      lane:3,
+      jit:(Math.random()*6-3)
     });
   }
 }
@@ -433,9 +434,8 @@ function renderAll(){
     // India LHD: player on LEFT perp (correct for LHD)
     var lx=dy/len, ly=-dx/len;
     // India LHD: same-dir goes on LEFT lane, oncoming on their LEFT (our RIGHT)
-    // India LHD: same-dir on LEFT perp (+1), oncoming on RIGHT (-1)
-    var side=v.same?1:-1;
-    cx+=lx*v.lane*sc*side; cy+=ly*v.lane*sc*side;
+    // Vehicles stay on road - just small fixed jitter
+    cx+=lx*(v.jit||0); cy+=ly*(v.jit||0);
     // heading: forward in screen space = atan2(dx,-dy) matches drawVehicle convention
     var A2=routeCoords[v.idx];var T2=routeCoords[v.same?Math.min(v.idx+1,N-1):Math.max(v.idx-1,0)];if(!A2||!T2)return;
     var geoHdg=Math.atan2(T2.lng-A2.lng,T2.lat-A2.lat);
@@ -450,7 +450,7 @@ function renderAll(){
     var fwdX=Math.sin(pv.heading),fwdY=-Math.cos(pv.heading);
     // Left perpendicular (India LHD: player on left lane)
     var lx=fwdY,ly=-fwdX; // 90deg CW
-    var laneOff=14*sc;
+    var laneOff=3*sc;
     var px=pp.x+lx*laneOff, py=pp.y+ly*laneOff;
     // Glow
     vctx.save();vctx.shadowBlur=20*sc;vctx.shadowColor='rgba(0,200,255,.8)';
@@ -468,22 +468,7 @@ function renderAll(){
   }
 }
 
-function drawLaneMarkings(){
-  var N=routeCoords.length;
-  if(N<2)return;
-  vctx.save();
-  vctx.strokeStyle='rgba(255,255,255,0.5)';
-  vctx.lineWidth=1.5;
-  vctx.setLineDash([14,12]);
-  vctx.lineDashOffset=-(Date.now()/90)%26;
-  vctx.beginPath();
-  for(var i=0;i<N;i++){
-    var p=map.latLngToContainerPoint([routeCoords[i].lat,routeCoords[i].lng]);
-    if(i===0)vctx.moveTo(p.x,p.y); else vctx.lineTo(p.x,p.y);
-  }
-  vctx.stroke();
-  vctx.restore();
-}
+function drawLaneMarkings(){/* removed - centerline is not a lane boundary */}
 
 function drawVehicle(x,y,hdg,vt,sc){
   var hw=vt.hw*sc,hl=vt.hl*sc;
@@ -649,7 +634,7 @@ function updateCam(ts){
   if(ts-camLast<280)return;camLast=ts;
   var lm=55,dLat=Math.cos(pv.heading)*lm/111320;
   var dLon=Math.sin(pv.heading)*lm/(111320*Math.cos(pv.lat*Math.PI/180));
-  var z=pv.spd>70?17:pv.spd>50?17.5:pv.spd>25?18.5:19;
+  var z=pv.spd>70?16.5:pv.spd>50?17:pv.spd>25?17.5:18;
   map.setView([pv.lat+dLat,pv.lng+dLon],z,{animate:false});
 }
 
