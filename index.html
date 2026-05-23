@@ -207,23 +207,23 @@ var CITIES=[
   {n:"Sydney",c:"Australia",la:-33.8688,lo:151.2093,ic:"&#127944;"},
 ];
 
-// Emoji vehicles - India traffic
+// Emoji vehicles
 var VEH=[
   {em:'🚗',sz:22},
-  {em:'🚙',sz:22},
-  {em:'🚕',sz:22},
+{em:'🚙',sz:22},
+{em:'🚕',sz:22},
   {em:'🛺',sz:20},
-  {em:'🚌',sz:26},
-  {em:'🚛',sz:26},
+{em:'🚌',sz:26},
+{em:'🚛',sz:26},
   {em:'🏍️',sz:20},
-  {em:'🚐',sz:22},
-  {em:'🚗',sz:22},
+{em:'🚐',sz:22},
+{em:'🚗',sz:22},
   {em:'🚕',sz:22},
-  {em:'🛺',sz:20},
-  {em:'🚙',sz:22},
+{em:'🛺',sz:20},
+{em:'🚙',sz:22},
 ];
 
-var map,pickMode=null,ptA=null,ptB=null,mkA,mkB,rtLayer;
+var mapp,pickMode=null,ptA=null,ptB=null,mkA,mkB,rtLayer;
 var routeCoords=[],routeSteps=[];
 var pv=null,pvPaused=false,pvSpeed=1;
 var driveT0,driveDist=0,driveSpeeds=[],segIdx=0,segProg=0;
@@ -396,12 +396,16 @@ function updateTraffic(dt){
   var N=routeCoords.length;
   trafficVs.forEach(function(v){
     var step=Math.abs(v.spd)*1000/3600*dt;
-    var nxt=v.same?Math.min(v.idx+1,N-1):Math.max(v.idx-1,0);
-    var A=routeCoords[v.idx],B=routeCoords[nxt];
-    if(!A||!B)return;
-    var m=hvs(A.lat,A.lng,B.lat,B.lng)||1;
+    var tgt=v.same?Math.min(v.idx+1,N-1):Math.max(v.idx-1,0);
+    var A=routeCoords[v.idx],T=routeCoords[tgt];
+    if(!A||!T)return;
+    var m=hvs(A.lat,A.lng,T.lat,T.lng)||1;
     v.prog+=step/m;
-    if(v.prog>=1){v.prog=0;v.idx=nxt;}
+    if(v.prog>=1){
+      v.prog=0;
+      if(v.same){v.idx++;if(v.idx>=N-1){v.idx=N-2;v.same=false;}}
+      else{v.idx--;if(v.idx<=0){v.idx=1;v.same=true;}}
+    }
   });
 }
 
@@ -416,82 +420,50 @@ function renderAll(){
   vctx.clearRect(0,0,vc.width,vc.height);
   var sc=getZScale();
   drawLaneMarkings();
-  var N=routeCoords.length;
-
+  // Traffic
   trafficVs.forEach(function(v){
-    if(v.idx<0||v.idx>=N)return;
+    var N=routeCoords.length;
     var A=routeCoords[v.idx];
-    // Forward route segment (always A→next) for lane-offset only
-    var Bfwd=routeCoords[Math.min(v.idx+1,N-1)];
-    if(!A||!Bfwd)return;
+    var nxt=v.same?Math.min(v.idx+1,N-1):Math.max(v.idx-1,0);
+    var B=routeCoords[nxt];
+    if(!A||!B)return;
     var pA=map.latLngToContainerPoint([A.lat,A.lng]);
-    var pBfwd=map.latLngToContainerPoint([Bfwd.lat,Bfwd.lng]);
-    var fdx=pBfwd.x-pA.x, fdy=pBfwd.y-pA.y, flen=Math.sqrt(fdx*fdx+fdy*fdy)||1;
-
-    // Vehicle actual target index (direction of travel)
-    var tgt=v.same?Math.min(v.idx+1,N-1):Math.max(v.idx-1,0);
-    var T=routeCoords[tgt];
-    var pT=map.latLngToContainerPoint([T.lat,T.lng]);
-    // Movement vector
-    var mvx=pT.x-pA.x, mvy=pT.y-pA.y, mvlen=Math.sqrt(mvx*mvx+mvy*mvy)||1;
-    // Vehicle position along movement vector
-    var cx=pA.x+mvx*v.prog, cy=pA.y+mvy*v.prog;
-
-    // Lane offset: perpendicular of FORWARD route direction (consistent reference)
-    // Left perp of (fdx,fdy) in screen = (fdy/flen, -fdx/flen)
-    var lx=fdy/flen, ly=-fdx/flen;
-    // India LHD: same-dir on LEFT (+1), oncoming on RIGHT (−1)
+    var pB=map.latLngToContainerPoint([B.lat,B.lng]);
+    var dx=pB.x-pA.x,dy=pB.y-pA.y,len=Math.sqrt(dx*dx+dy*dy)||1;
+    var cx=pA.x+dx*v.prog, cy=pA.y+dy*v.prog;
+    // Left perpendicular in screen (90deg CW of forward): (dy/len, -dx/len)
+    var lx=dy/len, ly=-dx/len;
+    // India LHD: same-dir goes on LEFT lane, oncoming on their LEFT (our RIGHT)
     var side=v.same?1:-1;
-    cx+=lx*v.lane*sc*side;
-    cy+=ly*v.lane*sc*side;
-
-    // Heading from ACTUAL movement direction, not route forward
-    // mvx/mvy is the screen vector the vehicle moves along
-    var vhdg=Math.atan2(mvx,-mvy);  // 0=up/north, PI/2=right/east
-    drawEmoji(cx,cy,vhdg,v.vt.em,v.vt.sz*sc);
+    cx+=lx*v.lane*sc*side; cy+=ly*v.lane*sc*side;
+    // heading: forward in screen space = atan2(dx,-dy) matches drawVehicle convention
+    var hdg=v.same?Math.atan2(dx,-dy):Math.atan2(-dx,dy);
+    drawVehicle(cx,cy,hdg,v.vt,sc);
   });
-
-  // Player vehicle
+  // Player
   if(pv&&!pv.done){
     var pp=map.latLngToContainerPoint([pv.lat,pv.lng]);
-    // pv.heading = atan2(dLng,dLat) = route geo heading
-    // Convert to screen heading: atan2(sin(h),−cos(h)) already = atan2(dLng,−dLat)
-    // but we stored it as Math.atan2(B.lng−A.lng, B.lat−A.lat)
-    // forward screen: sin(pv.heading) → x, −cos(pv.heading) → y
-    var fwdX=Math.sin(pv.heading), fwdY=-Math.cos(pv.heading);
-    // Left perpendicular
-    var lpx=fwdY, lpy=-fwdX;
-    var laneOff=14*sc;   // wider lane separation
-    var px=pp.x+lpx*laneOff, py=pp.y+lpy*laneOff;
-    // Screen heading for the player
-    var playerHdg=Math.atan2(fwdX,-fwdY);  // atan2(x, -y) for north=0 convention
-    vctx.save(); vctx.shadowBlur=16*sc; vctx.shadowColor='rgba(0,200,255,.85)';
-    drawVehicle(px,py,pv.heading,{hw:6,hl:13,body:'#00d4ff',roof:'#0090aa'},sc*1.05);
+    // pv.heading = atan2(dLng,dLat) in geo space = atan2(dx_screen,-dy_screen) in pixel space
+    // So sin(pv.heading)=forward-x, -cos(pv.heading)=forward-y (screen)
+    var fwdX=Math.sin(pv.heading),fwdY=-Math.cos(pv.heading);
+    // Left perpendicular (India LHD: player on left lane)
+    var lx=fwdY,ly=-fwdX; // 90deg CW
+    var laneOff=9*sc;
+    var px=pp.x+lx*laneOff, py=pp.y+ly*laneOff;
+    // Glow
+    vctx.save();vctx.shadowBlur=20*sc;vctx.shadowColor='rgba(0,200,255,.8)';
+    drawVehicle(px,py,pv.heading,{hw:6,hl:13,body:'#00d4ff',roof:'#0090aa'},sc*1.1);
     vctx.restore();
-    drawVehicle(px,py,pv.heading,{hw:6,hl:13,body:'#00d4ff',roof:'#0090aa'},sc*1.05);
+    drawVehicle(px,py,pv.heading,{hw:6,hl:13,body:'#00d4ff',roof:'#0090aa'},sc*1.1);
     // YOU label
-    var lw=30*sc,lh=13*sc,lbx=px-lw/2,lby=py-14*sc-lh-2;
-    vctx.fillStyle='rgba(0,15,30,.85)'; rrect(lbx,lby,lw,lh,4); vctx.fill();
+    var lw=30*sc,lh=14*sc,lbx=px-lw/2,lby=py-14*sc-lh-3;
+    vctx.fillStyle='rgba(0,15,30,.85)';
+    rrect(lbx,lby,lw,lh,4);vctx.fill();
     vctx.fillStyle='#00d4ff';
-    vctx.font='bold '+(Math.round(8.5*sc))+'px -apple-system,sans-serif';
-    vctx.textAlign='center'; vctx.textBaseline='middle';
+    vctx.font='bold '+(Math.round(9*sc))+'px -apple-system,sans-serif';
+    vctx.textAlign='center';vctx.textBaseline='middle';
     vctx.fillText('YOU',px,lby+lh/2);
   }
-}
-
-function drawEmoji(x,y,hdg,em,sz){
-  // Emoji cars (e.g. 🚗) face RIGHT by default.
-  // Our hdg: 0=north/up, PI/2=east/right, PI=south/down
-  // To make emoji face hdg: rotate canvas by (hdg - PI/2)
-  // because at hdg=PI/2 (east), rotation=0 keeps emoji facing right ✓
-  vctx.save();
-  vctx.translate(x,y);
-  vctx.rotate(hdg-Math.PI/2);
-  vctx.font=sz+'px serif';
-  vctx.textAlign='center';
-  vctx.textBaseline='middle';
-  vctx.fillText(em,0,0);
-  vctx.restore();
 }
 
 function drawLaneMarkings(){
@@ -570,6 +542,15 @@ function rrect(x,y,w,h,r){
   vctx.lineTo(x,y+r);vctx.quadraticCurveTo(x,y,x+r,y);vctx.closePath();
 }
 
+function drawEmoji(x,y,hdg,em,sz){
+  vctx.save();vctx.translate(x,y);
+  vctx.rotate(hdg-Math.PI/2);
+  vctx.font=Math.round(sz)+"px serif";
+  vctx.textAlign="center";vctx.textBaseline="middle";
+  vctx.fillText(em,0,0);
+  vctx.restore();
+}
+
 // ── DRIVE LOOP ────────────────────────────────────────
 function loop(ts){
   if(document.getElementById('scr-prev').style.display==='none')return;
@@ -633,39 +614,32 @@ function updateDrive(dt){
 }
 
 function updateNav(){
-  if(!routeSteps.length){
-    setNav('\u2191','Continue','');return;
-  }
+  if(!routeSteps.length){setNav("\u2191","Continue","");return;}
   var cumDist=0;
   for(var i=0;i<routeSteps.length;i++){
     var distToTurn=cumDist-driveDist;
     var m=routeSteps[i].maneuver||{};
-    if(m.type!=='depart'&&distToTurn>-40){
-      showTurnInstruction(routeSteps[i],Math.max(0,distToTurn));return;
-    }
+    if(m.type!=="depart"&&distToTurn>-40){showTurnInstruction(routeSteps[i],Math.max(0,distToTurn));return;}
     cumDist+=routeSteps[i].distance||0;
   }
-  setNav('\uD83C\uDFC1','Arriving','');
+  setNav("\uD83C\uDFC1","Arriving","");
 }
-
 function showTurnInstruction(step,dist){
-  var m=step.maneuver||{};
-  var mod=m.modifier||'',type=m.type||'';
-  var ar='\u2191',tx='Continue';
-  if(mod.indexOf('right')>=0){ar='\u21B1';tx='Turn right';}
-  else if(mod.indexOf('left')>=0){ar='\u21B0';tx='Turn left';}
-  else if(mod==='slight right'){ar='\u2197';tx='Bear right';}
-  else if(mod==='slight left'){ar='\u2196';tx='Bear left';}
-  else if(type==='roundabout'||type==='rotary'){ar='\u21BB';tx='Roundabout';}
-  else if(type==='arrive'){ar='\uD83C\uDFC1';tx='Arriving';}
-  var ds=dist<20?'NOW':dist<1000?'in '+Math.round(dist/10)*10+'m':'in '+(dist/1000).toFixed(1)+'km';
-  setNav(ar,tx+' '+ds,step.name?'onto '+step.name:'');
+  var m=step.maneuver||{},mod=m.modifier||"",type=m.type||"";
+  var ar="\u2191",tx="Continue";
+  if(mod.indexOf("right")>=0){ar="\u21B1";tx="Turn right";}
+  else if(mod.indexOf("left")>=0){ar="\u21B0";tx="Turn left";}
+  else if(mod==="slight right"){ar="\u2197";tx="Bear right";}
+  else if(mod==="slight left"){ar="\u2196";tx="Bear left";}
+  else if(type==="roundabout"){ar="\u21BB";tx="Roundabout";}
+  else if(type==="arrive"){ar="\uD83C\uDFC1";tx="Arriving";}
+  var ds=dist<20?"NOW":dist<1000?"in "+Math.round(dist/10)*10+"m":"in "+(dist/1000).toFixed(1)+"km";
+  setNav(ar,tx+" "+ds,step.name?"onto "+step.name:"");
 }
-
-function setNav(arrow,action,street){
-  document.getElementById('nav-arrow').textContent=arrow;
-  document.getElementById('nav-action').textContent=action;
-  document.getElementById('nav-street').textContent=street;
+function setNav(a,t,s){
+  document.getElementById("nav-arrow").textContent=a;
+  document.getElementById("nav-action").textContent=t;
+  document.getElementById("nav-street").textContent=s;
 }
 
 function updateCam(ts){
@@ -673,7 +647,6 @@ function updateCam(ts){
   if(ts-camLast<280)return;camLast=ts;
   var lm=55,dLat=Math.cos(pv.heading)*lm/111320;
   var dLon=Math.sin(pv.heading)*lm/(111320*Math.cos(pv.lat*Math.PI/180));
-  // Pull back camera so more road/lane context is visible
   var z=pv.spd>70?15.5:pv.spd>50?16:pv.spd>25?16.5:17;
   map.setView([pv.lat+dLat,pv.lng+dLon],z,{animate:false});
 }
@@ -799,4 +772,23 @@ function loading(on,t,s){document.getElementById('lov').classList.toggle('on',on
 (function(){var m={name:'RoutePreview',short_name:'RoutePreview',start_url:'.',display:'standalone',background_color:'#1c1c1e',theme_color:'#0a84ff',icons:[{src:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',sizes:'192x192',type:'image/png'}]};document.getElementById('mf').href=URL.createObjectURL(new Blob([JSON.stringify(m)],{type:'application/manifest+json'}));})();
 </script>
 </body>
-</html>
+</html  trafficVs.forEach(function(v){
+    var N2=routeCoords.length;
+    if(v.idx<0||v.idx>=N2)return;
+    var A=routeCoords[v.idx];
+    var Bfwd=routeCoords[Math.min(v.idx+1,N2-1)];
+    if(!A||!Bfwd)return;
+    var pA=map.latLngToContainerPoint([A.lat,A.lng]);
+    var pBfwd=map.latLngToContainerPoint([Bfwd.lat,Bfwd.lng]);
+    var fdx=pBfwd.x-pA.x,fdy=pBfwd.y-pA.y,flen=Math.sqrt(fdx*fdx+fdy*fdy)||1;
+    var tgt=v.same?Math.min(v.idx+1,N2-1):Math.max(v.idx-1,0);
+    var T=routeCoords[tgt];
+    var pT=map.latLngToContainerPoint([T.lat,T.lng]);
+    var cx=pA.x+(pT.x-pA.x)*v.prog,cy=pA.y+(pT.y-pA.y)*v.prog;
+    var side=v.same?1:-1;
+    cx+=(fdy/flen)*v.lane*sc*side;
+    cy+=(-fdx/flen)*v.lane*sc*side;
+    var geoHdg=Math.atan2(T.lng-A.lng,T.lat-A.lat);
+    drawEmoji(cx,cy,geoHdg,v.vt.em,v.vt.sz*sc);
+  });
+  >
