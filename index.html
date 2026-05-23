@@ -3,34 +3,31 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>RoutePreview — Experience Your Route</title>
+<title>RoutePreview</title>
 <link rel="manifest" id="mf">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:#1c1c1e}
+html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#1c1c1e}
 #map{position:fixed;inset:0;z-index:1;background:#e8e4d9}
-
-/* SEARCH SCREEN */
+#vc{position:fixed;top:0;left:0;pointer-events:none;z-index:50}
 #scr-search{position:fixed;inset:0;z-index:100;background:#1c1c1e;display:flex;flex-direction:column}
 .hdr{padding:52px 20px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
 .hdr-eye{font-size:11px;font-weight:600;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase}
 .hdr-title{font-size:32px;font-weight:700;color:#fff;letter-spacing:-.5px;margin-top:4px}
 .hdr-sub{font-size:14px;color:rgba(255,255,255,.35);margin-top:4px}
-.search-box{margin:16px 20px 8px;display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.08);border-radius:14px;padding:13px 16px}
-.search-box input{flex:1;background:none;border:none;outline:none;color:#fff;font-size:16px}
-.search-box input::placeholder{color:rgba(255,255,255,.3)}
+.sbox{margin:16px 20px 8px;display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.08);border-radius:14px;padding:13px 16px}
+.sbox input{flex:1;background:none;border:none;outline:none;color:#fff;font-size:16px}
+.sbox input::placeholder{color:rgba(255,255,255,.3)}
 #city-list{flex:1;overflow-y:auto;padding:0 20px 20px}
 #city-list::-webkit-scrollbar{display:none}
-.city-sec{font-size:11px;font-weight:600;color:rgba(255,255,255,.28);letter-spacing:1px;text-transform:uppercase;padding:14px 0 8px}
-.city-row{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer}
-.city-row:active{background:rgba(255,255,255,.04);margin:0 -8px;padding:12px 8px;border-radius:10px}
-.city-ic{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.city-name{font-size:16px;color:#fff;font-weight:500}
-.city-country{font-size:12px;color:rgba(255,255,255,.4);margin-top:2px}
-
-/* PLAN SCREEN */
+.csec{font-size:11px;font-weight:600;color:rgba(255,255,255,.28);letter-spacing:1px;text-transform:uppercase;padding:14px 0 8px}
+.crow{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer}
+.crow:active{opacity:.6}
+.cic{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.cname{font-size:16px;color:#fff;font-weight:500}
+.ccountry{font-size:12px;color:rgba(255,255,255,.4);margin-top:2px}
 #scr-plan{position:fixed;inset:0;z-index:2;display:none;pointer-events:none}
 #plan-panel{position:fixed;bottom:0;left:0;right:0;z-index:10;background:#1c1c1e;border-radius:20px 20px 0 0;padding:10px 0 30px;box-shadow:0 -2px 40px rgba(0,0,0,.6);pointer-events:auto}
 .phandle{width:36px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:0 auto 14px}
@@ -38,29 +35,26 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 .prow{display:flex;align-items:center;gap:12px;padding:11px 20px}
 .pdot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
 .pdot.a{background:#30d158}.pdot.b{background:#ff453a}
-.pvline{width:2px;height:18px;background:rgba(255,255,255,.12);margin:2px 0 2px 5px;flex-shrink:0}
+.pvline{width:2px;height:18px;background:rgba(255,255,255,.12);margin:2px 0 2px 5px}
 .plbl{font-size:10px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
 .pval{font-size:15px;color:#fff}
-.pset{font-size:11px;font-weight:600;color:#0a84ff;padding:6px 12px;border:1.5px solid rgba(10,132,255,.45);border-radius:9px;cursor:pointer;background:rgba(10,132,255,.1);touch-action:manipulation;-webkit-user-select:none;user-select:none;margin-left:auto}
+.pset{font-size:11px;font-weight:600;color:#0a84ff;padding:6px 12px;border:1.5px solid rgba(10,132,255,.45);border-radius:9px;cursor:pointer;background:rgba(10,132,255,.1);margin-left:auto;touch-action:manipulation}
 .pdiv{height:1px;background:rgba(255,255,255,.06);margin:4px 20px}
 #rinfo{padding:10px 20px;display:none}
 .rstats{display:flex;gap:28px}
 .rv{font-size:22px;font-weight:700;color:#fff}
 .rl{font-size:11px;color:rgba(255,255,255,.4);margin-top:2px}
-#btn-go{display:none;margin:12px 20px 0;width:calc(100%-40px);padding:16px;border-radius:16px;border:none;background:#0a84ff;color:#fff;font-size:17px;font-weight:600;cursor:pointer;touch-action:manipulation;width:calc(100% - 40px)}
+#btn-go{display:none;margin:12px 20px 0;width:calc(100% - 40px);padding:16px;border-radius:16px;border:none;background:#0a84ff;color:#fff;font-size:17px;font-weight:600;cursor:pointer;touch-action:manipulation}
 #btn-go:active{opacity:.8}
 #phint{text-align:center;font-size:13px;color:rgba(255,255,255,.3);padding:8px 20px 0}
-
-/* PREVIEW SCREEN */
 #scr-prev{position:fixed;inset:0;z-index:2;display:none;pointer-events:none}
 #nav{position:fixed;top:0;left:0;right:0;z-index:10;padding:10px 12px 0;pointer-events:auto}
 #nav-card{background:rgba(28,28,30,.95);border-radius:16px;overflow:hidden;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
 #nav-top{background:#0a84ff;padding:13px 16px;display:flex;align-items:center;gap:12px}
-#nav-arrow{font-size:30px;min-width:34px;text-align:center;color:#fff}
-#nav-txt{flex:1}
+#nav-arrow{font-size:28px;min-width:32px;text-align:center;color:#fff}
 #nav-action{font-size:18px;font-weight:700;color:#fff}
 #nav-street{font-size:13px;color:rgba(255,255,255,.75);margin-top:2px}
-#nav-bot{display:flex;justify-content:space-between;align-items:center;padding:9px 16px}
+#nav-bot{display:flex;justify-content:space-between;padding:9px 16px}
 #nav-rem{font-size:14px;color:rgba(255,255,255,.65)}
 #nav-rem b{color:#fff;font-weight:700}
 #nav-eta{font-size:14px;color:rgba(255,255,255,.65)}
@@ -68,7 +62,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 .sx{width:46px;padding:9px 0;text-align:center;font-size:13px;font-weight:600;color:rgba(255,255,255,.4);cursor:pointer;border-bottom:1px solid rgba(255,255,255,.07);touch-action:manipulation}
 .sx:last-child{border-bottom:none}
 .sx.on{background:rgba(10,132,255,.25);color:#0a84ff}
-#dash{position:fixed;bottom:0;left:0;right:0;z-index:10;background:rgba(28,28,30,.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);padding:12px 20px calc(12px + env(safe-area-inset-bottom,0));border-top:1px solid rgba(255,255,255,.08);pointer-events:auto}
+#dash{position:fixed;bottom:0;left:0;right:0;z-index:10;background:rgba(28,28,30,.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);padding:12px 20px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid rgba(255,255,255,.08);pointer-events:auto}
 .drow{display:flex;margin-bottom:12px}
 .dstat{flex:1;text-align:center}
 .dv{font-size:26px;font-weight:700;color:#fff;line-height:1}
@@ -80,23 +74,19 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 .dbtn-p{background:rgba(255,255,255,.1);color:#fff}
 .dbtn-r{background:rgba(255,255,255,.07);color:rgba(255,255,255,.55)}
 .dbtn-e{background:rgba(255,59,48,.15);color:#ff453a}
-
-/* ARRIVAL */
 #arrival{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.78);backdrop-filter:blur(12px);display:none;align-items:flex-end;justify-content:center;padding:0 20px 34px}
-.arr-card{background:#1c1c1e;border-radius:24px;padding:28px 22px;width:100%;max-width:400px}
-.arr-ico{font-size:54px;text-align:center;margin-bottom:10px}
-.arr-title{font-size:24px;font-weight:700;color:#fff;text-align:center}
-.arr-sub{font-size:14px;color:rgba(255,255,255,.45);text-align:center;margin:4px 0 20px}
-.arr-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px}
-.arr-stat{background:rgba(255,255,255,.05);border-radius:12px;padding:12px 8px;text-align:center}
-.arr-stat-v{font-size:20px;font-weight:700;color:#fff}
-.arr-stat-l{font-size:10px;color:rgba(255,255,255,.4);margin-top:4px;text-transform:uppercase}
-.arr-btns{display:flex;gap:10px}
-.arr-btn{flex:1;padding:14px;border-radius:14px;border:none;font-size:16px;font-weight:600;cursor:pointer}
-.arr-btn-new{background:rgba(255,255,255,.1);color:#fff}
-.arr-btn-again{background:#0a84ff;color:#fff}
-
-/* LOADING */
+.ac{background:#1c1c1e;border-radius:24px;padding:28px 22px;width:100%;max-width:400px}
+.ai{font-size:54px;text-align:center;margin-bottom:10px}
+.at{font-size:24px;font-weight:700;color:#fff;text-align:center}
+.as2{font-size:14px;color:rgba(255,255,255,.45);text-align:center;margin:4px 0 20px}
+.ag{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px}
+.agv{background:rgba(255,255,255,.05);border-radius:12px;padding:12px 8px;text-align:center}
+.agvv{font-size:20px;font-weight:700;color:#fff}
+.agvl{font-size:10px;color:rgba(255,255,255,.4);margin-top:4px;text-transform:uppercase}
+.abtns{display:flex;gap:10px}
+.abtn{flex:1;padding:14px;border-radius:14px;border:none;font-size:16px;font-weight:600;cursor:pointer}
+.abtn-n{background:rgba(255,255,255,.1);color:#fff}
+.abtn-a{background:#0a84ff;color:#fff}
 #lov{display:none;position:fixed;inset:0;z-index:1000;background:rgba(18,18,20,.96);flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:24px}
 #lov.on{display:flex}
 .spin{width:42px;height:42px;border:3px solid rgba(255,255,255,.1);border-top-color:#0a84ff;border-radius:50%;animation:spin .7s linear infinite}
@@ -107,22 +97,18 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 </head>
 <body>
 <div id="map"></div>
-
-<!-- SEARCH -->
+<canvas id="vc"></canvas>
 <div id="scr-search">
   <div class="hdr">
     <div class="hdr-eye">Route Experience</div>
     <div class="hdr-title">RoutePreview</div>
     <div class="hdr-sub">Feel the journey before you take it</div>
   </div>
-  <div class="search-box">
-    <span style="font-size:16px;opacity:.4">🔍</span>
+  <div class="sbox"><span style="font-size:16px;opacity:.4">&#128269;</span>
     <input id="ci" type="text" placeholder="Search city..." autocomplete="off" autocorrect="off" spellcheck="false">
   </div>
   <div id="city-list"></div>
 </div>
-
-<!-- PLAN -->
 <div id="scr-plan">
   <div id="plan-panel">
     <div class="phandle"></div>
@@ -141,38 +127,33 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
     <div class="pdiv"></div>
     <div id="rinfo">
       <div class="rstats">
-        <div><div class="rv" id="r-dist">—</div><div class="rl">Distance</div></div>
-        <div><div class="rv" id="r-time">—</div><div class="rl">Est. Time</div></div>
-        <div><div class="rv" id="r-roads">—</div><div class="rl">Via</div></div>
+        <div><div class="rv" id="r-dist">-</div><div class="rl">Distance</div></div>
+        <div><div class="rv" id="r-time">-</div><div class="rl">Est. Time</div></div>
+        <div><div class="rv" id="r-turns">-</div><div class="rl">Via</div></div>
       </div>
     </div>
-    <div id="phint">Tap "Set A" then tap the map for start point</div>
-    <button id="btn-go" onclick="startPreview()">▶ Preview This Route</button>
+    <div id="phint">Tap "Set A" then tap the map for start</div>
+    <button id="btn-go" onclick="startPreview()">&#9654; Preview This Route</button>
   </div>
 </div>
-
-<!-- PREVIEW -->
 <div id="scr-prev">
   <div id="nav">
     <div id="nav-card">
       <div id="nav-top">
-        <div id="nav-arrow">↑</div>
-        <div id="nav-txt">
-          <div id="nav-action">Starting route...</div>
-          <div id="nav-street"></div>
-        </div>
+        <div id="nav-arrow">&#8679;</div>
+        <div><div id="nav-action">Starting...</div><div id="nav-street"></div></div>
       </div>
       <div id="nav-bot">
-        <div id="nav-rem"><b id="nav-rem-b">—</b> remaining</div>
-        <div id="nav-eta">ETA <span id="nav-eta-t">—</span></div>
+        <div id="nav-rem"><b id="nav-rem-b">-</b> remaining</div>
+        <div id="nav-eta">ETA <span id="nav-eta-t">-</span></div>
       </div>
     </div>
   </div>
   <div id="spd-sel">
-    <div class="sx" onclick="setSpd(.5)">½×</div>
-    <div class="sx on" onclick="setSpd(1)">1×</div>
-    <div class="sx" onclick="setSpd(2)">2×</div>
-    <div class="sx" onclick="setSpd(4)">4×</div>
+    <div class="sx" onclick="setSpd(.5)">1/2x</div>
+    <div class="sx on" onclick="setSpd(1)">1x</div>
+    <div class="sx" onclick="setSpd(2)">2x</div>
+    <div class="sx" onclick="setSpd(4)">4x</div>
   </div>
   <div id="dash">
     <div class="drow">
@@ -180,215 +161,206 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
       <div class="ddiv"></div>
       <div class="dstat"><div class="dv" id="d-dist">0m</div><div class="dl">covered</div></div>
       <div class="ddiv"></div>
-      <div class="dstat"><div class="dv" id="d-road" style="font-size:13px;color:rgba(255,255,255,.5)">—</div><div class="dl">road</div></div>
+      <div class="dstat"><div class="dv" id="d-road" style="font-size:13px;color:rgba(255,255,255,.5)">-</div><div class="dl">road</div></div>
     </div>
     <div class="dbtns">
-      <button class="dbtn dbtn-p" id="btn-pause" onclick="togglePause()">⏸ Pause</button>
-      <button class="dbtn dbtn-r" onclick="doRestart()">↺ Restart</button>
-      <button class="dbtn dbtn-e" onclick="doExit()">✕ Exit</button>
+      <button class="dbtn dbtn-p" id="btn-pause" onclick="togglePause()">&#9646;&#9646; Pause</button>
+      <button class="dbtn dbtn-r" onclick="doRestart()">&#8635; Restart</button>
+      <button class="dbtn dbtn-e" onclick="doExit()">&#10005; Exit</button>
     </div>
   </div>
 </div>
-
-<!-- ARRIVAL -->
 <div id="arrival">
-  <div class="arr-card">
-    <div class="arr-ico">✅</div>
-    <div class="arr-title">Route Complete</div>
-    <div class="arr-sub" id="arr-sub">You've previewed this route</div>
-    <div class="arr-stats">
-      <div class="arr-stat"><div class="arr-stat-v" id="arr-d">—</div><div class="arr-stat-l">Distance</div></div>
-      <div class="arr-stat"><div class="arr-stat-v" id="arr-t">—</div><div class="arr-stat-l">Duration</div></div>
-      <div class="arr-stat"><div class="arr-stat-v" id="arr-s">—</div><div class="arr-stat-l">Avg Speed</div></div>
+  <div class="ac">
+    <div class="ai">&#9989;</div>
+    <div class="at">Route Complete</div>
+    <div class="as2" id="arr-sub">Preview finished</div>
+    <div class="ag">
+      <div class="agv"><div class="agvv" id="arr-d">-</div><div class="agvl">Distance</div></div>
+      <div class="agv"><div class="agvv" id="arr-t">-</div><div class="agvl">Duration</div></div>
+      <div class="agv"><div class="agvv" id="arr-s">-</div><div class="agvl">Avg Speed</div></div>
     </div>
-    <div class="arr-btns">
-      <button class="arr-btn arr-btn-new" onclick="newRoute()">New Route</button>
-      <button class="arr-btn arr-btn-again" onclick="doRestart()">Preview Again</button>
+    <div class="abtns">
+      <button class="abtn abtn-n" onclick="newRoute()">New Route</button>
+      <button class="abtn abtn-a" onclick="doRestart()">Again</button>
     </div>
   </div>
 </div>
-
 <div id="lov"><div class="spin"></div><div id="lov-t">Loading</div><div id="lov-s">Please wait...</div></div>
 
 <script>
 'use strict';
-
-var CITIES = [
-  {n:"Hyderabad",c:"India",la:17.3850,lo:78.4867,ic:"🏙"},
-  {n:"Mumbai",c:"India",la:19.0760,lo:72.8777,ic:"🌊"},
-  {n:"Delhi",c:"India",la:28.6139,lo:77.2090,ic:"🏛"},
-  {n:"Bangalore",c:"India",la:12.9716,lo:77.5946,ic:"💻"},
-  {n:"Chennai",c:"India",la:13.0827,lo:80.2707,ic:"🌴"},
-  {n:"Pune",c:"India",la:18.5204,lo:73.8567,ic:"🎓"},
-  {n:"Kolkata",c:"India",la:22.5726,lo:88.3639,ic:"🌉"},
-  {n:"Jaipur",c:"India",la:26.9124,lo:75.7873,ic:"🏰"},
-  {n:"Visakhapatnam",c:"India",la:17.6868,lo:83.2185,ic:"⚓"},
-  {n:"Tokyo",c:"Japan",la:35.6762,lo:139.6503,ic:"🗼"},
-  {n:"Seoul",c:"South Korea",la:37.5665,lo:126.978,ic:"🏙"},
-  {n:"Bangkok",c:"Thailand",la:13.7563,lo:100.5018,ic:"🏯"},
-  {n:"Singapore",c:"Singapore",la:1.3521,lo:103.8198,ic:"🦁"},
-  {n:"Dubai",c:"UAE",la:25.2048,lo:55.2708,ic:"🏗"},
-  {n:"London",c:"UK",la:51.5074,lo:-.1278,ic:"🎡"},
-  {n:"Paris",c:"France",la:48.8566,lo:2.3522,ic:"🗼"},
-  {n:"New York",c:"USA",la:40.7128,lo:-74.006,ic:"🗽"},
-  {n:"Sydney",c:"Australia",la:-33.8688,lo:151.2093,ic:"🌉"},
+var CITIES=[
+  {n:"Hyderabad",c:"India",la:17.3850,lo:78.4867,ic:"&#127961;"},
+  {n:"Mumbai",c:"India",la:19.0760,lo:72.8777,ic:"&#127754;"},
+  {n:"Delhi",c:"India",la:28.6139,lo:77.2090,ic:"&#127963;"},
+  {n:"Bangalore",c:"India",la:12.9716,lo:77.5946,ic:"&#128187;"},
+  {n:"Chennai",c:"India",la:13.0827,lo:80.2707,ic:"&#127796;"},
+  {n:"Pune",c:"India",la:18.5204,lo:73.8567,ic:"&#127979;"},
+  {n:"Kolkata",c:"India",la:22.5726,lo:88.3639,ic:"&#127750;"},
+  {n:"Visakhapatnam",c:"India",la:17.6868,lo:83.2185,ic:"&#9875;"},
+  {n:"Tokyo",c:"Japan",la:35.6762,lo:139.6503,ic:"&#128508;"},
+  {n:"Singapore",c:"Singapore",la:1.3521,lo:103.8198,ic:"&#129409;"},
+  {n:"Dubai",c:"UAE",la:25.2048,lo:55.2708,ic:"&#127959;"},
+  {n:"London",c:"UK",la:51.5074,lo:-.1278,ic:"&#127981;"},
+  {n:"New York",c:"USA",la:40.7128,lo:-74.006,ic:"&#127895;"},
+  {n:"Sydney",c:"Australia",la:-33.8688,lo:151.2093,ic:"&#127944;"},
 ];
 
-// State
-var map, pickMode=null, ptA=null, ptB=null, mkA, mkB, rtLayer;
-var routeCoords=[], routeSteps=[];
-var pv=null, pvPaused=false, pvSpeed=1;
-var driveT0, driveDist, driveSpeeds, segIdx, segProg;
-var playerMk, trafficMks=[], trafficVs=[];
-var camLast=0, lastTs=null;
-var pendName='', pendLat=0, pendLon=0;
-var audioCtx, engOsc, engGain;
+// Vehicle templates: hw=half-width, hl=half-length (hl>hw = longer than wide)
+var VEH=[
+  {hw:5,hl:11,body:'#c0392b',roof:'#922b21'},  // red
+  {hw:5,hl:11,body:'#2980b9',roof:'#1a5276'},  // blue
+  {hw:5,hl:11,body:'#27ae60',roof:'#1d8348'},  // green
+  {hw:5,hl:11,body:'#d35400',roof:'#a04000'},  // orange
+  {hw:5,hl:11,body:'#8e44ad',roof:'#6c3483'},  // purple
+  {hw:5,hl:11,body:'#16a085',roof:'#0e6655'},  // teal
+  {hw:5,hl:11,body:'#f1c40f',roof:'#b7950b'},  // yellow
+  {hw:5,hl:11,body:'#7f8c8d',roof:'#566573'},  // silver
+  {hw:6,hl:13,body:'#2c3e50',roof:'#1a252f'},  // SUV dark
+  {hw:6,hl:13,body:'#e74c3c',roof:'#c0392b'},  // SUV red
+  {hw:7,hl:19,body:'#2980b9',roof:'#1f618d'},  // bus
+  {hw:6,hl:15,body:'#95a5a6',roof:'#717d7e'},  // truck
+  {hw:3,hl:8, body:'#f39c12',roof:'#d68910'},  // bike
+];
 
-// Build city list
-function buildList(q) {
-  var el = document.getElementById('city-list');
-  el.innerHTML = '';
-  var list = q ? CITIES.filter(function(c){
-    return c.n.toLowerCase().indexOf(q.toLowerCase()) >= 0 ||
-           c.c.toLowerCase().indexOf(q.toLowerCase()) >= 0;
-  }) : CITIES;
-  var groups = {};
-  list.forEach(function(c){ if(!groups[c.c]) groups[c.c]=[]; groups[c.c].push(c); });
-  Object.keys(groups).forEach(function(g){
-    var s = document.createElement('div'); s.className='city-sec'; s.textContent=g; el.appendChild(s);
-    groups[g].forEach(function(c){
-      var r = document.createElement('div'); r.className='city-row';
-      r.innerHTML = '<div class="city-ic">'+c.ic+'</div><div><div class="city-name">'+c.n+'</div><div class="city-country">'+c.c+'</div></div>';
-      r.addEventListener('click', function(){ selectCity(c); });
-      r.addEventListener('touchend', function(e){ e.preventDefault(); selectCity(c); });
+var map,pickMode=null,ptA=null,ptB=null,mkA,mkB,rtLayer;
+var routeCoords=[],routeSteps=[];
+var pv=null,pvPaused=false,pvSpeed=1;
+var driveT0,driveDist=0,driveSpeeds=[],segIdx=0,segProg=0;
+var trafficVs=[];
+var camLast=0,lastTs=null;
+var pendName='';
+var audioCtx,masterGain,engGain,engOsc,engOsc2,engFilter,windGain,hornTmr;
+var vc,vctx;
+
+// City list
+function buildList(q){
+  var el=document.getElementById('city-list'); el.innerHTML='';
+  var list=q?CITIES.filter(function(c){return c.n.toLowerCase().indexOf(q.toLowerCase())>=0;}):CITIES;
+  var g={};
+  list.forEach(function(c){if(!g[c.c])g[c.c]=[];g[c.c].push(c);});
+  Object.keys(g).forEach(function(k){
+    var s=document.createElement('div');s.className='csec';s.textContent=k;el.appendChild(s);
+    g[k].forEach(function(c){
+      var r=document.createElement('div');r.className='crow';
+      r.innerHTML='<div class="cic">'+c.ic+'</div><div><div class="cname">'+c.n+'</div><div class="ccountry">'+c.c+'</div></div>';
+      r.addEventListener('click',function(){selectCity(c);});
+      r.addEventListener('touchend',function(e){e.preventDefault();selectCity(c);});
       el.appendChild(r);
     });
   });
 }
 buildList();
-document.getElementById('ci').addEventListener('input', function(){ buildList(this.value.trim()); });
+document.getElementById('ci').addEventListener('input',function(){buildList(this.value.trim());});
 
-async function selectCity(city) {
-  pendName=city.n; pendLat=city.la; pendLon=city.lo;
-  loading(true, 'Loading '+city.n, 'Fetching road network from OpenStreetMap...');
-  try {
-    // Init map
-    if(!map) {
-      map = L.map('map', {center:[city.la,city.lo], zoom:14, zoomControl:false, preferCanvas:true});
-      L.control.attribution({position:'bottomleft',prefix:false}).addTo(map);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution:'© OpenStreetMap',subdomains:['a','b','c'],maxZoom:20
-      }).addTo(map);
-      map.on('click', onMapClick);
-      map.on('touchend', onMapTouch);
-    } else {
-      map.setView([city.la,city.lo],14);
-    }
-
-    // Show plan screen
-    document.getElementById('scr-search').style.display = 'none';
-    document.getElementById('scr-plan').style.display = 'block';
-    setTimeout(function(){ map.invalidateSize(); }, 100);
-    loading(false);
-    activatePick('A');
-  } catch(e) {
-    loading(false);
-    alert('Error: '+e.message);
+async function selectCity(city){
+  pendName=city.n;
+  loading(true,'Loading '+city.n,'Fetching road data...');
+  if(!map){
+    map=L.map('map',{center:[city.la,city.lo],zoom:14,zoomControl:false,preferCanvas:true});
+    L.control.attribution({position:'bottomleft',prefix:false}).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+      attribution:'© OpenStreetMap',subdomains:['a','b','c'],maxZoom:20
+    }).addTo(map);
+    map.on('click',onMapClick);
+    map.on('touchend',onMapTouch);
+    // Canvas for vehicle rendering
+    vc=document.getElementById('vc');
+    vctx=vc.getContext('2d');
+    function rsz(){vc.width=window.innerWidth;vc.height=window.innerHeight;}
+    rsz(); window.addEventListener('resize',rsz);
+    map.on('move',function(){if(document.getElementById('scr-prev').style.display!=='none')renderAll();});
+  } else {
+    map.setView([city.la,city.lo],14);
   }
+  document.getElementById('scr-search').style.display='none';
+  document.getElementById('scr-plan').style.display='block';
+  setTimeout(function(){map.invalidateSize();},100);
+  loading(false);
+  activatePick('A');
 }
 
-// Map click handler
-function onMapClick(e) {
-  if(!pickMode) return;
-  setPoint(pickMode, e.latlng.lat, e.latlng.lng);
+function onMapClick(e){if(!pickMode)return;setPoint(pickMode,e.latlng.lat,e.latlng.lng);}
+function onMapTouch(e){
+  if(!pickMode)return;
+  var t=(e.touches&&e.touches[0])||(e.changedTouches&&e.changedTouches[0]);
+  if(!t)return;
+  var ll=map.containerPointToLatLng(L.point(t.clientX,t.clientY));
+  setPoint(pickMode,ll.lat,ll.lng);
 }
 
-function onMapTouch(e) {
-  if(!pickMode) return;
-  if(!e.touches || !e.touches[0]) return;
-  var t = e.touches[0];
-  var latlng = map.containerPointToLatLng(L.point(t.clientX, t.clientY));
-  setPoint(pickMode, latlng.lat, latlng.lng);
+function activatePick(t){
+  pickMode=t;
+  var b=document.getElementById('set-'+t.toLowerCase());
+  b.style.background='rgba(10,132,255,.28)';b.style.borderColor='#0a84ff';
+  document.getElementById('phint').textContent='Tap the map to set '+(t==='A'?'start':'destination')+' point';
 }
 
-function activatePick(t) {
-  pickMode = t;
-  var btn = document.getElementById('set-'+t.toLowerCase());
-  if(btn) { btn.style.background='rgba(10,132,255,.3)'; btn.style.borderColor='#0a84ff'; }
-  document.getElementById('phint').textContent = 'Now tap the map to set ' + (t==='A'?'start point':'destination');
-}
-
-function setPoint(t, lat, lon) {
-  var color = t==='A' ? '#30d158' : '#ff453a';
-  var ico = L.divIcon({className:'',html:'<div style="width:28px;height:28px;border-radius:50%;background:'+color+';border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff">'+t+'</div>',iconSize:[28,28],iconAnchor:[14,14]});
-  if(t==='A') {
-    if(mkA) map.removeLayer(mkA);
-    mkA = L.marker([lat,lon],{icon:ico}).addTo(map);
-    ptA = {lat:lat,lon:lon};
-    document.getElementById('lbl-a').textContent = lat.toFixed(4)+', '+lon.toFixed(4);
-    document.getElementById('set-a').style.background='rgba(48,209,88,.2)';
-    document.getElementById('set-a').style.borderColor='#30d158';
-    document.getElementById('set-a').style.color='#30d158';
-    document.getElementById('set-a').textContent='✓ Set';
-    pickMode = null;
-    if(!ptB) setTimeout(function(){ activatePick('B'); }, 300);
+function setPoint(t,lat,lon){
+  var col=t==='A'?'#30d158':'#ff453a';
+  var ico=L.divIcon({className:'',html:'<div style="width:28px;height:28px;border-radius:50%;background:'+col+';border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff">'+t+'</div>',iconSize:[28,28],iconAnchor:[14,14]});
+  if(t==='A'){
+    if(mkA)map.removeLayer(mkA);
+    mkA=L.marker([lat,lon],{icon:ico}).addTo(map);
+    ptA={lat:lat,lon:lon};
+    document.getElementById('lbl-a').textContent=lat.toFixed(4)+', '+lon.toFixed(4);
+    var sb=document.getElementById('set-a');sb.style.background='rgba(48,209,88,.2)';sb.style.borderColor='#30d158';sb.style.color='#30d158';sb.textContent='A Set';
+    pickMode=null;
+    if(!ptB)setTimeout(function(){activatePick('B');},300);
     else calcRoute();
   } else {
-    if(mkB) map.removeLayer(mkB);
-    mkB = L.marker([lat,lon],{icon:ico}).addTo(map);
-    ptB = {lat:lat,lon:lon};
-    document.getElementById('lbl-b').textContent = lat.toFixed(4)+', '+lon.toFixed(4);
-    document.getElementById('set-b').style.background='rgba(255,69,58,.2)';
-    document.getElementById('set-b').style.borderColor='#ff453a';
-    document.getElementById('set-b').style.color='#ff453a';
-    document.getElementById('set-b').textContent='✓ Set';
-    pickMode = null;
+    if(mkB)map.removeLayer(mkB);
+    mkB=L.marker([lat,lon],{icon:ico}).addTo(map);
+    ptB={lat:lat,lon:lon};
+    document.getElementById('lbl-b').textContent=lat.toFixed(4)+', '+lon.toFixed(4);
+    var sb=document.getElementById('set-b');sb.style.background='rgba(255,69,58,.2)';sb.style.borderColor='#ff453a';sb.style.color='#ff453a';sb.textContent='B Set';
+    pickMode=null;
     calcRoute();
   }
 }
 
-async function calcRoute() {
-  if(!ptA||!ptB) return;
-  loading(true,'Calculating Route','Finding best path on real roads...');
-  try {
-    // OSRM — works on GitHub Pages (not blocked there)
-    var url = 'https://router.project-osrm.org/route/v1/driving/'+
+async function calcRoute(){
+  if(!ptA||!ptB)return;
+  loading(true,'Calculating Route','Finding real road path...');
+  try{
+    var url='https://router.project-osrm.org/route/v1/driving/'+
       ptA.lon.toFixed(6)+','+ptA.lat.toFixed(6)+';'+
       ptB.lon.toFixed(6)+','+ptB.lat.toFixed(6)+
       '?overview=full&geometries=geojson&steps=true';
-    var res = await fetch(url);
-    var data = await res.json();
-    if(data.code==='Ok' && data.routes && data.routes[0]) {
-      var rt = data.routes[0];
-      routeCoords = rt.geometry.coordinates.map(function(c){return{lat:c[1],lng:c[0]};});
-      routeSteps = rt.legs[0].steps||[];
-      showRoute(routeCoords, rt.distance, rt.duration, routeSteps.length);
-      loading(false);
-      return;
+    var res=await fetch(url);
+    var data=await res.json();
+    if(data.code==='Ok'&&data.routes&&data.routes[0]){
+      var rt=data.routes[0];
+      routeCoords=rt.geometry.coordinates.map(function(c){return{lat:c[1],lng:c[0]};});
+      routeSteps=rt.legs[0].steps||[];
+      showRoute(rt.distance,rt.duration);
+      loading(false);return;
     }
-  } catch(e){ console.warn('OSRM:', e.message); }
+  }catch(e){console.warn('OSRM:',e.message);}
   loading(false);
-  alert('Could not find route. Make sure you are online.');
+  alert('Could not get route. Check your connection.');
 }
 
-function showRoute(coords, dist, dur, nSteps) {
-  if(rtLayer) map.removeLayer(rtLayer);
-  var lc = coords.map(function(c){return[c.lat,c.lng];});
+function showRoute(dist,dur){
+  if(rtLayer)map.removeLayer(rtLayer);
+  var lc=routeCoords.map(function(c){return[c.lat,c.lng];});
   L.polyline(lc,{color:'rgba(10,132,255,.2)',weight:14,opacity:1,interactive:false}).addTo(map);
-  rtLayer = L.polyline(lc,{color:'#0a84ff',weight:5,opacity:.92,interactive:false}).addTo(map);
+  rtLayer=L.polyline(lc,{color:'#0a84ff',weight:5,opacity:.92,interactive:false}).addTo(map);
   map.fitBounds(rtLayer.getBounds(),{padding:[20,20],maxZoom:16});
-  document.getElementById('r-dist').textContent = dist>1000?(dist/1000).toFixed(1)+' km':Math.round(dist)+'m';
-  document.getElementById('r-time').textContent = dur>3600?Math.floor(dur/3600)+'h '+Math.floor((dur%3600)/60)+'m':Math.floor(dur/60)+' min';
-  document.getElementById('r-roads').textContent = nSteps+' turns';
+  document.getElementById('r-dist').textContent=dist>1000?(dist/1000).toFixed(1)+' km':Math.round(dist)+'m';
+  document.getElementById('r-time').textContent=dur>3600?Math.floor(dur/3600)+'h '+Math.floor((dur%3600)/60)+'m':Math.floor(dur/60)+' min';
+  document.getElementById('r-turns').textContent=routeSteps.length+' turns';
   document.getElementById('rinfo').style.display='block';
   document.getElementById('phint').style.display='none';
   document.getElementById('btn-go').style.display='block';
 }
 
-function startPreview() {
-  if(!routeCoords||routeCoords.length<2) return;
-  pvPaused=false; segIdx=0; segProg=0;
-  driveT0=Date.now(); driveDist=0; driveSpeeds=[];
+// ── PREVIEW ──────────────────────────────────────────
+function startPreview(){
+  if(!routeCoords||routeCoords.length<2)return;
+  pvPaused=false;segIdx=0;segProg=0;
+  driveT0=Date.now();driveDist=0;driveSpeeds=[];
   pv={lat:routeCoords[0].lat,lng:routeCoords[0].lng,spd:5,heading:0,done:false};
   if(mkA){map.removeLayer(mkA);mkA=null;}
   if(mkB){map.removeLayer(mkB);mkB=null;}
@@ -398,285 +370,273 @@ function startPreview() {
   map.setView([pv.lat,pv.lng],18);
   setTimeout(function(){map.invalidateSize();},100);
   setTimeout(function(){map.invalidateSize();map.setView([pv.lat,pv.lng],18);},500);
-  if(!audioCtx) initAudio();
-  lastTs=null; camLast=0;
+  if(!audioCtx)initAudio();
+  lastTs=null;camLast=0;
   requestAnimationFrame(loop);
 }
 
-// Traffic — lane-aware colored vehicles
-var VEHICLE_TYPES = [
-  {color:'#e74c3c',w:14,h:8,name:'sedan'},    // red sedan
-  {color:'#3498db',w:14,h:8,name:'sedan'},    // blue sedan
-  {color:'#2ecc71',w:14,h:8,name:'sedan'},    // green sedan
-  {color:'#f39c12',w:14,h:8,name:'sedan'},    // orange sedan
-  {color:'#9b59b6',w:14,h:8,name:'sedan'},    // purple sedan
-  {color:'#1abc9c',w:14,h:8,name:'sedan'},    // teal sedan
-  {color:'#e67e22',w:20,h:9,name:'suv'},      // orange SUV
-  {color:'#c0392b',w:20,h:9,name:'suv'},      // dark red SUV
-  {color:'#2980b9',w:28,h:10,name:'bus'},     // blue bus
-  {color:'#7f8c8d',w:24,h:9,name:'truck'},    // grey truck
-  {color:'#f1c40f',w:10,h:6,name:'bike'},     // yellow bike
-  {color:'#27ae60',w:10,h:6,name:'bike'},     // green bike
-];
-
-var canvas, ctx2d;
-
-function initCanvas() {
-  canvas = document.createElement('canvas');
-  canvas.style.cssText = 'position:fixed;inset:0;z-index:50;pointer-events:none';
-  document.body.appendChild(canvas);
-  ctx2d = canvas.getContext('2d');
-  function resize(){ canvas.width=window.innerWidth; canvas.height=window.innerHeight; }
-  resize();
-  window.addEventListener('resize', resize);
-}
-
-function spawnTraffic() {
-  trafficMks.forEach(function(m){ if(m.mk)map.removeLayer(m.mk); }); 
-  trafficMks=[]; trafficVs=[];
-  if(!canvas) initCanvas();
-  
-  for(var i=0;i<20;i++){
-    var idx = Math.floor(Math.random() * Math.max(1, routeCoords.length-5));
-    var vtype = VEHICLE_TYPES[Math.floor(Math.random()*VEHICLE_TYPES.length)];
-    // Lane offset: positive = left lane (oncoming), negative = right lane (same dir)
-    // Vehicles ahead of player go same direction (right lane), some go opposite (left lane)
-    var sameDir = Math.random() > 0.35; // 65% same direction
+// ── TRAFFIC VEHICLES ─────────────────────────────────
+function spawnTraffic(){
+  trafficVs=[];
+  var N=routeCoords.length;
+  for(var i=0;i<22;i++){
+    var vt=VEH[Math.floor(Math.random()*VEH.length)];
+    var same=Math.random()>0.38;
     trafficVs.push({
-      idx: idx,
-      prog: Math.random(),
-      spd: (20 + Math.random()*30) * (sameDir ? 1 : -1), // negative = opposite dir
-      type: vtype,
-      sameDir: sameDir,
-      laneOffset: sameDir ? -(4 + Math.random()*2) : (4 + Math.random()*2), // px perpendicular
-      visible: true
+      idx:Math.floor(Math.random()*Math.max(1,N-5)),
+      prog:Math.random(),
+      spd:(18+Math.random()*32)*(same?1:-1),
+      vt:vt,
+      same:same,
+      lane:7+Math.random()*5
     });
   }
 }
 
-function updateTraffic(dt) {
-  if(!trafficVs.length) return;
+function updateTraffic(dt){
+  var N=routeCoords.length;
   trafficVs.forEach(function(v){
-    v.prog += Math.abs(v.spd)*1000/3600*dt / 30; // ~30m segments
-    if(v.prog >= 1){
-      v.prog = 0;
-      if(v.sameDir) { v.idx = Math.min(v.idx+1, routeCoords.length-2); }
-      else { v.idx = Math.max(v.idx-1, 0); }
-    }
+    var step=Math.abs(v.spd)*1000/3600*dt;
+    var nxt=v.same?Math.min(v.idx+1,N-1):Math.max(v.idx-1,0);
+    var A=routeCoords[v.idx],B=routeCoords[nxt];
+    if(!A||!B)return;
+    var m=hvs(A.lat,A.lng,B.lat,B.lng)||1;
+    v.prog+=step/m;
+    if(v.prog>=1){v.prog=0;v.idx=nxt;}
   });
-  renderVehicles();
 }
 
-function renderVehicles() {
-  if(!ctx2d||!canvas) return;
-  ctx2d.clearRect(0,0,canvas.width,canvas.height);
-  
-  // Draw traffic vehicles
+// ── CANVAS RENDERING ─────────────────────────────────
+function getZScale(){
+  if(!map)return 1;
+  return Math.max(0.35,Math.min(2.5,Math.pow(2,map.getZoom()-16)*0.5));
+}
+
+function renderAll(){
+  if(!vctx||!vc)return;
+  vctx.clearRect(0,0,vc.width,vc.height);
+  var sc=getZScale();
+  drawLaneMarkings();
+  // Traffic
   trafficVs.forEach(function(v){
-    var A=routeCoords[v.idx], B=routeCoords[Math.min(v.idx+1,routeCoords.length-1)];
-    if(!A||!B) return;
-    var lat=A.lat+(B.lat-A.lat)*v.prog, lng=A.lng+(B.lng-A.lng)*v.prog;
-    var pt=map.latLngToContainerPoint([lat,lng]);
-    var heading=Math.atan2(B.lng-A.lng,B.lat-A.lat);
-    // Apply lane offset (perpendicular to heading)
-    var perpAngle = heading + Math.PI/2;
-    var lx = pt.x + Math.cos(perpAngle)*v.laneOffset;
-    var ly = pt.y + Math.sin(perpAngle)*v.laneOffset;
-    var drawHeading = v.sameDir ? heading : heading + Math.PI;
-    drawVehicle(ctx2d, lx, ly, drawHeading, v.type, 1.0);
+    var N=routeCoords.length;
+    var A=routeCoords[v.idx];
+    var nxt=v.same?Math.min(v.idx+1,N-1):Math.max(v.idx-1,0);
+    var B=routeCoords[nxt];
+    if(!A||!B)return;
+    var pA=map.latLngToContainerPoint([A.lat,A.lng]);
+    var pB=map.latLngToContainerPoint([B.lat,B.lng]);
+    var dx=pB.x-pA.x,dy=pB.y-pA.y,len=Math.sqrt(dx*dx+dy*dy)||1;
+    var cx=pA.x+dx*v.prog, cy=pA.y+dy*v.prog;
+    // Left perpendicular in screen (90deg CW of forward): (dy/len, -dx/len)
+    var lx=dy/len, ly=-dx/len;
+    // India LHD: same-dir goes on LEFT lane, oncoming on their LEFT (our RIGHT)
+    var side=v.same?1:-1;
+    cx+=lx*v.lane*sc*side; cy+=ly*v.lane*sc*side;
+    // heading: forward in screen space = atan2(dx,-dy) matches drawVehicle convention
+    var hdg=v.same?Math.atan2(dx,-dy):Math.atan2(-dx,dy);
+    drawVehicle(cx,cy,hdg,v.vt,sc);
   });
-  
-  // Draw player vehicle with glow
+  // Player
   if(pv&&!pv.done){
-    var pt=map.latLngToContainerPoint([pv.lat,pv.lng]);
-    // Player is slightly right of center lane
-    var perpAngle = pv.heading + Math.PI/2;
-    var px = pt.x + Math.cos(perpAngle)*(-3);
-    var py = pt.y + Math.sin(perpAngle)*(-3);
+    var pp=map.latLngToContainerPoint([pv.lat,pv.lng]);
+    // pv.heading = atan2(dLng,dLat) in geo space = atan2(dx_screen,-dy_screen) in pixel space
+    // So sin(pv.heading)=forward-x, -cos(pv.heading)=forward-y (screen)
+    var fwdX=Math.sin(pv.heading),fwdY=-Math.cos(pv.heading);
+    // Left perpendicular (India LHD: player on left lane)
+    var lx=fwdY,ly=-fwdX; // 90deg CW
+    var laneOff=9*sc;
+    var px=pp.x+lx*laneOff, py=pp.y+ly*laneOff;
     // Glow
-    ctx2d.save(); ctx2d.shadowBlur=20; ctx2d.shadowColor='rgba(0,180,255,.8)';
-    drawVehicle(ctx2d, px, py, pv.heading, {color:'#00aaff',w:16,h:9,name:'sedan'}, 1.3);
-    ctx2d.restore();
-    drawVehicle(ctx2d, px, py, pv.heading, {color:'#00cfff',w:16,h:9,name:'sedan'}, 1.3);
+    vctx.save();vctx.shadowBlur=20*sc;vctx.shadowColor='rgba(0,200,255,.8)';
+    drawVehicle(px,py,pv.heading,{hw:6,hl:13,body:'#00d4ff',roof:'#0090aa'},sc*1.1);
+    vctx.restore();
+    drawVehicle(px,py,pv.heading,{hw:6,hl:13,body:'#00d4ff',roof:'#0090aa'},sc*1.1);
     // YOU label
-    ctx2d.save();
-    ctx2d.fillStyle='rgba(0,0,0,.75)';
-    ctx2d.beginPath(); roundRect(ctx2d, px-14,py-28,28,14,4); ctx2d.fill();
-    ctx2d.fillStyle='#00cfff'; ctx2d.font='bold 9px -apple-system,sans-serif';
-    ctx2d.textAlign='center'; ctx2d.textBaseline='middle';
-    ctx2d.fillText('YOU', px, py-21);
-    ctx2d.restore();
+    var lw=30*sc,lh=14*sc,lbx=px-lw/2,lby=py-14*sc-lh-3;
+    vctx.fillStyle='rgba(0,15,30,.85)';
+    rrect(lbx,lby,lw,lh,4);vctx.fill();
+    vctx.fillStyle='#00d4ff';
+    vctx.font='bold '+(Math.round(9*sc))+'px -apple-system,sans-serif';
+    vctx.textAlign='center';vctx.textBaseline='middle';
+    vctx.fillText('YOU',px,lby+lh/2);
   }
 }
 
-function drawVehicle(c, x, y, heading, vtype, scale) {
-  var w=vtype.w*scale*0.5, h=vtype.h*scale*0.5;
-  c.save(); c.translate(x,y); c.rotate(heading);
-  
-  if(vtype.name==='bike'){
-    // Motorbike — slim oval
-    c.fillStyle=vtype.color;
-    c.beginPath(); c.ellipse(0,0,w,h,0,0,Math.PI*2); c.fill();
-    c.fillStyle='rgba(255,255,255,.6)'; c.beginPath(); c.arc(w*.4,0,h*.4,0,Math.PI*2); c.fill();
-  } else if(vtype.name==='bus'){
-    // Bus — long rectangle
-    roundRect(c,-w,-h,w*2,h*2,h*.3); c.fillStyle=vtype.color; c.fill();
-    c.fillStyle='rgba(255,255,255,.25)';
-    for(var i=-1;i<=0;i++){c.fillRect(i*w*.45+w*.05,-h*.7,w*.38,h*1.4);}
-    c.fillStyle='rgba(255,248,140,.95)'; c.beginPath(); c.arc(w*.85,-h*.5,h*.3,0,Math.PI*2); c.fill();
-    c.beginPath(); c.arc(w*.85,h*.5,h*.3,0,Math.PI*2); c.fill();
-    c.fillStyle='rgba(255,60,60,.9)'; c.beginPath(); c.arc(-w*.85,-h*.5,h*.25,0,Math.PI*2); c.fill();
-    c.beginPath(); c.arc(-w*.85,h*.5,h*.25,0,Math.PI*2); c.fill();
-  } else if(vtype.name==='truck'){
-    roundRect(c,-w,-h,w*2,h*2,h*.3); c.fillStyle=vtype.color; c.fill();
-    c.fillStyle='rgba(0,0,0,.2)'; c.fillRect(-w,-h,w*2,h*.25);
-    c.fillStyle='rgba(255,248,140,.9)'; c.beginPath(); c.arc(w*.8,-h*.5,h*.28,0,Math.PI*2); c.fill();
-    c.beginPath(); c.arc(w*.8,h*.5,h*.28,0,Math.PI*2); c.fill();
-  } else {
-    // Sedan / SUV — tapered body
-    c.beginPath();
-    c.moveTo(-w,-h*.4); c.bezierCurveTo(-w,-h, -w*.3,-h, 0,-h);
-    c.bezierCurveTo(w*.3,-h, w,-h, w,-h*.4);
-    c.lineTo(w,h*.5); c.bezierCurveTo(w,h, w*.3,h, 0,h);
-    c.bezierCurveTo(-w*.3,h, -w,h, -w,h*.5); c.closePath();
-    c.fillStyle=vtype.color; c.fill();
-    // Windshield
-    c.fillStyle='rgba(150,220,255,.5)';
-    c.beginPath(); c.moveTo(-w*.65,-h*.35); c.lineTo(-w*.55,-h*.85);
-    c.bezierCurveTo(-w*.2,-h*.95,w*.2,-h*.95,w*.55,-h*.85);
-    c.lineTo(w*.65,-h*.35); c.closePath(); c.fill();
-    // Roof highlight
-    c.fillStyle='rgba(255,255,255,.18)'; c.beginPath(); c.ellipse(0,-h*.1,w*.55,h*.35,0,0,Math.PI*2); c.fill();
-    // Headlights
-    c.fillStyle='rgba(255,248,140,.98)'; c.beginPath(); c.arc(w*.55,-h*.78,h*.2,0,Math.PI*2); c.fill();
-    c.beginPath(); c.arc(-w*.55,-h*.78,h*.2,0,Math.PI*2); c.fill();
-    // Taillights  
-    c.fillStyle='rgba(255,60,60,.95)'; c.beginPath(); c.arc(w*.55,h*.82,h*.18,0,Math.PI*2); c.fill();
-    c.beginPath(); c.arc(-w*.55,h*.82,h*.18,0,Math.PI*2); c.fill();
-    // Wheels
-    c.fillStyle='#1a1a1a';
-    [[.85,-.72],[-.85,-.72],[.85,.72],[-.85,.72]].forEach(function(wh){
-      c.beginPath(); c.ellipse(w*wh[0],h*wh[1],h*.22,w*.18,Math.PI/2,0,Math.PI*2); c.fill();
-    });
+function drawLaneMarkings(){
+  var N=routeCoords.length;
+  if(N<2)return;
+  vctx.save();
+  vctx.strokeStyle='rgba(255,255,255,0.5)';
+  vctx.lineWidth=1.5;
+  vctx.setLineDash([14,12]);
+  vctx.lineDashOffset=-(Date.now()/90)%26;
+  vctx.beginPath();
+  for(var i=0;i<N;i++){
+    var p=map.latLngToContainerPoint([routeCoords[i].lat,routeCoords[i].lng]);
+    if(i===0)vctx.moveTo(p.x,p.y); else vctx.lineTo(p.x,p.y);
   }
-  c.restore();
+  vctx.stroke();
+  vctx.restore();
 }
 
-function roundRect(c,x,y,w,h,r){
-  c.beginPath();c.moveTo(x+r,y);c.lineTo(x+w-r,y);c.quadraticCurveTo(x+w,y,x+w,y+r);
-  c.lineTo(x+w,y+h-r);c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
-  c.lineTo(x+r,y+h);c.quadraticCurveTo(x,y+h,x,y+h-r);
-  c.lineTo(x,y+r);c.quadraticCurveTo(x,y,x+r,y);c.closePath();
+function drawVehicle(x,y,hdg,vt,sc){
+  var hw=vt.hw*sc,hl=vt.hl*sc;
+  vctx.save();vctx.translate(x,y);vctx.rotate(hdg);
+  // Body shape — tapered nose at y=-hl (front)
+  vctx.beginPath();
+  vctx.moveTo(-hw*0.6,-hl);
+  vctx.bezierCurveTo(-hw,-hl*0.85,-hw,-hl*0.4,-hw,-hl*0.3);
+  vctx.lineTo(-hw,hl*0.5);
+  vctx.bezierCurveTo(-hw,hl,hw*-0.4,hl,0,hl);
+  vctx.bezierCurveTo(hw*0.4,hl,hw,hl,hw,hl*0.5);
+  vctx.lineTo(hw,-hl*0.3);
+  vctx.bezierCurveTo(hw,-hl*0.4,hw,-hl*0.85,hw*0.6,-hl);
+  vctx.closePath();
+  vctx.fillStyle=vt.body;vctx.fill();
+  // Cabin / roof
+  vctx.beginPath();
+  vctx.moveTo(-hw*0.65,-hl*0.2);
+  vctx.bezierCurveTo(-hw*0.65,-hl*0.7,-hw*0.35,-hl*0.82,0,-hl*0.82);
+  vctx.bezierCurveTo(hw*0.35,-hl*0.82,hw*0.65,-hl*0.7,hw*0.65,-hl*0.2);
+  vctx.lineTo(hw*0.65,hl*0.28);
+  vctx.bezierCurveTo(hw*0.65,hl*0.45,hw*0.35,hl*0.52,0,hl*0.52);
+  vctx.bezierCurveTo(-hw*0.35,hl*0.52,-hw*0.65,hl*0.45,-hw*0.65,hl*0.28);
+  vctx.closePath();
+  vctx.fillStyle=vt.roof;vctx.fill();
+  // Windshield glass tint
+  vctx.beginPath();
+  vctx.moveTo(-hw*0.5,-hl*0.22);
+  vctx.lineTo(-hw*0.42,-hl*0.75);
+  vctx.bezierCurveTo(-hw*0.15,-hl*0.82,hw*0.15,-hl*0.82,hw*0.42,-hl*0.75);
+  vctx.lineTo(hw*0.5,-hl*0.22);
+  vctx.closePath();
+  vctx.fillStyle='rgba(160,230,255,0.38)';vctx.fill();
+  // Headlights (front)
+  vctx.fillStyle='rgba(255,252,180,0.95)';
+  vctx.beginPath();vctx.ellipse(-hw*0.48,-hl*0.88,hw*0.18,hl*0.1,0,0,Math.PI*2);vctx.fill();
+  vctx.beginPath();vctx.ellipse(hw*0.48,-hl*0.88,hw*0.18,hl*0.1,0,0,Math.PI*2);vctx.fill();
+  // Taillights (rear)
+  vctx.fillStyle='rgba(255,40,40,0.95)';
+  vctx.beginPath();vctx.ellipse(-hw*0.48,hl*0.88,hw*0.18,hl*0.1,0,0,Math.PI*2);vctx.fill();
+  vctx.beginPath();vctx.ellipse(hw*0.48,hl*0.88,hw*0.18,hl*0.1,0,0,Math.PI*2);vctx.fill();
+  // Wheels (4 corners)
+  vctx.fillStyle='#111';
+  var wp=[[-0.82,-0.7],[0.82,-0.7],[-0.82,0.7],[0.82,0.7]];
+  for(var i=0;i<4;i++){
+    vctx.beginPath();vctx.ellipse(hw*wp[i][0],hl*wp[i][1],hl*0.17,hw*0.3,0,0,Math.PI*2);vctx.fill();
+    vctx.fillStyle='#2a2a2a';
+    vctx.beginPath();vctx.ellipse(hw*wp[i][0],hl*wp[i][1],hl*0.09,hw*0.17,0,0,Math.PI*2);vctx.fill();
+    vctx.fillStyle='#111';
+  }
+  vctx.restore();
 }
 
-// Drive loop
-function loop(ts) {
-  if(document.getElementById('scr-prev').style.display==='none') return;
-  if(!lastTs) lastTs=ts;
-  var dt = Math.min((ts-lastTs)/1000,.05)*pvSpeed; lastTs=ts;
-  if(!pvPaused) {
+function rrect(x,y,w,h,r){
+  vctx.beginPath();vctx.moveTo(x+r,y);vctx.lineTo(x+w-r,y);vctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  vctx.lineTo(x+w,y+h-r);vctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  vctx.lineTo(x+r,y+h);vctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  vctx.lineTo(x,y+r);vctx.quadraticCurveTo(x,y,x+r,y);vctx.closePath();
+}
+
+// ── DRIVE LOOP ────────────────────────────────────────
+function loop(ts){
+  if(document.getElementById('scr-prev').style.display==='none')return;
+  if(!lastTs)lastTs=ts;
+  var dt=Math.min((ts-lastTs)/1000,.05)*pvSpeed;lastTs=ts;
+  if(!pvPaused){
     updateDrive(dt);
     updateTraffic(dt*.5);
-    renderVehicles();
+    renderAll();
     updateHUD();
     updateCam(ts);
   }
   requestAnimationFrame(loop);
 }
 
-function getStepSpeed() {
-  if(!routeSteps.length) return 30;
+function stepSpeed(){
+  if(!routeSteps.length)return 30;
   var d=0;
   for(var i=0;i<routeSteps.length;i++){
     d+=routeSteps[i].distance||0;
     if(driveDist<d){
-      var name=(routeSteps[i].name||'').toLowerCase();
-      if(name.indexOf('highway')>=0||name.indexOf('expressway')>=0||(routeSteps[i].ref||'').indexOf('NH')>=0) return 70;
-      if(name.indexOf('main')>=0||name.indexOf('road')>=0||name.indexOf('avenue')>=0) return 45;
+      var nm=(routeSteps[i].name||'').toLowerCase();
+      if(nm.indexOf('highway')>=0||nm.indexOf('expressway')>=0||(routeSteps[i].ref||'').indexOf('NH')>=0)return 70;
+      if(nm.indexOf('main')>=0||nm.indexOf('road')>=0)return 45;
       return 30;
     }
   }
   return 25;
 }
 
-function getStepName() {
-  if(!routeSteps.length) return '—';
+function stepName(){
+  if(!routeSteps.length)return '-';
   var d=0;
-  for(var i=0;i<routeSteps.length;i++){
-    d+=routeSteps[i].distance||0;
-    if(driveDist<d) return routeSteps[i].name||routeSteps[i].ref||'road';
-  }
+  for(var i=0;i<routeSteps.length;i++){d+=routeSteps[i].distance||0;if(driveDist<d)return routeSteps[i].name||routeSteps[i].ref||'road';}
   return routeSteps[routeSteps.length-1].name||'road';
 }
 
-function updateDrive(dt) {
-  if(!pv||pv.done) return;
-  if(segIdx>=routeCoords.length-1){ onArrive(); return; }
-  var A=routeCoords[segIdx], B=routeCoords[segIdx+1];
-  var segD=Math.max(hvs(A.lat,A.lng,B.lat,B.lng),.5);
-  var tSpd=getStepSpeed();
-  pv.spd += (tSpd-pv.spd)*dt*2.2;
-  pv.spd = Math.max(5,Math.min(tSpd*1.05,pv.spd));
-  segProg += pv.spd*1000/3600*dt/segD;
-  driveDist += pv.spd*1000/3600*dt;
+function updateDrive(dt){
+  if(!pv||pv.done)return;
+  if(segIdx>=routeCoords.length-1){onArrive();return;}
+  var A=routeCoords[segIdx],B=routeCoords[segIdx+1];
+  var sd=Math.max(hvs(A.lat,A.lng,B.lat,B.lng),.5);
+  var ts2=stepSpeed();
+  pv.spd+=(ts2-pv.spd)*dt*2.2;pv.spd=Math.max(5,Math.min(ts2*1.05,pv.spd));
+  segProg+=pv.spd*1000/3600*dt/sd;
+  driveDist+=pv.spd*1000/3600*dt;
   driveSpeeds.push(pv.spd);
-  if(segProg>=1){ segProg=0; segIdx++; if(segIdx>=routeCoords.length-1){onArrive();return;} }
-  var A2=routeCoords[segIdx], B2=routeCoords[Math.min(segIdx+1,routeCoords.length-1)];
+  if(segProg>=1){segProg=0;segIdx++;if(segIdx>=routeCoords.length-1){onArrive();return;}}
+  var A2=routeCoords[segIdx],B2=routeCoords[Math.min(segIdx+1,routeCoords.length-1)];
   pv.lat=A2.lat+(B2.lat-A2.lat)*segProg;
   pv.lng=A2.lng+(B2.lng-A2.lng)*segProg;
   pv.heading=Math.atan2(B2.lng-A2.lng,B2.lat-A2.lat);
-  updatePlayerMk();
   updateEngine(pv.spd,80);
-  // Nav remaining
-  var rem=0;
-  for(var i=segIdx;i<routeCoords.length-1;i++) rem+=hvs(routeCoords[i].lat,routeCoords[i].lng,routeCoords[i+1].lat,routeCoords[i+1].lng);
+  // Nav
+  var rem=0;for(var i=segIdx;i<routeCoords.length-1;i++)rem+=hvs(routeCoords[i].lat,routeCoords[i].lng,routeCoords[i+1].lat,routeCoords[i+1].lng);
   document.getElementById('nav-rem-b').textContent=rem>1000?(rem/1000).toFixed(1)+' km':Math.round(rem)+'m';
   var arrT=new Date(Date.now()+rem/Math.max(pv.spd,1)*3600000);
   document.getElementById('nav-eta-t').textContent=arrT.getHours()+':'+(('0'+arrT.getMinutes()).slice(-2));
-  document.getElementById('d-road').textContent=getStepName();
-  updateTurnNav();
+  document.getElementById('d-road').textContent=stepName();
+  updateNav();
 }
 
-function updateTurnNav() {
-  if(!routeSteps.length){ document.getElementById('nav-arrow').textContent='↑'; document.getElementById('nav-action').textContent='Continue'; return; }
+function updateNav(){
+  if(!routeSteps.length){document.getElementById('nav-arrow').textContent='\u2191';document.getElementById('nav-action').textContent='Continue';return;}
   var d=0;
   for(var i=0;i<routeSteps.length;i++){
     d+=routeSteps[i].distance||0;
-    if(driveDist<d-30){
+    if(driveDist<d-25){
       var m=routeSteps[i].maneuver||{};
-      var mod=m.modifier||'', type=m.type||'';
-      var arrow='↑', txt='Continue';
-      if(mod==='right'||mod==='turn right'){arrow='↱';txt='Turn right';}
-      else if(mod==='left'||mod==='turn left'){arrow='↰';txt='Turn left';}
-      else if(mod==='slight right'){arrow='↗';txt='Bear right';}
-      else if(mod==='slight left'){arrow='↖';txt='Bear left';}
-      else if(type==='roundabout'||type==='rotary'){arrow='↻';txt='Roundabout';}
-      else if(type==='arrive'){arrow='🏁';txt='Arriving';}
-      document.getElementById('nav-arrow').textContent=arrow;
-      document.getElementById('nav-action').textContent=txt;
+      var mod=m.modifier||'',tp=m.type||'';
+      var ar='\u2191',tx='Continue';
+      if(mod==='right'||mod.indexOf('right')>=0){ar='\u21B1';tx='Turn right';}
+      else if(mod==='left'||mod.indexOf('left')>=0){ar='\u21B0';tx='Turn left';}
+      else if(mod==='slight right'){ar='\u2197';tx='Bear right';}
+      else if(mod==='slight left'){ar='\u2196';tx='Bear left';}
+      else if(tp==='roundabout'||tp==='rotary'){ar='\u21BB';tx='Roundabout';}
+      else if(tp==='arrive'){ar='\uD83C\uDFC1';tx='Arriving';}
+      document.getElementById('nav-arrow').textContent=ar;
+      document.getElementById('nav-action').textContent=tx;
       document.getElementById('nav-street').textContent=routeSteps[i].name?'onto '+routeSteps[i].name:'';
       return;
     }
   }
-  document.getElementById('nav-arrow').textContent='🏁';
+  document.getElementById('nav-arrow').textContent='\uD83C\uDFC1';
   document.getElementById('nav-action').textContent='Arriving';
 }
 
-function updatePlayerMk(){
-  // Player vehicle drawn on canvas in renderVehicles()
-}
-
-function updateCam(ts) {
-  if(!pv||pv.done) return;
-  if(ts-camLast<300) return; camLast=ts;
-  var lookM=35, dLat=Math.cos(pv.heading)*lookM/111320;
-  var dLon=Math.sin(pv.heading)*lookM/(111320*Math.cos(pv.lat*Math.PI/180));
-  var z=pv.spd>70?16.5:pv.spd>50?17:pv.spd>30?17.5:pv.spd>10?18:18.5;
+function updateCam(ts){
+  if(!pv||pv.done)return;
+  if(ts-camLast<280)return;camLast=ts;
+  var lm=35,dLat=Math.cos(pv.heading)*lm/111320;
+  var dLon=Math.sin(pv.heading)*lm/(111320*Math.cos(pv.lat*Math.PI/180));
+  var z=pv.spd>70?16.5:pv.spd>50?17:pv.spd>25?17.5:18;
   map.setView([pv.lat+dLat,pv.lng+dLon],z,{animate:false});
 }
 
-function updateHUD() {
-  if(!pv) return;
+function updateHUD(){
+  if(!pv)return;
   document.getElementById('d-spd').textContent=Math.round(pv.spd);
   document.getElementById('d-dist').textContent=driveDist>1000?(driveDist/1000).toFixed(2)+' km':Math.round(driveDist)+'m';
 }
@@ -687,174 +647,113 @@ function hvs(la1,ln1,la2,ln2){
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
 
-function setSpd(s){
-  pvSpeed=s;
-  document.querySelectorAll('.sx').forEach(function(b){b.classList.remove('on');});
-  var idx=[.5,1,2,4].indexOf(s); if(idx>=0) document.querySelectorAll('.sx')[idx].classList.add('on');
-}
-
-function togglePause(){
-  pvPaused=!pvPaused;
-  document.getElementById('btn-pause').textContent=pvPaused?'▶ Resume':'⏸ Pause';
-}
-
-function doRestart(){
-  document.getElementById('arrival').style.display='none';
-  if(playerMk){map.removeLayer(playerMk);playerMk=null;}
-  trafficMks.forEach(function(m){map.removeLayer(m);}); trafficMks=[]; trafficVs=[];
-  lastTs=null; startPreview();
-}
-
+function setSpd(s){pvSpeed=s;document.querySelectorAll('.sx').forEach(function(b){b.classList.remove('on');});var idx=[.5,1,2,4].indexOf(s);if(idx>=0)document.querySelectorAll('.sx')[idx].classList.add('on');}
+function togglePause(){pvPaused=!pvPaused;document.getElementById('btn-pause').textContent=pvPaused?'\u25BA Resume':'\u23F8\u23F8 Pause';}
+function doRestart(){document.getElementById('arrival').style.display='none';lastTs=null;startPreview();}
 function doExit(){
   stopAudio();
-  if(playerMk){map.removeLayer(playerMk);playerMk=null;}
-  trafficMks.forEach(function(m){map.removeLayer(m);}); trafficMks=[]; trafficVs=[];
+  if(vctx)vctx.clearRect(0,0,vc.width,vc.height);
   document.getElementById('arrival').style.display='none';
   document.getElementById('scr-prev').style.display='none';
   document.getElementById('scr-plan').style.display='block';
-  if(ptA)setPoint('A',ptA.lat,ptA.lon);
-  if(ptB)setPoint('B',ptB.lat,ptB.lon);
-  if(rtLayer) map.fitBounds(rtLayer.getBounds(),{padding:[20,20]});
   map.invalidateSize();
 }
-
 function newRoute(){
   doExit();
-  ptA=ptB=null; routeCoords=[]; routeSteps=[];
+  ptA=ptB=null;routeCoords=[];routeSteps=[];
   if(mkA){map.removeLayer(mkA);mkA=null;}
   if(mkB){map.removeLayer(mkB);mkB=null;}
   if(rtLayer){map.removeLayer(rtLayer);rtLayer=null;}
-  ['set-a','set-b'].forEach(function(id){
-    var b=document.getElementById(id);
-    b.style.background=''; b.style.borderColor='rgba(10,132,255,.45)'; b.style.color='#0a84ff';
-    b.textContent=id==='set-a'?'Set A':'Set B';
-  });
+  ['set-a','set-b'].forEach(function(id){var b=document.getElementById(id);b.style.cssText='';b.textContent=id==='set-a'?'Set A':'Set B';});
   document.getElementById('lbl-a').textContent='Tap map to set';
   document.getElementById('lbl-b').textContent='Tap map to set';
   document.getElementById('rinfo').style.display='none';
   document.getElementById('btn-go').style.display='none';
   document.getElementById('phint').style.display='block';
-  document.getElementById('phint').textContent='Tap "Set A" then tap the map for start point';
   activatePick('A');
 }
 
 function onArrive(){
-  if(!pv||pv.done) return; pv.done=true;
-  if(playerMk){map.removeLayer(playerMk);playerMk=null;}
+  if(!pv||pv.done)return;pv.done=true;
+  stopAudio();
+  if(vctx)vctx.clearRect(0,0,vc.width,vc.height);
   var el=(Date.now()-driveT0)/1000;
   var avg=driveSpeeds.length?driveSpeeds.reduce(function(a,b){return a+b;},0)/driveSpeeds.length:0;
-  document.getElementById('arr-sub').textContent='Route in '+pendName+' previewed';
+  document.getElementById('arr-sub').textContent='Route in '+pendName+' complete';
   document.getElementById('arr-d').textContent=(driveDist/1000).toFixed(2)+' km';
   document.getElementById('arr-t').textContent=Math.floor(el/60)+'m '+Math.floor(el%60)+'s';
   document.getElementById('arr-s').textContent=Math.round(avg)+' km/h';
-  stopAudio();
   document.getElementById('arrival').style.display='flex';
 }
 
-// ── AUDIO ENGINE ─────────────────────────────────────
-var audioCtx, masterGain;
-var engineOsc, engineOsc2, engineGain, engineFilter;
-var ambienceNodes=[];
-
+// ── AUDIO ──────────────────────────────────────────────
 function initAudio(){
   try{
-    var AC=window.AudioContext||window.webkitAudioContext; if(!AC)return;
-    audioCtx=new AC(); masterGain=audioCtx.createGain(); masterGain.gain.value=0.7;
-    masterGain.connect(audioCtx.destination);
-    
-    // ── Engine sound (layered oscillators) ──
-    engineFilter=audioCtx.createBiquadFilter(); engineFilter.type='lowpass'; engineFilter.frequency.value=800;
-    engineGain=audioCtx.createGain(); engineGain.gain.value=0;
-    
-    engineOsc=audioCtx.createOscillator(); engineOsc.type='sawtooth'; engineOsc.frequency.value=80;
-    var dist=audioCtx.createWaveShaper(); 
-    var curve=new Float32Array(256);
-    for(var i=0;i<256;i++){var x=i*2/256-1; curve[i]=x<0?-Math.pow(-x,.7):Math.pow(x,.7);}
-    dist.curve=curve;
-    engineOsc.connect(dist); dist.connect(engineFilter); engineFilter.connect(engineGain);
-    
-    engineOsc2=audioCtx.createOscillator(); engineOsc2.type='square'; engineOsc2.frequency.value=160;
-    var g2=audioCtx.createGain(); g2.gain.value=0.25; engineOsc2.connect(g2); g2.connect(engineGain);
-    
-    engineGain.connect(masterGain); engineOsc.start(); engineOsc2.start();
-    
-    // ── City ambience (layered noise) ──
-    startAmbience();
-    
-  }catch(e){ console.log('Audio:', e.message); }
+    var AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+    audioCtx=new AC();
+    masterGain=audioCtx.createGain();masterGain.gain.value=0.75;masterGain.connect(audioCtx.destination);
+    // Engine
+    engFilter=audioCtx.createBiquadFilter();engFilter.type='lowpass';engFilter.frequency.value=600;engFilter.Q.value=1.2;
+    engGain=audioCtx.createGain();engGain.gain.value=0;
+    var dist=audioCtx.createWaveShaper();
+    var cv=new Float32Array(256);for(var i=0;i<256;i++){var x=i*2/256-1;cv[i]=x<0?-Math.pow(-x,.65):Math.pow(x,.65);}dist.curve=cv;
+    engOsc=audioCtx.createOscillator();engOsc.type='sawtooth';engOsc.frequency.value=85;
+    engOsc2=audioCtx.createOscillator();engOsc2.type='triangle';engOsc2.frequency.value=170;
+    var g2=audioCtx.createGain();g2.gain.value=0.3;
+    engOsc.connect(dist);dist.connect(engFilter);engOsc2.connect(g2);g2.connect(engFilter);
+    engFilter.connect(engGain);engGain.connect(masterGain);
+    engOsc.start();engOsc2.start();
+    // Wind noise
+    var bufSz=4096;
+    var wp=audioCtx.createScriptProcessor(bufSz,0,1);
+    wp.onaudioprocess=function(e){var d=e.outputBuffer.getChannelData(0);for(var i=0;i<bufSz;i++)d[i]=(Math.random()*2-1)*0.4;};
+    var wbp=audioCtx.createBiquadFilter();wbp.type='bandpass';wbp.frequency.value=500;wbp.Q.value=0.4;
+    windGain=audioCtx.createGain();windGain.gain.value=0;
+    wp.connect(wbp);wbp.connect(windGain);windGain.connect(masterGain);
+    // City rumble
+    var ro=audioCtx.createOscillator();ro.type='sawtooth';ro.frequency.value=58;
+    var rlp=audioCtx.createBiquadFilter();rlp.type='lowpass';rlp.frequency.value=110;
+    var rg=audioCtx.createGain();rg.gain.value=0.045;
+    ro.connect(rlp);rlp.connect(rg);rg.connect(masterGain);ro.start();
+    // Random horn honks
+    function schedHorn(){
+      hornTmr=setTimeout(function(){
+        if(!audioCtx||audioCtx.state!=='running'){schedHorn();return;}
+        var ho=audioCtx.createOscillator();ho.type='square';ho.frequency.value=380+Math.random()*250;
+        var hg=audioCtx.createGain();hg.gain.value=0;
+        ho.connect(hg);hg.connect(masterGain);ho.start();
+        var t=audioCtx.currentTime;
+        hg.gain.setValueAtTime(0,t);hg.gain.linearRampToValueAtTime(0.07,t+0.03);
+        var dr=0.12+Math.random()*0.25;
+        hg.gain.setValueAtTime(0.07,t+dr);hg.gain.linearRampToValueAtTime(0,t+dr+0.04);
+        setTimeout(function(){ho.stop();ho.disconnect();hg.disconnect();},1500);
+        schedHorn();
+      },2500+Math.random()*5000);
+    }
+    schedHorn();
+  }catch(e){console.log('Audio:',e.message);}
 }
 
-function startAmbience(){
-  if(!audioCtx) return;
-  // Low rumble (city background)
-  var rumbleOsc=audioCtx.createOscillator(); rumbleOsc.type='sawtooth'; rumbleOsc.frequency.value=55;
-  var rumbleFilter=audioCtx.createBiquadFilter(); rumbleFilter.type='lowpass'; rumbleFilter.frequency.value=120;
-  var rumbleGain=audioCtx.createGain(); rumbleGain.gain.value=0.04;
-  rumbleOsc.connect(rumbleFilter); rumbleFilter.connect(rumbleGain); rumbleGain.connect(masterGain);
-  rumbleOsc.start(); ambienceNodes.push(rumbleOsc);
-  
-  // Wind noise
-  var bufSize=4096;
-  var windNode=audioCtx.createScriptProcessor(bufSize,0,1);
-  windNode.onaudioprocess=function(e){
-    var data=e.outputBuffer.getChannelData(0);
-    for(var i=0;i<bufSize;i++) data[i]=(Math.random()*2-1)*0.15;
-  };
-  var windFilter=audioCtx.createBiquadFilter(); windFilter.type='bandpass'; windFilter.frequency.value=400; windFilter.Q.value=0.5;
-  var windGain=audioCtx.createGain(); windGain.gain.value=0;
-  windNode.connect(windFilter); windFilter.connect(windGain); windGain.connect(masterGain);
-  ambienceNodes.push({node:windNode,gain:windGain});
-  
-  // Random horn honks
-  setInterval(function(){
-    if(!audioCtx||audioCtx.state!=='running') return;
-    if(Math.random()>0.3) return; // 70% skip
-    var hornOsc=audioCtx.createOscillator();
-    hornOsc.type='square';
-    hornOsc.frequency.value=400+Math.random()*200;
-    var hornGain=audioCtx.createGain(); hornGain.gain.value=0;
-    hornOsc.connect(hornGain); hornGain.connect(masterGain);
-    hornOsc.start();
-    var t=audioCtx.currentTime;
-    hornGain.gain.setValueAtTime(0,t);
-    hornGain.gain.linearRampToValueAtTime(0.06,t+0.02);
-    hornGain.gain.setValueAtTime(0.06,t+0.15+Math.random()*.2);
-    hornGain.gain.linearRampToValueAtTime(0,t+0.25+Math.random()*.2);
-    setTimeout(function(){hornOsc.stop();hornOsc.disconnect();},1000);
-  }, 3000+Math.random()*4000);
-}
-
-function updateEngine(spd,maxSpd){
-  if(!audioCtx||!engineOsc||!engineGain) return;
-  if(audioCtx.state==='suspended') audioCtx.resume().catch(function(){});
-  var t=audioCtx.currentTime;
-  var rpm=600+(spd/maxSpd)*3000;
-  engineOsc.frequency.setTargetAtTime(rpm/60*1.5,t,.1);
-  engineOsc2.frequency.setTargetAtTime(rpm/60*3,t,.1);
-  engineGain.gain.setTargetAtTime(0.02+spd/maxSpd*0.055,t,.12);
-  engineFilter.frequency.setTargetAtTime(400+spd/maxSpd*1200,t,.15);
-  // Wind increases with speed
-  if(ambienceNodes[1]&&ambienceNodes[1].gain)
-    ambienceNodes[1].gain.gain.setTargetAtTime(spd/maxSpd*0.08,t,.2);
+function updateEngine(spd,max){
+  if(!audioCtx||!engOsc)return;
+  if(audioCtx.state==='suspended')audioCtx.resume().catch(function(){});
+  var t=audioCtx.currentTime,r=spd/max;
+  engOsc.frequency.setTargetAtTime(75+r*3200,t,.1);
+  engOsc2.frequency.setTargetAtTime(150+r*6400,t,.1);
+  engGain.gain.setTargetAtTime(0.02+r*0.065,t,.1);
+  engFilter.frequency.setTargetAtTime(350+r*1800,t,.15);
+  if(windGain)windGain.gain.setTargetAtTime(r*0.07,t,.2);
 }
 
 function stopAudio(){
-  if(engineGain&&audioCtx) engineGain.gain.setTargetAtTime(0,audioCtx.currentTime,.3);
-  if(ambienceNodes[1]&&ambienceNodes[1].gain)
-    ambienceNodes[1].gain.gain.setTargetAtTime(0,audioCtx.currentTime,.5);
+  if(engGain&&audioCtx)engGain.gain.setTargetAtTime(0,audioCtx.currentTime,.4);
+  if(windGain&&audioCtx)windGain.gain.setTargetAtTime(0,audioCtx.currentTime,.4);
+  if(hornTmr)clearTimeout(hornTmr);
 }
 
-function loading(on,t,s){
-  document.getElementById('lov').classList.toggle('on',on);
-  if(t) document.getElementById('lov-t').textContent=t;
-  if(s) document.getElementById('lov-s').textContent=s;
-}
+function loading(on,t,s){document.getElementById('lov').classList.toggle('on',on);if(t)document.getElementById('lov-t').textContent=t;if(s)document.getElementById('lov-s').textContent=s;}
 
-// PWA manifest
-(function(){
-  var m={name:'RoutePreview',short_name:'RoutePreview',start_url:'.',display:'standalone',background_color:'#1c1c1e',theme_color:'#0a84ff',icons:[{src:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',sizes:'192x192',type:'image/png'}]};
-  document.getElementById('mf').href=URL.createObjectURL(new Blob([JSON.stringify(m)],{type:'application/manifest+json'}));
-}());
+(function(){var m={name:'RoutePreview',short_name:'RoutePreview',start_url:'.',display:'standalone',background_color:'#1c1c1e',theme_color:'#0a84ff',icons:[{src:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',sizes:'192x192',type:'image/png'}]};document.getElementById('mf').href=URL.createObjectURL(new Blob([JSON.stringify(m)],{type:'application/manifest+json'}));})();
 </script>
 </body>
 </html>
