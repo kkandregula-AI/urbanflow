@@ -207,23 +207,24 @@ var CITIES=[
   {n:"Sydney",c:"Australia",la:-33.8688,lo:151.2093,ic:"&#127944;"},
 ];
 
-// Emoji vehicles
+// Vehicle templates: hw=half-width, hl=half-length (hl>hw = longer than wide)
 var VEH=[
-  {em:'🚗',sz:22},
-{em:'🚙',sz:22},
-{em:'🚕',sz:22},
-  {em:'🛺',sz:20},
-{em:'🚌',sz:26},
-{em:'🚛',sz:26},
-  {em:'🏍️',sz:20},
-{em:'🚐',sz:22},
-{em:'🚗',sz:22},
-  {em:'🚕',sz:22},
-{em:'🛺',sz:20},
-{em:'🚙',sz:22},
+  {hw:5,hl:11,body:'#c0392b',roof:'#922b21'},  // red
+  {hw:5,hl:11,body:'#2980b9',roof:'#1a5276'},  // blue
+  {hw:5,hl:11,body:'#27ae60',roof:'#1d8348'},  // green
+  {hw:5,hl:11,body:'#d35400',roof:'#a04000'},  // orange
+  {hw:5,hl:11,body:'#8e44ad',roof:'#6c3483'},  // purple
+  {hw:5,hl:11,body:'#16a085',roof:'#0e6655'},  // teal
+  {hw:5,hl:11,body:'#f1c40f',roof:'#b7950b'},  // yellow
+  {hw:5,hl:11,body:'#7f8c8d',roof:'#566573'},  // silver
+  {hw:6,hl:13,body:'#2c3e50',roof:'#1a252f'},  // SUV dark
+  {hw:6,hl:13,body:'#e74c3c',roof:'#c0392b'},  // SUV red
+  {hw:7,hl:19,body:'#2980b9',roof:'#1f618d'},  // bus
+  {hw:6,hl:15,body:'#95a5a6',roof:'#717d7e'},  // truck
+  {hw:3,hl:8, body:'#f39c12',roof:'#d68910'},  // bike
 ];
 
-var mapp,pickMode=null,ptA=null,ptB=null,mkA,mkB,rtLayer;
+var map,pickMode=null,ptA=null,ptB=null,mkA,mkB,rtLayer;
 var routeCoords=[],routeSteps=[];
 var pv=null,pvPaused=false,pvSpeed=1;
 var driveT0,driveDist=0,driveSpeeds=[],segIdx=0,segProg=0;
@@ -253,9 +254,10 @@ function buildList(q){
 buildList();
 document.getElementById('ci').addEventListener('input',function(){buildList(this.value.trim());});
 
-async function selectCity(city){
+function selectCity(city){
   pendName=city.n;
-  loading(true,'Loading '+city.n,'Fetching road data...');
+  document.getElementById('scr-search').style.display='none';
+  document.getElementById('scr-plan').style.display='block';
   if(!map){
     map=L.map('map',{center:[city.la,city.lo],zoom:14,zoomControl:false,preferCanvas:true});
     L.control.attribution({position:'bottomleft',prefix:false}).addTo(map);
@@ -264,19 +266,15 @@ async function selectCity(city){
     }).addTo(map);
     map.on('click',onMapClick);
     map.on('touchend',onMapTouch);
-    // Canvas for vehicle rendering
     vc=document.getElementById('vc');
     vctx=vc.getContext('2d');
     function rsz(){vc.width=window.innerWidth;vc.height=window.innerHeight;}
-    rsz(); window.addEventListener('resize',rsz);
-    map.on('move',function(){if(document.getElementById('scr-prev').style.display!=='none')renderAll();});
-  } else {
-    map.setView([city.la,city.lo],14);
-  }
-  document.getElementById('scr-search').style.display='none';
-  document.getElementById('scr-plan').style.display='block';
-  setTimeout(function(){map.invalidateSize();},100);
-  loading(false);
+    rsz();window.addEventListener('resize',rsz);
+    map.on('move',function(){
+      try{if(document.getElementById('scr-prev').style.display!=='none')renderAll();}catch(e){}
+    });
+  }else{map.setView([city.la,city.lo],14);}
+  setTimeout(function(){map.invalidateSize();},50);
   activatePick('A');
 }
 
@@ -396,10 +394,10 @@ function updateTraffic(dt){
   var N=routeCoords.length;
   trafficVs.forEach(function(v){
     var step=Math.abs(v.spd)*1000/3600*dt;
-    var tgt=v.same?Math.min(v.idx+1,N-1):Math.max(v.idx-1,0);
-    var A=routeCoords[v.idx],T=routeCoords[tgt];
-    if(!A||!T)return;
-    var m=hvs(A.lat,A.lng,T.lat,T.lng)||1;
+    var nxt=v.same?Math.min(v.idx+1,N-1):Math.max(v.idx-1,0);
+    var A=routeCoords[v.idx],B=routeCoords[nxt];
+    if(!A||!B)return;
+    var m=hvs(A.lat,A.lng,B.lat,B.lng)||1;
     v.prog+=step/m;
     if(v.prog>=1){
       v.prog=0;
@@ -437,8 +435,10 @@ function renderAll(){
     var side=v.same?1:-1;
     cx+=lx*v.lane*sc*side; cy+=ly*v.lane*sc*side;
     // heading: forward in screen space = atan2(dx,-dy) matches drawVehicle convention
-    var hdg=v.same?Math.atan2(dx,-dy):Math.atan2(-dx,dy);
-    drawVehicle(cx,cy,hdg,v.vt,sc);
+    var A2=routeCoords[v.idx];var T2=routeCoords[v.same?Math.min(v.idx+1,N-1):Math.max(v.idx-1,0)];if(!A2||!T2)return;
+    var geoHdg=Math.atan2(T2.lng-A2.lng,T2.lat-A2.lat);
+    var ems=(v.vt&&v.vt.em)?v.vt.em:null;var szs=(v.vt&&v.vt.sz)?v.vt.sz*sc:18;
+    if(ems)drawEmoji(cx,cy,geoHdg,ems,szs);else drawVehicle(cx,cy,geoHdg,v.vt,sc);
   });
   // Player
   if(pv&&!pv.done){
@@ -535,20 +535,18 @@ function drawVehicle(x,y,hdg,vt,sc){
   vctx.restore();
 }
 
+function drawEmoji(x,y,hdg,em,sz){
+  if(!em||!vctx)return;
+  vctx.save();vctx.translate(x,y);vctx.rotate(hdg-Math.PI/2);
+  vctx.font=Math.max(8,Math.round(sz))+'px serif';
+  vctx.textAlign='center';vctx.textBaseline='middle';
+  vctx.fillText(em,0,0);vctx.restore();
+}
 function rrect(x,y,w,h,r){
   vctx.beginPath();vctx.moveTo(x+r,y);vctx.lineTo(x+w-r,y);vctx.quadraticCurveTo(x+w,y,x+w,y+r);
   vctx.lineTo(x+w,y+h-r);vctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
   vctx.lineTo(x+r,y+h);vctx.quadraticCurveTo(x,y+h,x,y+h-r);
   vctx.lineTo(x,y+r);vctx.quadraticCurveTo(x,y,x+r,y);vctx.closePath();
-}
-
-function drawEmoji(x,y,hdg,em,sz){
-  vctx.save();vctx.translate(x,y);
-  vctx.rotate(hdg-Math.PI/2);
-  vctx.font=Math.round(sz)+"px serif";
-  vctx.textAlign="center";vctx.textBaseline="middle";
-  vctx.fillText(em,0,0);
-  vctx.restore();
 }
 
 // ── DRIVE LOOP ────────────────────────────────────────
@@ -614,32 +612,28 @@ function updateDrive(dt){
 }
 
 function updateNav(){
-  if(!routeSteps.length){setNav("\u2191","Continue","");return;}
-  var cumDist=0;
+  if(!routeSteps.length){document.getElementById('nav-arrow').textContent='\u2191';document.getElementById('nav-action').textContent='Continue';return;}
+  var d=0;
   for(var i=0;i<routeSteps.length;i++){
-    var distToTurn=cumDist-driveDist;
-    var m=routeSteps[i].maneuver||{};
-    if(m.type!=="depart"&&distToTurn>-40){showTurnInstruction(routeSteps[i],Math.max(0,distToTurn));return;}
-    cumDist+=routeSteps[i].distance||0;
+    d+=routeSteps[i].distance||0;
+    if(driveDist<d-25){
+      var m=routeSteps[i].maneuver||{};
+      var mod=m.modifier||'',tp=m.type||'';
+      var ar='\u2191',tx='Continue';
+      if(mod==='right'||mod.indexOf('right')>=0){ar='\u21B1';tx='Turn right';}
+      else if(mod==='left'||mod.indexOf('left')>=0){ar='\u21B0';tx='Turn left';}
+      else if(mod==='slight right'){ar='\u2197';tx='Bear right';}
+      else if(mod==='slight left'){ar='\u2196';tx='Bear left';}
+      else if(tp==='roundabout'||tp==='rotary'){ar='\u21BB';tx='Roundabout';}
+      else if(tp==='arrive'){ar='\uD83C\uDFC1';tx='Arriving';}
+      document.getElementById('nav-arrow').textContent=ar;
+      document.getElementById('nav-action').textContent=tx;
+      document.getElementById('nav-street').textContent=routeSteps[i].name?'onto '+routeSteps[i].name:'';
+      return;
+    }
   }
-  setNav("\uD83C\uDFC1","Arriving","");
-}
-function showTurnInstruction(step,dist){
-  var m=step.maneuver||{},mod=m.modifier||"",type=m.type||"";
-  var ar="\u2191",tx="Continue";
-  if(mod.indexOf("right")>=0){ar="\u21B1";tx="Turn right";}
-  else if(mod.indexOf("left")>=0){ar="\u21B0";tx="Turn left";}
-  else if(mod==="slight right"){ar="\u2197";tx="Bear right";}
-  else if(mod==="slight left"){ar="\u2196";tx="Bear left";}
-  else if(type==="roundabout"){ar="\u21BB";tx="Roundabout";}
-  else if(type==="arrive"){ar="\uD83C\uDFC1";tx="Arriving";}
-  var ds=dist<20?"NOW":dist<1000?"in "+Math.round(dist/10)*10+"m":"in "+(dist/1000).toFixed(1)+"km";
-  setNav(ar,tx+" "+ds,step.name?"onto "+step.name:"");
-}
-function setNav(a,t,s){
-  document.getElementById("nav-arrow").textContent=a;
-  document.getElementById("nav-action").textContent=t;
-  document.getElementById("nav-street").textContent=s;
+  document.getElementById('nav-arrow').textContent='\uD83C\uDFC1';
+  document.getElementById('nav-action').textContent='Arriving';
 }
 
 function updateCam(ts){
@@ -769,26 +763,7 @@ function stopAudio(){
 
 function loading(on,t,s){document.getElementById('lov').classList.toggle('on',on);if(t)document.getElementById('lov-t').textContent=t;if(s)document.getElementById('lov-s').textContent=s;}
 
-(function(){var m={name:'RoutePreview',short_name:'RoutePreview',start_url:'.',display:'standalone',background_color:'#1c1c1e',theme_color:'#0a84ff',icons:[{src:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',sizes:'192x192',type:'image/png'}]};document.getElementById('mf').href=URL.createObjectURL(new Blob([JSON.stringify(m)],{type:'application/manifest+json'}));})();
+try{(function(){var m={name:'RoutePreview',short_name:'RoutePreview',start_url:'.',display:'standalone',background_color:'#1c1c1e',theme_color:'#0a84ff',icons:[{src:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',sizes:'192x192',type:'image/png'}]};document.getElementById('mf').href=URL.createObjectURL(new Blob([JSON.stringify(m)],{type:'application/manifest+json'}));})();}catch(e){}
 </script>
 </body>
-</html  trafficVs.forEach(function(v){
-    var N2=routeCoords.length;
-    if(v.idx<0||v.idx>=N2)return;
-    var A=routeCoords[v.idx];
-    var Bfwd=routeCoords[Math.min(v.idx+1,N2-1)];
-    if(!A||!Bfwd)return;
-    var pA=map.latLngToContainerPoint([A.lat,A.lng]);
-    var pBfwd=map.latLngToContainerPoint([Bfwd.lat,Bfwd.lng]);
-    var fdx=pBfwd.x-pA.x,fdy=pBfwd.y-pA.y,flen=Math.sqrt(fdx*fdx+fdy*fdy)||1;
-    var tgt=v.same?Math.min(v.idx+1,N2-1):Math.max(v.idx-1,0);
-    var T=routeCoords[tgt];
-    var pT=map.latLngToContainerPoint([T.lat,T.lng]);
-    var cx=pA.x+(pT.x-pA.x)*v.prog,cy=pA.y+(pT.y-pA.y)*v.prog;
-    var side=v.same?1:-1;
-    cx+=(fdy/flen)*v.lane*sc*side;
-    cy+=(-fdx/flen)*v.lane*sc*side;
-    var geoHdg=Math.atan2(T.lng-A.lng,T.lat-A.lat);
-    drawEmoji(cx,cy,geoHdg,v.vt.em,v.vt.sz*sc);
-  });
-  >
+</html>
