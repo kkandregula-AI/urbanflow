@@ -178,6 +178,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
       </div>
       <div id="nav-bot">
         <div id="nav-rem"><b id="nav-rem-b">-</b> remaining</div>
+        <div id="nav-dest" style="font-size:11px;color:rgba(255,255,255,.5);flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 4px"></div>
         <div id="nav-eta">ETA <span id="nav-eta-t">-</span></div>
       </div>
     </div>
@@ -504,7 +505,9 @@ async function fetchLandmarks(){
       var name=(d.namedetails&&d.namedetails.name)||(d.address&&(d.address.road||d.address.suburb||d.address.neighbourhood));
       if(name&&name.length>2&&name!==pendName){
         var dist=0;for(var j=0;j<i;j++)dist+=hvs(routeCoords[j].lat,routeCoords[j].lng,routeCoords[j+1].lat,routeCoords[j+1].lng);
-        landmarks.push({name:name,dist:dist,announced:false});
+        var lmIco=L.divIcon({className:'',html:'<div style="background:rgba(255,159,10,.92);color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.35);border:1.5px solid rgba(255,255,255,.3)">🏛 '+name+'</div>',iconSize:[1,1],iconAnchor:[0,12]});
+        var lmMk=L.marker([c.lat,c.lng],{icon:lmIco,interactive:false}).addTo(map);
+        landmarks.push({name:name,dist:dist,announced:false,mk:lmMk});
       }
     }catch(e){}
     await new Promise(function(r){setTimeout(r,250);});
@@ -517,12 +520,16 @@ function checkLandmarks(){
     var d=lm.dist-driveDist;
     if(d<=100&&d>-60){
       lm.announced=true;
-      var sub=d<30?'Passing now':'Approaching in '+Math.round(d)+'m';
-      document.getElementById('lm-txt').textContent=lm.name;
-      document.getElementById('lm-sub').textContent=sub;
+      var isPassing=d<30;
+      document.getElementById('lm-txt').textContent='🏛 '+lm.name;
+      document.getElementById('lm-sub').textContent=isPassing?'Passing now ✔':'Nearing — '+Math.round(d)+'m ahead';
       document.getElementById('lm-toast').style.display='block';
+      if(lm.mk){
+        var hl='<div style="background:#ff9f0a;color:#fff;font-size:11px;font-weight:700;padding:5px 10px;border-radius:20px;white-space:nowrap;box-shadow:0 0 0 4px rgba(255,159,10,.3),0 2px 12px rgba(0,0,0,.5);border:2px solid #fff">🏛 '+lm.name+'</div>';
+        lm.mk.setIcon(L.divIcon({className:'',html:hl,iconSize:[1,1],iconAnchor:[0,14]}));
+      }
       clearTimeout(lmTimer);
-      lmTimer=setTimeout(function(){document.getElementById('lm-toast').style.display='none';},4500);
+      lmTimer=setTimeout(function(){document.getElementById('lm-toast').style.display='none';},5000);
       break;
     }
   }
@@ -532,6 +539,8 @@ function checkLandmarks(){
 function startPreview(){
   if(!routeCoords||routeCoords.length<2)return;
   pvPaused=false;segIdx=0;segProg=0;camLast=0;
+  var de=document.getElementById('nav-dest');
+  if(de&&ptB){de.textContent='→ '+(ptB.name||'').split(',')[0]||document.getElementById('inp-to').value.split(',')[0];}
   driveT0=Date.now();driveDist=0;driveSpeeds=[];
   landmarks.forEach(function(l){l.announced=false;});
   pv={lat:routeCoords[0].lat,lng:routeCoords[0].lng,spd:5,heading:0,done:false};
@@ -648,6 +657,7 @@ function setNav(a,t,s,l){
 function renderCar(){
   if(!vctx||!vc||!pv||pv.done)return;
   try{
+
     vctx.clearRect(0,0,vc.width,vc.height);
     var sc=Math.max(0.5,Math.min(4,Math.pow(2,map.getZoom()-16)*0.5));
     var pp=map.latLngToContainerPoint([pv.lat,pv.lng]);
@@ -659,40 +669,109 @@ function renderCar(){
   }catch(e){}
 }
 
-function drawCar(x,y,hdg,s){
+function drawCar(x,y,hdg,s){try{
   vctx.save();vctx.translate(x,y);vctx.rotate(hdg);
-  // Glow
-  vctx.shadowBlur=14*s;vctx.shadowColor='rgba(30,120,255,.65)';
-  // Body
-  vctx.fillStyle='#1565C0';rr(-8*s,-16*s,16*s,32*s,3*s);vctx.fill();
-  vctx.shadowBlur=0;
+  var W=10*s, H=22*s;
+  vctx.shadowBlur=16*s;vctx.shadowColor='rgba(10,10,40,.7)';
+  vctx.shadowOffsetX=1.5*s;vctx.shadowOffsetY=1.5*s;
+  // Body - dark gunmetal SUV
+  vctx.fillStyle='#37474F';
+  vctx.beginPath();
+  vctx.moveTo(-W*.6,-H);
+  vctx.bezierCurveTo(-W,-H*.88,-W,-H*.5,-W,-H*.28);
+  vctx.lineTo(-W,H*.55);
+  vctx.bezierCurveTo(-W,H,-W*.4,H,0,H);
+  vctx.bezierCurveTo(W*.4,H,W,H,W,H*.55);
+  vctx.lineTo(W,-H*.28);
+  vctx.bezierCurveTo(W,-H*.5,W,-H*.88,W*.6,-H);
+  vctx.closePath();vctx.fill();
+  vctx.shadowBlur=0;vctx.shadowOffsetX=0;vctx.shadowOffsetY=0;
+  // Hood
+  vctx.fillStyle='#455A64';
+  rr(-W*.88,-H,W*.88*2,H*.72,2*s);vctx.fill();
   // Roof
-  vctx.fillStyle='#1E88E5';rr(-6*s,-9*s,12*s,17*s,2*s);vctx.fill();
+  vctx.fillStyle='#263238';
+  vctx.beginPath();
+  vctx.moveTo(-W*.75,-H*.22);
+  vctx.bezierCurveTo(-W*.8,-H*.62,-W*.5,-H*.76,0,-H*.78);
+  vctx.bezierCurveTo(W*.5,-H*.76,W*.8,-H*.62,W*.75,-H*.22);
+  vctx.lineTo(W*.72,H*.18);
+  vctx.bezierCurveTo(W*.72,H*.38,W*.45,H*.48,0,H*.48);
+  vctx.bezierCurveTo(-W*.45,H*.48,-W*.72,H*.38,-W*.72,H*.18);
+  vctx.closePath();vctx.fill();
   // Windshield
-  vctx.fillStyle='rgba(190,230,255,.72)';rr(-5*s,-14*s,10*s,7*s,1.5*s);vctx.fill();
+  vctx.fillStyle='rgba(180,225,255,.62)';
+  vctx.beginPath();
+  vctx.moveTo(-W*.62,-H*.24);vctx.lineTo(-W*.52,-H*.7);
+  vctx.bezierCurveTo(-W*.18,-H*.78,W*.18,-H*.78,W*.52,-H*.7);
+  vctx.lineTo(W*.62,-H*.24);vctx.closePath();vctx.fill();
   // Rear window
-  vctx.fillStyle='rgba(190,230,255,.52)';rr(-4.5*s,9*s,9*s,5*s,1*s);vctx.fill();
-  // Headlights
-  vctx.fillStyle='rgba(255,252,180,.98)';
-  oval(-6*s,-15.5*s,2.8*s,1.5*s);oval(6*s,-15.5*s,2.8*s,1.5*s);
+  vctx.fillStyle='rgba(160,210,255,.42)';
+  vctx.beginPath();
+  vctx.moveTo(-W*.58,H*.2);vctx.lineTo(-W*.48,H*.44);
+  vctx.bezierCurveTo(-W*.18,H*.48,W*.18,H*.48,W*.48,H*.44);
+  vctx.lineTo(W*.58,H*.2);vctx.closePath();vctx.fill();
+  // Side windows
+  vctx.fillStyle='rgba(160,210,255,.3)';
+  rr(-W*.96,-H*.16,W*.22,H*.28,1*s);vctx.fill();
+  rr(W*.74,-H*.16,W*.22,H*.28,1*s);vctx.fill();
+  // Roof rack
+  vctx.strokeStyle='rgba(255,255,255,.18)';vctx.lineWidth=.8*s;
+  [-H*.38,-H*.1,H*.1].forEach(function(ry){
+    vctx.beginPath();vctx.moveTo(-W*.5,ry);vctx.lineTo(W*.5,ry);vctx.stroke();
+  });
+  // LED headlights
+  vctx.fillStyle='rgba(255,252,200,.98)';
+  rr(-W*.85,-H*.96,W*.32,H*.065,1*s);vctx.fill();
+  rr(W*.53,-H*.96,W*.32,H*.065,1*s);vctx.fill();
+  // DRL dots
+  vctx.fillStyle='rgba(255,255,255,.9)';
+  for(var di=0;di<3;di++){
+    var da=-W*.76+di*W*.12;
+    vctx.beginPath();vctx.arc(da,-H*.86,1.2*s,0,Math.PI*2);vctx.fill();
+    vctx.beginPath();vctx.arc(da+W*1.36,-H*.86,1.2*s,0,Math.PI*2);vctx.fill();
+  }
   // Taillights
-  vctx.fillStyle='rgba(220,38,38,.98)';
-  oval(-6*s,15.5*s,2.8*s,1.5*s);oval(6*s,15.5*s,2.8*s,1.5*s);
-  // Wheels
-  vctx.fillStyle='#0d0d0d';
-  rr(-10*s,-10*s,4*s,5.5*s,1*s);vctx.fill();
-  rr(6*s,-10*s,4*s,5.5*s,1*s);vctx.fill();
-  rr(-10*s,5.5*s,4*s,5.5*s,1*s);vctx.fill();
-  rr(6*s,5.5*s,4*s,5.5*s,1*s);vctx.fill();
-  // YOU label (unrotated)
+  vctx.fillStyle='rgba(210,20,20,.95)';
+  rr(-W*.86,H*.89,W*.33,H*.075,1*s);vctx.fill();
+  rr(W*.53,H*.89,W*.33,H*.075,1*s);vctx.fill();
+  // Tail glow
+  vctx.fillStyle='rgba(255,60,60,.25)';
+  rr(-W*.9,H*.84,W*.42,H*.16,2*s);vctx.fill();
+  rr(W*.48,H*.84,W*.42,H*.16,2*s);vctx.fill();
+  // Front grille
+  vctx.fillStyle='rgba(0,0,0,.75)';
+  rr(-W*.48,-H,W*.96,H*.075,1*s);vctx.fill();
+  vctx.strokeStyle='rgba(200,200,200,.3)';vctx.lineWidth=.6*s;
+  for(var gi=-3;gi<=3;gi++){vctx.beginPath();vctx.moveTo(gi*W*.13,-H);vctx.lineTo(gi*W*.13,-H*.93);vctx.stroke();}
+  // SUV Wheels with alloys
+  var wps=[[-W*1.05,-H*.56],[W*1.05-5*s,-H*.56],[-W*1.05,H*.4],[W*1.05-5*s,H*.4]];
+  wps.forEach(function(wp){
+    vctx.fillStyle='#111';rr(wp[0],wp[1],5*s,7.5*s,1.5*s);vctx.fill();
+    vctx.fillStyle='#757575';
+    vctx.beginPath();vctx.arc(wp[0]+2.5*s,wp[1]+3.75*s,2.6*s,0,Math.PI*2);vctx.fill();
+    vctx.fillStyle='#333';
+    vctx.beginPath();vctx.arc(wp[0]+2.5*s,wp[1]+3.75*s,1.2*s,0,Math.PI*2);vctx.fill();
+    vctx.strokeStyle='#9E9E9E';vctx.lineWidth=.7*s;
+    for(var sp=0;sp<5;sp++){
+      var a=sp*Math.PI*2/5;
+      vctx.beginPath();
+      vctx.moveTo(wp[0]+2.5*s+Math.cos(a)*1.1*s,wp[1]+3.75*s+Math.sin(a)*1.1*s);
+      vctx.lineTo(wp[0]+2.5*s+Math.cos(a)*2.4*s,wp[1]+3.75*s+Math.sin(a)*2.4*s);
+      vctx.stroke();
+    }
+  });
+  // YOU label
   vctx.rotate(-hdg);
-  var lw=30*s,lh=13*s,lbx=-lw/2,lby=-20*s-lh;
-  vctx.fillStyle='rgba(0,8,28,.9)';rr(lbx,lby,lw,lh,4);vctx.fill();
-  vctx.fillStyle='#5cc8ff';
-  vctx.font='bold '+Math.round(8.5*s)+'px -apple-system,sans-serif';
+  var lw=34*s,lh=14*s,lbx=-lw/2,lby=-H-lh-4*s;
+  vctx.fillStyle='rgba(0,0,0,.82)';rr(lbx,lby,lw,lh,4);vctx.fill();
+  vctx.strokeStyle='rgba(255,159,10,.65)';vctx.lineWidth=1.2*s;vctx.strokeRect(lbx,lby,lw,lh);
+  vctx.fillStyle='#ff9f0a';
+  vctx.font='bold '+Math.round(9*s)+'px -apple-system,sans-serif';
   vctx.textAlign='center';vctx.textBaseline='middle';
   vctx.fillText('YOU',0,lby+lh/2);
   vctx.restore();
+  }catch(e){console.warn('car:',e.message);}  
 }
 function oval(x,y,rx,ry){vctx.beginPath();vctx.ellipse(x,y,rx,ry,0,0,Math.PI*2);vctx.fill();}
 function rr(x,y,w,h,r){
@@ -736,6 +815,8 @@ function doExit(){
   if(vctx)vctx.clearRect(0,0,vc.width,vc.height);
   document.getElementById('arrival').style.display='none';
   document.getElementById('lm-toast').style.display='none';
+  landmarks.forEach(function(l){if(l.mk)try{map.removeLayer(l.mk);}catch(e){}});
+  landmarks=[];
   showPlan();
   if(ptA)placeMarker('A',ptA.lat,ptA.lon);
   if(ptB)placeMarker('B',ptB.lat,ptB.lon);
@@ -747,7 +828,9 @@ function onArrive(){
   if(vctx)vctx.clearRect(0,0,vc.width,vc.height);
   var el=(Date.now()-driveT0)/1000;
   var avg=driveSpeeds.length?driveSpeeds.reduce(function(a,b){return a+b;},0)/driveSpeeds.length:0;
-  document.getElementById('arr-sub').textContent=pendName+' route complete';
+  var fn=(ptA&&ptA.name?ptA.name:document.getElementById('inp-from').value||'Start').split(',')[0];
+  var tn=(ptB&&ptB.name?ptB.name:document.getElementById('inp-to').value||'Destination').split(',')[0];
+  document.getElementById('arr-sub').textContent=fn+' → '+tn;
   document.getElementById('arr-d').textContent=(driveDist/1000).toFixed(2)+' km';
   document.getElementById('arr-t').textContent=Math.floor(el/60)+'m '+Math.floor(el%60)+'s';
   document.getElementById('arr-s').textContent=Math.round(avg);
