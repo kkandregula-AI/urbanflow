@@ -415,7 +415,7 @@ function pickAC(inputId,name,lat,lon){
     ptB={lat:lat,lon:lon,name:name};
     placeMarker('B',lat,lon);
   }
-  if(ptA&&ptB) calcRoute();
+  if(ptA&&ptB) calcRoute(); // calcRoute will snap both points to road access
 }
 
 function hideAC(){
@@ -469,15 +469,34 @@ function placeMarker(t,lat,lon){
 }
 
 // ── ROUTING ───────────────────────────────────────────────────────────
+// Snap lat/lon to nearest road access point via OSRM
+async function snapToRoad(lat,lon){
+  try{
+    var url='https://router.project-osrm.org/nearest/v1/driving/'+
+      lon.toFixed(6)+','+lat.toFixed(6)+'?number=3';
+    var r=await fetch(url);
+    var d=await r.json();
+    if(d.code==='Ok'&&d.waypoints&&d.waypoints.length>0){
+      // Pick the closest waypoint (first one)
+      var wp=d.waypoints[0];
+      return {lat:wp.location[1],lon:wp.location[0]};
+    }
+  }catch(e){console.warn('snap:',e.message);}
+  return {lat:lat,lon:lon}; // fallback to original
+}
+
 async function calcRoute(){
   if(!ptA||!ptB)return;
-  loading(true,'Calculating Route','Finding real road path...');
+  loading(true,'Calculating Route','Snapping to road entrance...');
   document.getElementById('rinfo').style.display='none';
   document.getElementById('btn-go').style.display='none';
   try{
+    // Snap both points to actual road access (fixes routing to building backs)
+    var sA=await snapToRoad(ptA.lat,ptA.lon);
+    var sB=await snapToRoad(ptB.lat,ptB.lon);
     var url='https://router.project-osrm.org/route/v1/driving/'+
-      ptA.lon.toFixed(6)+','+ptA.lat.toFixed(6)+';'+
-      ptB.lon.toFixed(6)+','+ptB.lat.toFixed(6)+
+      sA.lon.toFixed(6)+','+sA.lat.toFixed(6)+';'+
+      sB.lon.toFixed(6)+','+sB.lat.toFixed(6)+
       '?overview=full&geometries=geojson&steps=true';
     var res=await fetch(url);
     var data=await res.json();
@@ -833,18 +852,31 @@ function hvs(la1,ln1,la2,ln2){
 // ── CONTROLS ──────────────────────────────────────────────────────────
 var mapStyle='road';
 var tileLayer=null;
+var labelLayer=null;
 function toggleMapStyle(){
   mapStyle=mapStyle==='road'?'satellite':'road';
   var btn=document.getElementById('map-toggle-btn');
-  if(tileLayer)map.removeLayer(tileLayer);
+  if(tileLayer){map.removeLayer(tileLayer);tileLayer=null;}
+  if(labelLayer){map.removeLayer(labelLayer);labelLayer=null;}
   if(mapStyle==='satellite'){
-    tileLayer=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'\u00a9 Esri',maxZoom:20});
-    if(btn){btn.textContent='\uD83D\uDDFA Map';btn.style.background='rgba(30,80,30,.95)';}
+    // Satellite imagery base
+    tileLayer=L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      {attribution:'\u00a9 Esri World Imagery',maxZoom:20,zIndex:1}
+    ).addTo(map);
+    // Labels + roads overlay on top of satellite (hybrid mode)
+    labelLayer=L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+      {attribution:'',maxZoom:20,zIndex:2,opacity:1}
+    ).addTo(map);
+    if(btn){btn.textContent='\uD83D\uDDFA Map';btn.style.background='rgba(20,70,20,.95)';btn.style.borderColor='rgba(80,200,80,.4)';}
   } else {
-    tileLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'\u00a9 OpenStreetMap',subdomains:['a','b','c'],maxZoom:20});
-    if(btn){btn.textContent='\uD83D\uDEF0 Satellite';btn.style.background='rgba(18,18,22,.95)';}
+    tileLayer=L.tileLayer(
+      'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      {attribution:'\u00a9 OpenStreetMap',subdomains:['a','b','c'],maxZoom:20,zIndex:1}
+    ).addTo(map);
+    if(btn){btn.textContent='\uD83D\uDEF0 Satellite';btn.style.background='rgba(18,18,22,.95)';btn.style.borderColor='rgba(255,255,255,.2)';}
   }
-  tileLayer.addTo(map);
 }
 function setSpd(s){pvSpeed=s;document.querySelectorAll('.sx').forEach(function(b){b.classList.remove('on');});var idx=[.5,1,2,4].indexOf(s);if(idx>=0)document.querySelectorAll('.sx')[idx].classList.add('on');}
 function togglePause(){pvPaused=!pvPaused;document.getElementById('btn-pause').textContent=pvPaused?'\u25BA Resume':'\u23F8\u23F8 Pause';}
