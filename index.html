@@ -4,144 +4,177 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>RoutePreview</title>
-<link rel="manifest" id="mf">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#1c1c1e}
+html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#1c1c1e;color:#fff}
 #map{position:fixed;inset:0;z-index:1;background:#e8e4d9}
 #vc{position:fixed;top:0;left:0;pointer-events:none;z-index:50}
-#scr-search{position:fixed;inset:0;z-index:100;background:#1c1c1e;display:flex;flex-direction:column}
-.hdr{padding:52px 20px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
-.hdr-eye{font-size:11px;font-weight:600;color:rgba(255,255,255,.4);letter-spacing:1px;text-transform:uppercase}
-.hdr-title{font-size:32px;font-weight:700;color:#fff;letter-spacing:-.5px;margin-top:4px}
-.hdr-sub{font-size:14px;color:rgba(255,255,255,.35);margin-top:4px}
-.sbox{margin:16px 20px 8px;display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.08);border-radius:14px;padding:13px 16px}
-.sbox input{flex:1;background:none;border:none;outline:none;color:#fff;font-size:16px}
-.sbox input::placeholder{color:rgba(255,255,255,.3)}
-#city-list{flex:1;overflow-y:auto;padding:0 20px 20px}
-#city-list::-webkit-scrollbar{display:none}
-.csec{font-size:11px;font-weight:600;color:rgba(255,255,255,.28);letter-spacing:1px;text-transform:uppercase;padding:14px 0 8px}
-.crow{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer}
-.crow:active{opacity:.6}
-.cic{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.cname{font-size:16px;color:#fff;font-weight:500}
-.ccountry{font-size:12px;color:rgba(255,255,255,.4);margin-top:2px}
-#scr-plan{position:fixed;inset:0;z-index:2;display:none;pointer-events:none}
-#plan-panel{position:fixed;bottom:0;left:0;right:0;z-index:10;background:#1c1c1e;border-radius:20px 20px 0 0;padding:10px 0 30px;box-shadow:0 -2px 40px rgba(0,0,0,.6);pointer-events:auto}
-.phandle{width:36px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:0 auto 14px}
-.ptitle{font-size:11px;font-weight:600;color:rgba(255,255,255,.35);letter-spacing:1px;text-transform:uppercase;padding:0 20px;margin-bottom:10px}
-.prow{display:flex;align-items:center;gap:12px;padding:11px 20px}
-.pdot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
-.pdot.a{background:#30d158}.pdot.b{background:#ff453a}
-.pvline{width:2px;height:18px;background:rgba(255,255,255,.12);margin:2px 0 2px 5px}
-.plbl{font-size:10px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
-.pval{font-size:15px;color:#fff}
-.pset{font-size:11px;font-weight:600;color:#0a84ff;padding:6px 12px;border:1.5px solid rgba(10,132,255,.45);border-radius:9px;cursor:pointer;background:rgba(10,132,255,.1);margin-left:auto;touch-action:manipulation}
-.pdiv{height:1px;background:rgba(255,255,255,.06);margin:4px 20px}
-#rinfo{padding:10px 20px;display:none}
-.rstats{display:flex;gap:28px}
-.rv{font-size:22px;font-weight:700;color:#fff}
-.rl{font-size:11px;color:rgba(255,255,255,.4);margin-top:2px}
-#btn-go{display:none;margin:12px 20px 0;width:calc(100% - 40px);padding:16px;border-radius:16px;border:none;background:#0a84ff;color:#fff;font-size:17px;font-weight:600;cursor:pointer;touch-action:manipulation}
+
+/* ── HOME SCREEN ── */
+#scr-home{position:fixed;inset:0;z-index:100;background:#1c1c1e;display:flex;flex-direction:column;overflow:hidden}
+.app-hdr{padding:52px 20px 20px;background:linear-gradient(180deg,#1c1c1e,#1c1c1e)}
+.app-eye{font-size:11px;font-weight:600;color:rgba(255,255,255,.38);letter-spacing:1px;text-transform:uppercase}
+.app-title{font-size:34px;font-weight:700;letter-spacing:-.5px;margin-top:3px}
+.app-sub{font-size:14px;color:rgba(255,255,255,.38);margin-top:5px}
+.city-grid{flex:1;overflow-y:auto;padding:16px 20px 30px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.city-grid::-webkit-scrollbar{display:none}
+.city-card{background:rgba(255,255,255,.06);border-radius:16px;padding:16px;cursor:pointer;border:1.5px solid rgba(255,255,255,.06);transition:background .15s}
+.city-card:active{background:rgba(255,255,255,.12)}
+.city-emoji{font-size:28px;margin-bottom:8px}
+.city-card-name{font-size:16px;font-weight:600}
+.city-card-country{font-size:12px;color:rgba(255,255,255,.4);margin-top:2px}
+
+/* ── PLAN SCREEN ── */
+#scr-plan{position:fixed;inset:0;z-index:2;display:none}
+#back-btn{position:fixed;top:12px;left:12px;z-index:30;width:36px;height:36px;border-radius:50%;background:rgba(28,28,30,.92);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(12px)}
+/* Route input panel */
+#route-panel{position:fixed;bottom:0;left:0;right:0;z-index:20;background:rgba(18,18,22,.97);border-radius:20px 20px 0 0;padding:12px 0 28px;box-shadow:0 -4px 40px rgba(0,0,0,.5);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.rp-handle{width:36px;height:4px;background:rgba(255,255,255,.18);border-radius:2px;margin:0 auto 14px}
+.rp-title{font-size:11px;font-weight:600;color:rgba(255,255,255,.32);letter-spacing:1px;text-transform:uppercase;padding:0 20px;margin-bottom:12px}
+/* From/To rows */
+.rp-row{display:flex;align-items:center;gap:10px;padding:0 16px;margin-bottom:6px;position:relative}
+.rp-icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;font-weight:700}
+.rp-icon.from{background:rgba(48,209,88,.15);color:#30d158;border:1.5px solid rgba(48,209,88,.3)}
+.rp-icon.to{background:rgba(255,69,58,.15);color:#ff453a;border:1.5px solid rgba(255,69,58,.3)}
+.rp-input{flex:1;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.1);border-radius:12px;padding:11px 12px;color:#fff;font-size:15px;outline:none;min-width:0}
+.rp-input:focus{border-color:#0a84ff;background:rgba(10,132,255,.06)}
+.rp-input::placeholder{color:rgba(255,255,255,.28)}
+.rp-loc-btn{width:36px;height:36px;border-radius:10px;background:rgba(10,132,255,.15);border:1.5px solid rgba(10,132,255,.3);color:#0a84ff;font-size:16px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;touch-action:manipulation}
+.rp-connector{width:2px;height:12px;background:rgba(255,255,255,.12);margin:0 auto 0 31px}
+/* Autocomplete dropdown */
+#autocomplete-box{display:none;position:fixed;left:16px;right:16px;z-index:100;background:rgba(28,28,32,.98);border-radius:14px;border:1px solid rgba(255,255,255,.1);overflow:hidden;max-height:240px;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+#autocomplete-box::-webkit-scrollbar{display:none}
+.ac-item{padding:12px 16px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.05);display:flex;align-items:center;gap:10px}
+.ac-item:last-child{border-bottom:none}
+.ac-item:active{background:rgba(255,255,255,.07)}
+.ac-pin{font-size:15px;flex-shrink:0}
+.ac-name{font-size:14px;font-weight:500;color:#fff}
+.ac-addr{font-size:11px;color:rgba(255,255,255,.4);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ac-loc-row{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;background:rgba(10,132,255,.08);border-bottom:1px solid rgba(255,255,255,.05)}
+.ac-loc-row:active{background:rgba(10,132,255,.15)}
+/* Route stats */
+#rinfo{padding:8px 20px 0;display:none}
+.rstats{display:flex;gap:0}
+.rstat{flex:1;text-align:center;padding:8px 0}
+.rstat+.rstat{border-left:1px solid rgba(255,255,255,.08)}
+.rv{font-size:20px;font-weight:700}
+.rl{font-size:10px;color:rgba(255,255,255,.38);margin-top:2px;text-transform:uppercase;letter-spacing:.3px}
+#btn-go{display:none;margin:10px 20px 0;width:calc(100% - 40px);padding:15px;border-radius:14px;border:none;background:#0a84ff;color:#fff;font-size:17px;font-weight:600;cursor:pointer;touch-action:manipulation}
 #btn-go:active{opacity:.8}
-#phint{text-align:center;font-size:13px;color:rgba(255,255,255,.3);padding:8px 20px 0}
+
+/* ── PREVIEW SCREEN ── */
 #scr-prev{position:fixed;inset:0;z-index:2;display:none;pointer-events:none}
-#nav{position:fixed;top:0;left:0;right:0;z-index:10;padding:10px 12px 0;pointer-events:auto}
-#nav-card{background:rgba(28,28,30,.95);border-radius:16px;overflow:hidden;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
-#nav-top{background:#0a84ff;padding:13px 16px;display:flex;align-items:center;gap:12px}
-#nav-arrow{font-size:28px;min-width:32px;text-align:center;color:#fff}
-#nav-action{font-size:18px;font-weight:700;color:#fff}
-#nav-street{font-size:13px;color:rgba(255,255,255,.75);margin-top:2px}
-#nav-bot{display:flex;justify-content:space-between;padding:9px 16px}
-#nav-rem{font-size:14px;color:rgba(255,255,255,.65)}
-#nav-rem b{color:#fff;font-weight:700}
-#nav-eta{font-size:14px;color:rgba(255,255,255,.65)}
-#spd-sel{position:fixed;top:10px;right:12px;z-index:11;background:rgba(28,28,30,.95);border-radius:12px;overflow:hidden;backdrop-filter:blur(20px);pointer-events:auto}
+#nav{position:fixed;top:0;left:0;right:0;z-index:20;padding:10px 12px 0;pointer-events:auto}
+#nav-card{background:rgba(18,18,22,.96);border-radius:16px;overflow:hidden;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+#nav-top{background:linear-gradient(135deg,#0a84ff,#0060cc);padding:12px 16px;display:flex;align-items:center;gap:12px}
+#nav-arrow{font-size:26px;min-width:32px;text-align:center;color:#fff}
+#nav-txt{flex:1;min-width:0}
+#nav-action{font-size:17px;font-weight:700;color:#fff}
+#nav-street{font-size:12px;color:rgba(255,255,255,.78);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#nav-lane{font-size:11px;color:rgba(255,230,80,.95);margin-top:3px;font-weight:600;min-height:14px}
+#nav-bot{display:flex;justify-content:space-between;padding:8px 14px}
+#nav-rem{font-size:13px;color:rgba(255,255,255,.6)}
+#nav-rem b{color:#fff;font-weight:700;font-size:14px}
+#nav-eta{font-size:13px;color:rgba(255,255,255,.6)}
+#lm-toast{position:fixed;top:134px;left:12px;right:12px;z-index:25;background:rgba(22,22,28,.96);border-radius:12px;padding:10px 14px;backdrop-filter:blur(20px);display:none;border-left:3px solid #ff9f0a;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.4)}
+#lm-txt{font-size:13px;font-weight:700;color:#ff9f0a}
+#lm-sub{font-size:12px;color:rgba(255,255,255,.55);margin-top:2px}
+#spd-sel{position:fixed;top:10px;right:12px;z-index:21;background:rgba(18,18,22,.96);border-radius:12px;overflow:hidden;backdrop-filter:blur(20px);pointer-events:auto}
 .sx{width:46px;padding:9px 0;text-align:center;font-size:13px;font-weight:600;color:rgba(255,255,255,.4);cursor:pointer;border-bottom:1px solid rgba(255,255,255,.07);touch-action:manipulation}
 .sx:last-child{border-bottom:none}
 .sx.on{background:rgba(10,132,255,.25);color:#0a84ff}
-#dash{position:fixed;bottom:0;left:0;right:0;z-index:10;background:rgba(28,28,30,.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);padding:12px 20px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid rgba(255,255,255,.08);pointer-events:auto}
-.drow{display:flex;margin-bottom:12px}
+#dash{position:fixed;bottom:0;left:0;right:0;z-index:20;background:rgba(18,18,22,.96);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);padding:12px 20px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid rgba(255,255,255,.08);pointer-events:auto}
+.drow{display:flex;margin-bottom:10px}
 .dstat{flex:1;text-align:center}
-.dv{font-size:26px;font-weight:700;color:#fff;line-height:1}
+.dv{font-size:24px;font-weight:700;line-height:1}
 .dl{font-size:10px;color:rgba(255,255,255,.4);margin-top:3px;text-transform:uppercase;letter-spacing:.3px}
 .ddiv{width:1px;background:rgba(255,255,255,.1)}
 .dbtns{display:flex;gap:8px}
-.dbtn{flex:1;padding:13px;border-radius:12px;border:none;font-size:15px;font-weight:600;cursor:pointer;touch-action:manipulation}
+.dbtn{flex:1;padding:12px;border-radius:12px;border:none;font-size:15px;font-weight:600;cursor:pointer;touch-action:manipulation}
 .dbtn:active{opacity:.7}
 .dbtn-p{background:rgba(255,255,255,.1);color:#fff}
 .dbtn-r{background:rgba(255,255,255,.07);color:rgba(255,255,255,.55)}
 .dbtn-e{background:rgba(255,59,48,.15);color:#ff453a}
-#arrival{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.78);backdrop-filter:blur(12px);display:none;align-items:flex-end;justify-content:center;padding:0 20px 34px}
-.ac{background:#1c1c1e;border-radius:24px;padding:28px 22px;width:100%;max-width:400px}
-.ai{font-size:54px;text-align:center;margin-bottom:10px}
-.at{font-size:24px;font-weight:700;color:#fff;text-align:center}
-.as2{font-size:14px;color:rgba(255,255,255,.45);text-align:center;margin:4px 0 20px}
+
+/* ARRIVAL */
+#arrival{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.8);backdrop-filter:blur(14px);display:none;align-items:flex-end;justify-content:center;padding:0 20px 34px}
+.ac2{background:#1c1c1e;border-radius:24px;padding:28px 22px;width:100%;max-width:400px}
+.ai{font-size:52px;text-align:center;margin-bottom:10px}
+.at{font-size:24px;font-weight:700;text-align:center}
+.asb{font-size:14px;color:rgba(255,255,255,.45);text-align:center;margin:4px 0 20px}
 .ag{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px}
 .agv{background:rgba(255,255,255,.05);border-radius:12px;padding:12px 8px;text-align:center}
-.agvv{font-size:20px;font-weight:700;color:#fff}
+.agvv{font-size:20px;font-weight:700}
 .agvl{font-size:10px;color:rgba(255,255,255,.4);margin-top:4px;text-transform:uppercase}
 .abtns{display:flex;gap:10px}
 .abtn{flex:1;padding:14px;border-radius:14px;border:none;font-size:16px;font-weight:600;cursor:pointer}
 .abtn-n{background:rgba(255,255,255,.1);color:#fff}
 .abtn-a{background:#0a84ff;color:#fff}
-#lov{display:none;position:fixed;inset:0;z-index:1000;background:rgba(18,18,20,.96);flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:24px}
+
+/* LOADING */
+#lov{display:none;position:fixed;inset:0;z-index:1000;background:rgba(18,18,20,.97);flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:24px}
 #lov.on{display:flex}
 .spin{width:42px;height:42px;border:3px solid rgba(255,255,255,.1);border-top-color:#0a84ff;border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-#lov-t{font-size:17px;font-weight:600;color:#fff}
+#lov-t{font-size:17px;font-weight:600}
 #lov-s{font-size:14px;color:rgba(255,255,255,.4);max-width:260px;line-height:1.6}
 </style>
 </head>
 <body>
 <div id="map"></div>
 <canvas id="vc"></canvas>
-<div id="scr-search">
-  <div class="hdr">
-    <div class="hdr-eye">Route Experience</div>
-    <div class="hdr-title">RoutePreview</div>
-    <div class="hdr-sub">Feel the journey before you take it</div>
+
+<!-- HOME SCREEN -->
+<div id="scr-home">
+  <div class="app-hdr">
+    <div class="app-eye">Route Experience</div>
+    <div class="app-title">RoutePreview</div>
+    <div class="app-sub">Feel the journey before you travel</div>
   </div>
-  <div class="sbox"><span style="font-size:16px;opacity:.4">&#128269;</span>
-    <input id="ci" type="text" placeholder="Search city..." autocomplete="off" autocorrect="off" spellcheck="false">
-  </div>
-  <div id="city-list"></div>
+  <div class="city-grid" id="city-grid"></div>
 </div>
+
+<!-- PLAN SCREEN -->
 <div id="scr-plan">
-  <div id="plan-panel">
-    <div class="phandle"></div>
-    <div class="ptitle">Plan Your Route</div>
-    <div class="prow">
-      <div class="pdot a"></div>
-      <div style="flex:1"><div class="plbl">Start</div><div class="pval" id="lbl-a">Tap map to set</div></div>
-      <div class="pset" id="set-a" onclick="activatePick('A')">Set A</div>
+  <button id="back-btn" onclick="showHome()">&#8592;</button>
+  <div id="route-panel">
+    <div class="rp-handle"></div>
+    <div class="rp-title" id="rp-city-name">Plan Your Route</div>
+    <div class="rp-row">
+      <div class="rp-icon from">A</div>
+      <input class="rp-input" id="inp-from" type="text" placeholder="From: type address or use location" autocomplete="off" autocorrect="off" spellcheck="false">
+      <button class="rp-loc-btn" onclick="useMyLocation()" title="Use current location">&#128205;</button>
     </div>
-    <div style="display:flex;padding:0 20px"><div class="pvline"></div></div>
-    <div class="prow">
-      <div class="pdot b"></div>
-      <div style="flex:1"><div class="plbl">Destination</div><div class="pval" id="lbl-b">Tap map to set</div></div>
-      <div class="pset" id="set-b" onclick="activatePick('B')">Set B</div>
+    <div class="rp-connector"></div>
+    <div class="rp-row">
+      <div class="rp-icon to">B</div>
+      <input class="rp-input" id="inp-to" type="text" placeholder="To: type destination" autocomplete="off" autocorrect="off" spellcheck="false">
     </div>
-    <div class="pdiv"></div>
+    <div id="autocomplete-box"></div>
     <div id="rinfo">
       <div class="rstats">
-        <div><div class="rv" id="r-dist">-</div><div class="rl">Distance</div></div>
-        <div><div class="rv" id="r-time">-</div><div class="rl">Est. Time</div></div>
-        <div><div class="rv" id="r-turns">-</div><div class="rl">Via</div></div>
+        <div class="rstat"><div class="rv" id="r-dist">-</div><div class="rl">Distance</div></div>
+        <div class="rstat"><div class="rv" id="r-time">-</div><div class="rl">Est. Time</div></div>
+        <div class="rstat"><div class="rv" id="r-turns">-</div><div class="rl">Turns</div></div>
       </div>
     </div>
-    <div id="phint">Tap "Set A" then tap the map for start</div>
     <button id="btn-go" onclick="startPreview()">&#9654; Preview This Route</button>
   </div>
 </div>
+
+<!-- PREVIEW SCREEN -->
 <div id="scr-prev">
   <div id="nav">
     <div id="nav-card">
       <div id="nav-top">
         <div id="nav-arrow">&#8679;</div>
-        <div><div id="nav-action">Starting...</div><div id="nav-street"></div></div>
+        <div id="nav-txt">
+          <div id="nav-action">Starting...</div>
+          <div id="nav-street"></div>
+          <div id="nav-lane"></div>
+        </div>
       </div>
       <div id="nav-bot">
         <div id="nav-rem"><b id="nav-rem-b">-</b> remaining</div>
@@ -149,8 +182,9 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
       </div>
     </div>
   </div>
+  <div id="lm-toast"><div id="lm-txt"></div><div id="lm-sub"></div></div>
   <div id="spd-sel">
-    <div class="sx" onclick="setSpd(.5)">1/2x</div>
+    <div class="sx" onclick="setSpd(.5)">&#189;x</div>
     <div class="sx on" onclick="setSpd(1)">1x</div>
     <div class="sx" onclick="setSpd(2)">2x</div>
     <div class="sx" onclick="setSpd(4)">4x</div>
@@ -170,26 +204,30 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
     </div>
   </div>
 </div>
+
+<!-- ARRIVAL -->
 <div id="arrival">
-  <div class="ac">
+  <div class="ac2">
     <div class="ai">&#9989;</div>
     <div class="at">Route Complete</div>
-    <div class="as2" id="arr-sub">Preview finished</div>
+    <div class="asb" id="arr-sub">Preview finished</div>
     <div class="ag">
       <div class="agv"><div class="agvv" id="arr-d">-</div><div class="agvl">Distance</div></div>
       <div class="agv"><div class="agvv" id="arr-t">-</div><div class="agvl">Duration</div></div>
-      <div class="agv"><div class="agvv" id="arr-s">-</div><div class="agvl">Avg Speed</div></div>
+      <div class="agv"><div class="agvv" id="arr-s">-</div><div class="agvl">Avg km/h</div></div>
     </div>
     <div class="abtns">
-      <button class="abtn abtn-n" onclick="newRoute()">New Route</button>
+      <button class="abtn abtn-n" onclick="showPlan()">New Route</button>
       <button class="abtn abtn-a" onclick="doRestart()">Again</button>
     </div>
   </div>
 </div>
+
 <div id="lov"><div class="spin"></div><div id="lov-t">Loading</div><div id="lov-s">Please wait...</div></div>
 
 <script>
 'use strict';
+
 var CITIES=[
   {n:"Hyderabad",c:"India",la:17.3850,lo:78.4867,ic:"&#127961;"},
   {n:"Mumbai",c:"India",la:19.0760,lo:72.8777,ic:"&#127754;"},
@@ -199,126 +237,230 @@ var CITIES=[
   {n:"Pune",c:"India",la:18.5204,lo:73.8567,ic:"&#127979;"},
   {n:"Kolkata",c:"India",la:22.5726,lo:88.3639,ic:"&#127750;"},
   {n:"Visakhapatnam",c:"India",la:17.6868,lo:83.2185,ic:"&#9875;"},
+  {n:"Jaipur",c:"India",la:26.9124,lo:75.7873,ic:"&#127984;"},
+  {n:"Ahmedabad",c:"India",la:23.0225,lo:72.5714,ic:"&#127963;"},
   {n:"Tokyo",c:"Japan",la:35.6762,lo:139.6503,ic:"&#128508;"},
   {n:"Singapore",c:"Singapore",la:1.3521,lo:103.8198,ic:"&#129409;"},
   {n:"Dubai",c:"UAE",la:25.2048,lo:55.2708,ic:"&#127959;"},
   {n:"London",c:"UK",la:51.5074,lo:-.1278,ic:"&#127981;"},
-  {n:"New York",c:"USA",la:40.7128,lo:-74.006,ic:"&#127895;"},
-  {n:"Sydney",c:"Australia",la:-33.8688,lo:151.2093,ic:"&#127944;"},
 ];
 
-// Emoji vehicles
-var VEH=[
-  {em:'🚗',sz:12},
-  {em:'🚙',sz:12},
-  {em:'🚕',sz:12},
-  {em:'🛺',sz:12},
-  {em:'🚌',sz:12},
-  {em:'🚛',sz:12},
-  {em:'🏍️',sz:12},
-  {em:'🚐',sz:12},
-  {em:'🚗',sz:12},
-  {em:'🚕',sz:12},
-  {em:'🛺',sz:12},
-  {em:'🚙',sz:12},
-];
+// State
+var map, rtLayer, mkA, mkB;
+var routeCoords=[], routeSteps=[], landmarks=[];
+var ptA=null, ptB=null;
+var pv=null, pvPaused=false, pvSpeed=1;
+var driveT0, driveDist=0, driveSpeeds=[], segIdx=0, segProg=0;
+var camLast=0, lastTs=null, pendName='';
+var audioCtx, masterGain, engGain, engOsc, engOsc2, engFilter, windGain;
+var vc, vctx, lmTimer;
+// Autocomplete
+var acTarget=null, acDebounce, acBias={lat:17.39,lon:78.49,d:0.5};
 
-var map,pickMode=null,ptA=null,ptB=null,mkA,mkB,rtLayer;
-var routeCoords=[],routeSteps=[];
-var pv=null,pvPaused=false,pvSpeed=1;
-var driveT0,driveDist=0,driveSpeeds=[],segIdx=0,segProg=0;
-var trafficVs=[];
-var camLast=0,lastTs=null;
-var pendName='';
-var audioCtx,masterGain,engGain,engOsc,engOsc2,engFilter,windGain,hornTmr;
-var vc,vctx;
-
-// City list
-function buildList(q){
-  var el=document.getElementById('city-list'); el.innerHTML='';
-  var list=q?CITIES.filter(function(c){return c.n.toLowerCase().indexOf(q.toLowerCase())>=0;}):CITIES;
-  var g={};
-  list.forEach(function(c){if(!g[c.c])g[c.c]=[];g[c.c].push(c);});
-  Object.keys(g).forEach(function(k){
-    var s=document.createElement('div');s.className='csec';s.textContent=k;el.appendChild(s);
-    g[k].forEach(function(c){
-      var r=document.createElement('div');r.className='crow';
-      r.innerHTML='<div class="cic">'+c.ic+'</div><div><div class="cname">'+c.n+'</div><div class="ccountry">'+c.c+'</div></div>';
-      r.addEventListener('click',function(){selectCity(c);});
-      r.addEventListener('touchend',function(e){e.preventDefault();selectCity(c);});
-      el.appendChild(r);
-    });
+// ── BUILD HOME SCREEN ─────────────────────────────────────────────────
+(function(){
+  var grid=document.getElementById('city-grid');
+  CITIES.forEach(function(c){
+    var card=document.createElement('div');
+    card.className='city-card';
+    card.innerHTML='<div class="city-emoji">'+c.ic+'</div><div class="city-card-name">'+c.n+'</div><div class="city-card-country">'+c.c+'</div>';
+    card.addEventListener('click',function(){selectCity(c);});
+    card.addEventListener('touchend',function(e){e.preventDefault();selectCity(c);});
+    grid.appendChild(card);
   });
-}
-buildList();
-document.getElementById('ci').addEventListener('input',function(){buildList(this.value.trim());});
+})();
 
 function selectCity(city){
   pendName=city.n;
-  document.getElementById('scr-search').style.display='none';
+  acBias={lat:city.la,lon:city.lo,d:0.3};
+  document.getElementById('rp-city-name').textContent=city.n+' \u2014 Plan Your Route';
+  initMap(city.la,city.lo);
+  document.getElementById('scr-home').style.display='none';
   document.getElementById('scr-plan').style.display='block';
-  if(!map){
-    map=L.map('map',{center:[city.la,city.lo],zoom:14,zoomControl:false,preferCanvas:true});
-    L.control.attribution({position:'bottomleft',prefix:false}).addTo(map);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-      attribution:'© OpenStreetMap',subdomains:['a','b','c'],maxZoom:20
-    }).addTo(map);
-    map.on('click',onMapClick);
-    map.on('touchend',onMapTouch);
-    vc=document.getElementById('vc');
-    vctx=vc.getContext('2d');
-    function rsz(){vc.width=window.innerWidth;vc.height=window.innerHeight;}
-    rsz();window.addEventListener('resize',rsz);
-    map.on('move',function(){
-      try{if(document.getElementById('scr-prev').style.display!=='none')renderAll();}catch(e){}
-    });
-  }else{map.setView([city.la,city.lo],14);}
-  setTimeout(function(){map.invalidateSize();},50);
-  activatePick('A');
+  document.getElementById('inp-from').value='';
+  document.getElementById('inp-to').value='';
+  document.getElementById('rinfo').style.display='none';
+  document.getElementById('btn-go').style.display='none';
+  setTimeout(function(){map.invalidateSize(true);},100);
 }
 
-function onMapClick(e){if(!pickMode)return;setPoint(pickMode,e.latlng.lat,e.latlng.lng);}
-function onMapTouch(e){
-  if(!pickMode)return;
-  var t=(e.touches&&e.touches[0])||(e.changedTouches&&e.changedTouches[0]);
-  if(!t)return;
-  var ll=map.containerPointToLatLng(L.point(t.clientX,t.clientY));
-  setPoint(pickMode,ll.lat,ll.lng);
+function showHome(){
+  document.getElementById('scr-plan').style.display='none';
+  document.getElementById('scr-home').style.display='flex';
+  hideAC();
 }
 
-function activatePick(t){
-  pickMode=t;
-  var b=document.getElementById('set-'+t.toLowerCase());
-  b.style.background='rgba(10,132,255,.28)';b.style.borderColor='#0a84ff';
-  document.getElementById('phint').textContent='Tap the map to set '+(t==='A'?'start':'destination')+' point';
+function showPlan(){
+  document.getElementById('arrival').style.display='none';
+  document.getElementById('scr-prev').style.display='none';
+  document.getElementById('scr-plan').style.display='block';
+  if(vctx)vctx.clearRect(0,0,vc.width,vc.height);
+  map.invalidateSize();
 }
 
-function setPoint(t,lat,lon){
-  var col=t==='A'?'#30d158':'#ff453a';
-  var ico=L.divIcon({className:'',html:'<div style="width:28px;height:28px;border-radius:50%;background:'+col+';border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff">'+t+'</div>',iconSize:[28,28],iconAnchor:[14,14]});
-  if(t==='A'){
-    if(mkA)map.removeLayer(mkA);
-    mkA=L.marker([lat,lon],{icon:ico}).addTo(map);
-    ptA={lat:lat,lon:lon};
-    document.getElementById('lbl-a').textContent=lat.toFixed(4)+', '+lon.toFixed(4);
-    var sb=document.getElementById('set-a');sb.style.background='rgba(48,209,88,.2)';sb.style.borderColor='#30d158';sb.style.color='#30d158';sb.textContent='A Set';
-    pickMode=null;
-    if(!ptB)setTimeout(function(){activatePick('B');},300);
-    else calcRoute();
-  } else {
-    if(mkB)map.removeLayer(mkB);
-    mkB=L.marker([lat,lon],{icon:ico}).addTo(map);
-    ptB={lat:lat,lon:lon};
-    document.getElementById('lbl-b').textContent=lat.toFixed(4)+', '+lon.toFixed(4);
-    var sb=document.getElementById('set-b');sb.style.background='rgba(255,69,58,.2)';sb.style.borderColor='#ff453a';sb.style.color='#ff453a';sb.textContent='B Set';
-    pickMode=null;
-    calcRoute();
+// ── MAP ───────────────────────────────────────────────────────────────
+function initMap(lat,lon){
+  if(map){map.setView([lat,lon],14);return;}
+  map=L.map('map',{center:[lat,lon],zoom:14,zoomControl:false,preferCanvas:true});
+  L.control.attribution({position:'bottomleft',prefix:false}).addTo(map);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'\u00a9 OpenStreetMap',subdomains:['a','b','c'],maxZoom:20
+  }).addTo(map);
+  vc=document.getElementById('vc');
+  vctx=vc.getContext('2d');
+  function rsz(){vc.width=window.innerWidth;vc.height=window.innerHeight;}
+  rsz(); window.addEventListener('resize',rsz);
+}
+
+// ── AUTOCOMPLETE ──────────────────────────────────────────────────────
+function setupAC(inputId){
+  var inp=document.getElementById(inputId);
+  inp.addEventListener('input',function(){
+    acTarget=inputId;
+    clearTimeout(acDebounce);
+    var q=inp.value.trim();
+    if(q.length<2){hideAC();return;}
+    acDebounce=setTimeout(function(){fetchAC(q,inputId);},300);
+  });
+  inp.addEventListener('focus',function(){
+    acTarget=inputId;
+    if(inputId==='inp-from'){showACHeader();}
+  });
+}
+setupAC('inp-from');
+setupAC('inp-to');
+
+// Hide AC when tapping outside
+document.addEventListener('touchstart',function(e){
+  var box=document.getElementById('autocomplete-box');
+  if(box.style.display!=='none'&&!box.contains(e.target)&&
+     e.target.id!=='inp-from'&&e.target.id!=='inp-to'){
+    hideAC();
   }
+},{passive:true});
+
+function showACHeader(){
+  // Show "Use current location" option
+  var box=document.getElementById('autocomplete-box');
+  var panelH=document.getElementById('route-panel').offsetHeight||220;
+  box.style.bottom=(panelH+6)+'px';
+  box.style.top='auto';
+  box.innerHTML='<div class="ac-loc-row" onclick="useMyLocation()">'+
+    '<span class="ac-pin">&#128205;</span>'+
+    '<div><div class="ac-name">Use My Current Location</div><div class="ac-addr">GPS position</div></div></div>';
+  box.style.display='block';
 }
 
+async function fetchAC(q,inputId){
+  try{
+    var vbox=acBias.lon+'-'+acBias.d+','+(acBias.lat-acBias.d)+','+
+             (acBias.lon+acBias.d)+','+(acBias.lat+acBias.d);
+    var url='https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(q)+
+      '&format=json&limit=5&viewbox='+
+      (acBias.lon-acBias.d)+','+(acBias.lat+acBias.d)+','+
+      (acBias.lon+acBias.d)+','+(acBias.lat-acBias.d)+
+      '&bounded=0&dedupe=1';
+    var r=await fetch(url,{headers:{'Accept':'application/json','User-Agent':'RoutePreview/1.0'}});
+    var data=await r.json();
+    showACResults(data,inputId);
+  }catch(e){}
+}
+
+function showACResults(results,inputId){
+  var box=document.getElementById('autocomplete-box');
+  var panelH=document.getElementById('route-panel').offsetHeight||220;
+  box.style.bottom=(panelH+6)+'px';
+  box.style.top='auto';
+  var html='';
+  if(inputId==='inp-from'){
+    html+='<div class="ac-loc-row" onclick="useMyLocation()">'+
+      '<span class="ac-pin">&#128205;</span>'+
+      '<div><div class="ac-name">Use My Current Location</div><div class="ac-addr">GPS position</div></div></div>';
+  }
+  if(!results||!results.length){
+    html+='<div class="ac-item"><span class="ac-pin">&#128270;</span><div><div class="ac-name">No results found</div></div></div>';
+  } else {
+    results.forEach(function(r){
+      var parts=r.display_name.split(',');
+      var name=parts[0].trim();
+      var addr=parts.slice(1,3).join(',').trim();
+      var lat=parseFloat(r.lat),lon=parseFloat(r.lon);
+      html+='<div class="ac-item" onclick="pickAC(\''+inputId+'\',\''+name.replace(/'/g,'&#39;')+'\','+lat+','+lon+')">'+
+        '<span class="ac-pin">&#128205;</span>'+
+        '<div><div class="ac-name">'+escHtml(name)+'</div>'+
+        (addr?'<div class="ac-addr">'+escHtml(addr)+'</div>':'')+'</div></div>';
+    });
+  }
+  box.innerHTML=html;
+  box.style.display='block';
+}
+
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function pickAC(inputId,name,lat,lon){
+  document.getElementById(inputId).value=name;
+  hideAC();
+  if(inputId==='inp-from'){
+    ptA={lat:lat,lon:lon,name:name};
+    placeMarker('A',lat,lon);
+    // Focus To field
+    if(!ptB) setTimeout(function(){document.getElementById('inp-to').focus();},200);
+  } else {
+    ptB={lat:lat,lon:lon,name:name};
+    placeMarker('B',lat,lon);
+  }
+  if(ptA&&ptB) calcRoute();
+}
+
+function hideAC(){
+  document.getElementById('autocomplete-box').style.display='none';
+}
+
+// ── CURRENT LOCATION ──────────────────────────────────────────────────
+function useMyLocation(){
+  hideAC();
+  if(!navigator.geolocation){alert('Location not available on this device.');return;}
+  loading(true,'Getting Location...','Using GPS...');
+  navigator.geolocation.getCurrentPosition(function(pos){
+    var lat=pos.coords.latitude, lon=pos.coords.longitude;
+    loading(false);
+    // Reverse geocode to get address name
+    fetch('https://nominatim.openstreetmap.org/reverse?lat='+lat+'&lon='+lon+'&format=json&zoom=16',{
+      headers:{'Accept':'application/json','User-Agent':'RoutePreview/1.0'}
+    }).then(function(r){return r.json();}).then(function(d){
+      var name=(d.address&&(d.address.road||d.address.suburb||d.address.neighbourhood||d.address.city))||'My Location';
+      document.getElementById('inp-from').value=name;
+      ptA={lat:lat,lon:lon,name:name};
+      placeMarker('A',lat,lon);
+      map.setView([lat,lon],15);
+      acBias={lat:lat,lon:lon,d:0.2};
+      if(ptB) calcRoute();
+      else setTimeout(function(){document.getElementById('inp-to').focus();},200);
+    }).catch(function(){
+      document.getElementById('inp-from').value='My Location';
+      ptA={lat:lat,lon:lon,name:'My Location'};
+      placeMarker('A',lat,lon);
+      map.setView([lat,lon],15);
+    });
+  },function(err){
+    loading(false);
+    alert('Could not get location. '+err.message);
+  },{timeout:10000,enableHighAccuracy:true});
+}
+
+function placeMarker(t,lat,lon){
+  var col=t==='A'?'#30d158':'#ff453a';
+  var ico=L.divIcon({className:'',html:'<div style="width:26px;height:26px;border-radius:50%;background:'+col+';border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff">'+t+'</div>',iconSize:[26,26],iconAnchor:[13,13]});
+  if(t==='A'){if(mkA)map.removeLayer(mkA);mkA=L.marker([lat,lon],{icon:ico}).addTo(map);}
+  else{if(mkB)map.removeLayer(mkB);mkB=L.marker([lat,lon],{icon:ico}).addTo(map);}
+}
+
+// ── ROUTING ───────────────────────────────────────────────────────────
 async function calcRoute(){
   if(!ptA||!ptB)return;
   loading(true,'Calculating Route','Finding real road path...');
+  document.getElementById('rinfo').style.display='none';
+  document.getElementById('btn-go').style.display='none';
   try{
     var url='https://router.project-osrm.org/route/v1/driving/'+
       ptA.lon.toFixed(6)+','+ptA.lat.toFixed(6)+';'+
@@ -330,224 +472,86 @@ async function calcRoute(){
       var rt=data.routes[0];
       routeCoords=rt.geometry.coordinates.map(function(c){return{lat:c[1],lng:c[0]};});
       routeSteps=rt.legs[0].steps||[];
-      showRoute(rt.distance,rt.duration);
-      loading(false);return;
+      if(rtLayer)map.removeLayer(rtLayer);
+      var lc=routeCoords.map(function(c){return[c.lat,c.lng];});
+      L.polyline(lc,{color:'rgba(10,132,255,.2)',weight:14,opacity:1,interactive:false}).addTo(map);
+      rtLayer=L.polyline(lc,{color:'#0a84ff',weight:5,opacity:.92,interactive:false}).addTo(map);
+      map.fitBounds(rtLayer.getBounds(),{padding:[20,20],maxZoom:16});
+      var d=rt.distance,dur=rt.duration;
+      document.getElementById('r-dist').textContent=d>1000?(d/1000).toFixed(1)+' km':Math.round(d)+'m';
+      document.getElementById('r-time').textContent=dur>3600?Math.floor(dur/3600)+'h '+Math.floor((dur%3600)/60)+'m':Math.floor(dur/60)+' min';
+      document.getElementById('r-turns').textContent=routeSteps.filter(function(s){var t=s.maneuver&&s.maneuver.type;return t&&t!=='depart'&&t!=='arrive';}).length;
+      document.getElementById('rinfo').style.display='block';
+      document.getElementById('btn-go').style.display='block';
+      loading(false);
+      fetchLandmarks();
+      return;
     }
   }catch(e){console.warn('OSRM:',e.message);}
   loading(false);
-  alert('Could not get route. Check your connection.');
+  alert('Could not calculate route. Please check your connection.');
 }
 
-function showRoute(dist,dur){
-  if(rtLayer)map.removeLayer(rtLayer);
-  var lc=routeCoords.map(function(c){return[c.lat,c.lng];});
-  L.polyline(lc,{color:'rgba(10,132,255,.2)',weight:14,opacity:1,interactive:false}).addTo(map);
-  rtLayer=L.polyline(lc,{color:'#0a84ff',weight:5,opacity:.92,interactive:false}).addTo(map);
-  map.fitBounds(rtLayer.getBounds(),{padding:[20,20],maxZoom:16});
-  document.getElementById('r-dist').textContent=dist>1000?(dist/1000).toFixed(1)+' km':Math.round(dist)+'m';
-  document.getElementById('r-time').textContent=dur>3600?Math.floor(dur/3600)+'h '+Math.floor((dur%3600)/60)+'m':Math.floor(dur/60)+' min';
-  document.getElementById('r-turns').textContent=routeSteps.length+' turns';
-  document.getElementById('rinfo').style.display='block';
-  document.getElementById('phint').style.display='none';
-  document.getElementById('btn-go').style.display='block';
+// ── LANDMARKS ─────────────────────────────────────────────────────────
+async function fetchLandmarks(){
+  landmarks=[];
+  var N=routeCoords.length, step=Math.max(1,Math.floor(N/8));
+  for(var i=step;i<N-step;i+=step){
+    try{
+      var c=routeCoords[i];
+      var r=await fetch('https://nominatim.openstreetmap.org/reverse?lat='+c.lat+'&lon='+c.lng+'&format=json&zoom=17',{headers:{'Accept':'application/json','User-Agent':'RoutePreview/1.0'}});
+      var d=await r.json();
+      var name=(d.namedetails&&d.namedetails.name)||(d.address&&(d.address.road||d.address.suburb||d.address.neighbourhood));
+      if(name&&name.length>2&&name!==pendName){
+        var dist=0;for(var j=0;j<i;j++)dist+=hvs(routeCoords[j].lat,routeCoords[j].lng,routeCoords[j+1].lat,routeCoords[j+1].lng);
+        landmarks.push({name:name,dist:dist,announced:false});
+      }
+    }catch(e){}
+    await new Promise(function(r){setTimeout(r,250);});
+  }
 }
 
-// ── PREVIEW ──────────────────────────────────────────
+function checkLandmarks(){
+  for(var i=0;i<landmarks.length;i++){
+    var lm=landmarks[i];if(lm.announced)continue;
+    var d=lm.dist-driveDist;
+    if(d<=100&&d>-60){
+      lm.announced=true;
+      var sub=d<30?'Passing now':'Approaching in '+Math.round(d)+'m';
+      document.getElementById('lm-txt').textContent=lm.name;
+      document.getElementById('lm-sub').textContent=sub;
+      document.getElementById('lm-toast').style.display='block';
+      clearTimeout(lmTimer);
+      lmTimer=setTimeout(function(){document.getElementById('lm-toast').style.display='none';},4500);
+      break;
+    }
+  }
+}
+
+// ── PREVIEW ───────────────────────────────────────────────────────────
 function startPreview(){
   if(!routeCoords||routeCoords.length<2)return;
-  pvPaused=false;segIdx=0;segProg=0;
+  pvPaused=false;segIdx=0;segProg=0;camLast=0;
   driveT0=Date.now();driveDist=0;driveSpeeds=[];
+  landmarks.forEach(function(l){l.announced=false;});
   pv={lat:routeCoords[0].lat,lng:routeCoords[0].lng,spd:5,heading:0,done:false};
   if(mkA){map.removeLayer(mkA);mkA=null;}
   if(mkB){map.removeLayer(mkB);mkB=null;}
-  spawnTraffic();
   document.getElementById('scr-plan').style.display='none';
   document.getElementById('scr-prev').style.display='block';
   map.setView([pv.lat,pv.lng],18);
   setTimeout(function(){map.invalidateSize();},100);
   setTimeout(function(){map.invalidateSize();map.setView([pv.lat,pv.lng],18);},500);
   if(!audioCtx)initAudio();
-  lastTs=null;camLast=0;
+  lastTs=null;
   requestAnimationFrame(loop);
 }
 
-// ── TRAFFIC VEHICLES ─────────────────────────────────
-function spawnTraffic(){
-  trafficVs=[];
-  var N=routeCoords.length;
-  for(var i=0;i<18;i++){
-    var vt=VEH[Math.floor(Math.random()*VEH.length)];
-    var same=Math.random()>0.38;
-    var startIdx=Math.floor(i/18*(N-5));
-    trafficVs.push({
-      idx:Math.max(0,startIdx+Math.floor(Math.random()*8-4)),
-      prog:Math.random(),
-      spd:(25+Math.random()*30)*(same?1:-1),
-      vt:vt,
-      same:same,
-      lane:3,
-      jit:(Math.random()*6-3)
-    });
-  }
-}
-
-function updateTraffic(dt){
-  var N=routeCoords.length;
-  trafficVs.forEach(function(v){
-    var step=Math.abs(v.spd)*1000/3600*dt;
-    var nxt=v.same?Math.min(v.idx+1,N-1):Math.max(v.idx-1,0);
-    var A=routeCoords[v.idx],B=routeCoords[nxt];
-    if(!A||!B)return;
-    var m=hvs(A.lat,A.lng,B.lat,B.lng)||1;
-    v.prog+=step/m;
-    if(v.prog>=1){
-      v.prog=0;
-      if(v.same){v.idx++;if(v.idx>=N-1){v.idx=N-2;v.same=false;}}
-      else{v.idx--;if(v.idx<=0){v.idx=1;v.same=true;}}
-    }
-  });
-}
-
-// ── CANVAS RENDERING ─────────────────────────────────
-function getZScale(){
-  if(!map)return 1;
-  return Math.max(0.35,Math.min(2.5,Math.pow(2,map.getZoom()-16)*0.5));
-}
-
-function renderAll(){
-  if(!vctx||!vc)return;
-  vctx.clearRect(0,0,vc.width,vc.height);
-  var sc=getZScale();
-  drawLaneMarkings();
-  // Traffic
-  trafficVs.forEach(function(v){
-    var N=routeCoords.length;
-    var A=routeCoords[v.idx];
-    var nxt=v.same?Math.min(v.idx+1,N-1):Math.max(v.idx-1,0);
-    var B=routeCoords[nxt];
-    if(!A||!B)return;
-    var pA=map.latLngToContainerPoint([A.lat,A.lng]);
-    var pB=map.latLngToContainerPoint([B.lat,B.lng]);
-    var dx=pB.x-pA.x,dy=pB.y-pA.y,len=Math.sqrt(dx*dx+dy*dy)||1;
-    var cx=pA.x+dx*v.prog, cy=pA.y+dy*v.prog;
-    // Left perpendicular in screen (90deg CW of forward): (dy/len, -dx/len)
-    // India LHD: player on LEFT perp (correct for LHD)
-    var lx=dy/len, ly=-dx/len;
-    // India LHD: same-dir goes on LEFT lane, oncoming on their LEFT (our RIGHT)
-    // Vehicles stay on road - just small fixed jitter
-    cx+=lx*(v.jit||0); cy+=ly*(v.jit||0);
-    // heading: forward in screen space = atan2(dx,-dy) matches drawVehicle convention
-    var A2=routeCoords[v.idx];var T2=routeCoords[v.same?Math.min(v.idx+1,N-1):Math.max(v.idx-1,0)];if(!A2||!T2)return;
-    var geoHdg=Math.atan2(T2.lng-A2.lng,T2.lat-A2.lat);
-    var ems=(v.vt&&v.vt.em)?v.vt.em:null;var szs=(v.vt&&v.vt.sz)?v.vt.sz*sc:18;
-    if(ems)drawEmoji(cx,cy,geoHdg,ems,szs);else drawVehicle(cx,cy,geoHdg,v.vt,sc);
-  });
-  // Player
-  if(pv&&!pv.done){
-    var pp=map.latLngToContainerPoint([pv.lat,pv.lng]);
-    // pv.heading = atan2(dLng,dLat) in geo space = atan2(dx_screen,-dy_screen) in pixel space
-    // So sin(pv.heading)=forward-x, -cos(pv.heading)=forward-y (screen)
-    var fwdX=Math.sin(pv.heading),fwdY=-Math.cos(pv.heading);
-    // Left perpendicular (India LHD: player on left lane)
-    var lx=fwdY,ly=-fwdX; // 90deg CW
-    var laneOff=3*sc;
-    var px=pp.x+lx*laneOff, py=pp.y+ly*laneOff;
-    // Glow
-    vctx.save();vctx.shadowBlur=20*sc;vctx.shadowColor='rgba(0,200,255,.8)';
-    drawVehicle(px,py,pv.heading,{hw:6,hl:13,body:'#00d4ff',roof:'#0090aa'},sc*1.1);
-    vctx.restore();
-    drawVehicle(px,py,pv.heading,{hw:6,hl:13,body:'#00d4ff',roof:'#0090aa'},sc*1.1);
-    // YOU label
-    var lw=30*sc,lh=14*sc,lbx=px-lw/2,lby=py-14*sc-lh-3;
-    vctx.fillStyle='rgba(0,15,30,.85)';
-    rrect(lbx,lby,lw,lh,4);vctx.fill();
-    vctx.fillStyle='#00d4ff';
-    vctx.font='bold '+(Math.round(9*sc))+'px -apple-system,sans-serif';
-    vctx.textAlign='center';vctx.textBaseline='middle';
-    vctx.fillText('YOU',px,lby+lh/2);
-  }
-}
-
-function drawLaneMarkings(){/* removed - centerline is not a lane boundary */}
-
-function drawVehicle(x,y,hdg,vt,sc){
-  var hw=vt.hw*sc,hl=vt.hl*sc;
-  vctx.save();vctx.translate(x,y);vctx.rotate(hdg);
-  // Body shape — tapered nose at y=-hl (front)
-  vctx.beginPath();
-  vctx.moveTo(-hw*0.6,-hl);
-  vctx.bezierCurveTo(-hw,-hl*0.85,-hw,-hl*0.4,-hw,-hl*0.3);
-  vctx.lineTo(-hw,hl*0.5);
-  vctx.bezierCurveTo(-hw,hl,hw*-0.4,hl,0,hl);
-  vctx.bezierCurveTo(hw*0.4,hl,hw,hl,hw,hl*0.5);
-  vctx.lineTo(hw,-hl*0.3);
-  vctx.bezierCurveTo(hw,-hl*0.4,hw,-hl*0.85,hw*0.6,-hl);
-  vctx.closePath();
-  vctx.fillStyle=vt.body;vctx.fill();
-  // Cabin / roof
-  vctx.beginPath();
-  vctx.moveTo(-hw*0.65,-hl*0.2);
-  vctx.bezierCurveTo(-hw*0.65,-hl*0.7,-hw*0.35,-hl*0.82,0,-hl*0.82);
-  vctx.bezierCurveTo(hw*0.35,-hl*0.82,hw*0.65,-hl*0.7,hw*0.65,-hl*0.2);
-  vctx.lineTo(hw*0.65,hl*0.28);
-  vctx.bezierCurveTo(hw*0.65,hl*0.45,hw*0.35,hl*0.52,0,hl*0.52);
-  vctx.bezierCurveTo(-hw*0.35,hl*0.52,-hw*0.65,hl*0.45,-hw*0.65,hl*0.28);
-  vctx.closePath();
-  vctx.fillStyle=vt.roof;vctx.fill();
-  // Windshield glass tint
-  vctx.beginPath();
-  vctx.moveTo(-hw*0.5,-hl*0.22);
-  vctx.lineTo(-hw*0.42,-hl*0.75);
-  vctx.bezierCurveTo(-hw*0.15,-hl*0.82,hw*0.15,-hl*0.82,hw*0.42,-hl*0.75);
-  vctx.lineTo(hw*0.5,-hl*0.22);
-  vctx.closePath();
-  vctx.fillStyle='rgba(160,230,255,0.38)';vctx.fill();
-  // Headlights (front)
-  vctx.fillStyle='rgba(255,252,180,0.95)';
-  vctx.beginPath();vctx.ellipse(-hw*0.48,-hl*0.88,hw*0.18,hl*0.1,0,0,Math.PI*2);vctx.fill();
-  vctx.beginPath();vctx.ellipse(hw*0.48,-hl*0.88,hw*0.18,hl*0.1,0,0,Math.PI*2);vctx.fill();
-  // Taillights (rear)
-  vctx.fillStyle='rgba(255,40,40,0.95)';
-  vctx.beginPath();vctx.ellipse(-hw*0.48,hl*0.88,hw*0.18,hl*0.1,0,0,Math.PI*2);vctx.fill();
-  vctx.beginPath();vctx.ellipse(hw*0.48,hl*0.88,hw*0.18,hl*0.1,0,0,Math.PI*2);vctx.fill();
-  // Wheels (4 corners)
-  vctx.fillStyle='#111';
-  var wp=[[-0.82,-0.7],[0.82,-0.7],[-0.82,0.7],[0.82,0.7]];
-  for(var i=0;i<4;i++){
-    vctx.beginPath();vctx.ellipse(hw*wp[i][0],hl*wp[i][1],hl*0.17,hw*0.3,0,0,Math.PI*2);vctx.fill();
-    vctx.fillStyle='#2a2a2a';
-    vctx.beginPath();vctx.ellipse(hw*wp[i][0],hl*wp[i][1],hl*0.09,hw*0.17,0,0,Math.PI*2);vctx.fill();
-    vctx.fillStyle='#111';
-  }
-  vctx.restore();
-}
-
-function drawEmoji(x,y,hdg,em,sz){
-  if(!em||!vctx)return;
-  vctx.save();vctx.translate(x,y);vctx.rotate(hdg-Math.PI/2);
-  vctx.font=Math.max(8,Math.round(sz))+'px serif';
-  vctx.textAlign='center';vctx.textBaseline='middle';
-  vctx.fillText(em,0,0);vctx.restore();
-}
-function rrect(x,y,w,h,r){
-  vctx.beginPath();vctx.moveTo(x+r,y);vctx.lineTo(x+w-r,y);vctx.quadraticCurveTo(x+w,y,x+w,y+r);
-  vctx.lineTo(x+w,y+h-r);vctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
-  vctx.lineTo(x+r,y+h);vctx.quadraticCurveTo(x,y+h,x,y+h-r);
-  vctx.lineTo(x,y+r);vctx.quadraticCurveTo(x,y,x+r,y);vctx.closePath();
-}
-
-// ── DRIVE LOOP ────────────────────────────────────────
 function loop(ts){
   if(document.getElementById('scr-prev').style.display==='none')return;
   if(!lastTs)lastTs=ts;
   var dt=Math.min((ts-lastTs)/1000,.05)*pvSpeed;lastTs=ts;
-  if(!pvPaused){
-    updateDrive(dt);
-    updateTraffic(dt*.5);
-    renderAll();
-    updateHUD();
-    updateCam(ts);
-  }
+  if(!pvPaused){updateDrive(dt);renderCar();updateHUD();updateCam(ts);}
   requestAnimationFrame(loop);
 }
 
@@ -558,25 +562,22 @@ function stepSpeed(){
     d+=routeSteps[i].distance||0;
     if(driveDist<d){
       var nm=(routeSteps[i].name||'').toLowerCase();
-      if(nm.indexOf('highway')>=0||nm.indexOf('expressway')>=0||(routeSteps[i].ref||'').indexOf('NH')>=0)return 70;
-      if(nm.indexOf('main')>=0||nm.indexOf('road')>=0)return 45;
-      return 30;
+      var ref=routeSteps[i].ref||'';
+      if(nm.indexOf('highway')>=0||nm.indexOf('expressway')>=0||ref.indexOf('NH')>=0)return 80;
+      if(nm.indexOf('main')>=0||nm.indexOf('road')>=0||nm.indexOf('marg')>=0)return 48;
+      return 28;
     }
   }
   return 25;
 }
-
 function stepName(){
   if(!routeSteps.length)return '-';
   var d=0;
   for(var i=0;i<routeSteps.length;i++){
     d+=routeSteps[i].distance||0;
-    if(driveDist<d){
-      var n=routeSteps[i].name||routeSteps[i].ref||'';
-      return n.length>20?n.slice(0,18)+'....':n||'road';
-    }
+    if(driveDist<d){var n=routeSteps[i].name||routeSteps[i].ref||'';return n.length>22?n.slice(0,20)+'..':n||'-';}
   }
-  return routeSteps[routeSteps.length-1].name||'road';
+  return '-';
 }
 
 function updateDrive(dt){
@@ -585,7 +586,7 @@ function updateDrive(dt){
   var A=routeCoords[segIdx],B=routeCoords[segIdx+1];
   var sd=Math.max(hvs(A.lat,A.lng,B.lat,B.lng),.5);
   var ts2=stepSpeed();
-  pv.spd+=(ts2-pv.spd)*dt*2.2;pv.spd=Math.max(5,Math.min(ts2*1.05,pv.spd));
+  pv.spd+=(ts2-pv.spd)*dt*2.5;pv.spd=Math.max(5,Math.min(ts2*1.05,pv.spd));
   segProg+=pv.spd*1000/3600*dt/sd;
   driveDist+=pv.spd*1000/3600*dt;
   driveSpeeds.push(pv.spd);
@@ -595,40 +596,113 @@ function updateDrive(dt){
   pv.lng=A2.lng+(B2.lng-A2.lng)*segProg;
   pv.heading=Math.atan2(B2.lng-A2.lng,B2.lat-A2.lat);
   updateEngine(pv.spd,80);
-  // Nav
   var rem=0;for(var i=segIdx;i<routeCoords.length-1;i++)rem+=hvs(routeCoords[i].lat,routeCoords[i].lng,routeCoords[i+1].lat,routeCoords[i+1].lng);
   document.getElementById('nav-rem-b').textContent=rem>1000?(rem/1000).toFixed(1)+' km':Math.round(rem)+'m';
   var arrT=new Date(Date.now()+rem/Math.max(pv.spd,1)*3600000);
   document.getElementById('nav-eta-t').textContent=arrT.getHours()+':'+(('0'+arrT.getMinutes()).slice(-2));
   document.getElementById('d-road').textContent=stepName();
   updateNav();
+  checkLandmarks();
 }
 
 function updateNav(){
-  if(!routeSteps.length){document.getElementById('nav-arrow').textContent='\u2191';document.getElementById('nav-action').textContent='Continue';return;}
-  var d=0;
+  if(!routeSteps.length){setNav('\u2191','Continue','','');return;}
+  var cum=0;
   for(var i=0;i<routeSteps.length;i++){
-    d+=routeSteps[i].distance||0;
-    if(driveDist<d-25){
-      var m=routeSteps[i].maneuver||{};
-      var mod=m.modifier||'',tp=m.type||'';
-      var ar='\u2191',tx='Continue';
-      if(mod==='right'||mod.indexOf('right')>=0){ar='\u21B1';tx='Turn right';}
-      else if(mod==='left'||mod.indexOf('left')>=0){ar='\u21B0';tx='Turn left';}
+    var d2=cum-driveDist;
+    var m=routeSteps[i].maneuver||{};
+    if(m.type!=='depart'&&d2>-50){
+      var mod=m.modifier||'',type=m.type||'';
+      var ar='\u2191',tx='Continue',lane='';
+      if(mod.indexOf('right')>=0){ar='\u21B1';tx='Turn right';}
+      else if(mod.indexOf('left')>=0){ar='\u21B0';tx='Turn left';}
       else if(mod==='slight right'){ar='\u2197';tx='Bear right';}
       else if(mod==='slight left'){ar='\u2196';tx='Bear left';}
-      else if(tp==='roundabout'||tp==='rotary'){ar='\u21BB';tx='Roundabout';}
-      else if(tp==='arrive'){ar='\uD83C\uDFC1';tx='Arriving';}
-      document.getElementById('nav-arrow').textContent=ar;
-      document.getElementById('nav-action').textContent=tx;
-      document.getElementById('nav-street').textContent=routeSteps[i].name?'onto '+routeSteps[i].name:'';
+      else if(type==='roundabout'||type==='rotary'){ar='\u21BB';tx='Roundabout';}
+      else if(type==='arrive'){ar='\uD83C\uDFC1';tx='Arriving';}
+      var dist=Math.max(0,d2);
+      var ds=dist<20?'now':dist<1000?'in '+Math.round(dist/10)*10+'m':'in '+(dist/1000).toFixed(1)+'km';
+      // Lane guidance
+      if(dist>0&&dist<500){
+        if(mod.indexOf('right')>=0) lane='\u26A0\uFE0F Move to right lane '+ds;
+        else if(mod.indexOf('left')>=0) lane='\u2714\uFE0F Stay left \u2014 turn left '+ds;
+      }
+      var street=routeSteps[i].name?'onto '+routeSteps[i].name:'';
+      if(type==='arrive'){ds='';lane='You have arrived';}
+      setNav(ar, type==='arrive'?'Arriving at destination':tx+' '+ds, street, lane);
       return;
     }
+    cum+=routeSteps[i].distance||0;
   }
-  document.getElementById('nav-arrow').textContent='\uD83C\uDFC1';
-  document.getElementById('nav-action').textContent='Arriving';
+  setNav('\uD83C\uDFC1','Arriving','','');
 }
 
+function setNav(a,t,s,l){
+  document.getElementById('nav-arrow').textContent=a;
+  document.getElementById('nav-action').textContent=t;
+  document.getElementById('nav-street').textContent=s;
+  document.getElementById('nav-lane').textContent=l||'';
+}
+
+// ── CAR RENDERING ─────────────────────────────────────────────────────
+function renderCar(){
+  if(!vctx||!vc||!pv||pv.done)return;
+  try{
+    vctx.clearRect(0,0,vc.width,vc.height);
+    var sc=Math.max(0.5,Math.min(4,Math.pow(2,map.getZoom()-16)*0.5));
+    var pp=map.latLngToContainerPoint([pv.lat,pv.lng]);
+    // Left lane offset (India LHD: car stays left of center)
+    var fwdX=Math.sin(pv.heading),fwdY=-Math.cos(pv.heading);
+    var lx=fwdY,ly=-fwdX; // left perp
+    var off=4*sc;
+    drawCar(pp.x+lx*off,pp.y+ly*off,pv.heading,sc);
+  }catch(e){}
+}
+
+function drawCar(x,y,hdg,s){
+  vctx.save();vctx.translate(x,y);vctx.rotate(hdg);
+  // Glow
+  vctx.shadowBlur=14*s;vctx.shadowColor='rgba(30,120,255,.65)';
+  // Body
+  vctx.fillStyle='#1565C0';rr(-8*s,-16*s,16*s,32*s,3*s);vctx.fill();
+  vctx.shadowBlur=0;
+  // Roof
+  vctx.fillStyle='#1E88E5';rr(-6*s,-9*s,12*s,17*s,2*s);vctx.fill();
+  // Windshield
+  vctx.fillStyle='rgba(190,230,255,.72)';rr(-5*s,-14*s,10*s,7*s,1.5*s);vctx.fill();
+  // Rear window
+  vctx.fillStyle='rgba(190,230,255,.52)';rr(-4.5*s,9*s,9*s,5*s,1*s);vctx.fill();
+  // Headlights
+  vctx.fillStyle='rgba(255,252,180,.98)';
+  oval(-6*s,-15.5*s,2.8*s,1.5*s);oval(6*s,-15.5*s,2.8*s,1.5*s);
+  // Taillights
+  vctx.fillStyle='rgba(220,38,38,.98)';
+  oval(-6*s,15.5*s,2.8*s,1.5*s);oval(6*s,15.5*s,2.8*s,1.5*s);
+  // Wheels
+  vctx.fillStyle='#0d0d0d';
+  rr(-10*s,-10*s,4*s,5.5*s,1*s);vctx.fill();
+  rr(6*s,-10*s,4*s,5.5*s,1*s);vctx.fill();
+  rr(-10*s,5.5*s,4*s,5.5*s,1*s);vctx.fill();
+  rr(6*s,5.5*s,4*s,5.5*s,1*s);vctx.fill();
+  // YOU label (unrotated)
+  vctx.rotate(-hdg);
+  var lw=30*s,lh=13*s,lbx=-lw/2,lby=-20*s-lh;
+  vctx.fillStyle='rgba(0,8,28,.9)';rr(lbx,lby,lw,lh,4);vctx.fill();
+  vctx.fillStyle='#5cc8ff';
+  vctx.font='bold '+Math.round(8.5*s)+'px -apple-system,sans-serif';
+  vctx.textAlign='center';vctx.textBaseline='middle';
+  vctx.fillText('YOU',0,lby+lh/2);
+  vctx.restore();
+}
+function oval(x,y,rx,ry){vctx.beginPath();vctx.ellipse(x,y,rx,ry,0,0,Math.PI*2);vctx.fill();}
+function rr(x,y,w,h,r){
+  vctx.beginPath();vctx.moveTo(x+r,y);vctx.lineTo(x+w-r,y);vctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  vctx.lineTo(x+w,y+h-r);vctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  vctx.lineTo(x+r,y+h);vctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  vctx.lineTo(x,y+r);vctx.quadraticCurveTo(x,y,x+r,y);vctx.closePath();
+}
+
+// ── CAMERA ────────────────────────────────────────────────────────────
 function updateCam(ts){
   if(!pv||pv.done)return;
   if(ts-camLast<280)return;camLast=ts;
@@ -637,126 +711,104 @@ function updateCam(ts){
   var z=pv.spd>70?16.5:pv.spd>50?17:pv.spd>25?17.5:18;
   map.setView([pv.lat+dLat,pv.lng+dLon],z,{animate:false});
 }
-
 function updateHUD(){
   if(!pv)return;
   document.getElementById('d-spd').textContent=Math.round(pv.spd);
   document.getElementById('d-dist').textContent=driveDist>1000?(driveDist/1000).toFixed(2)+' km':Math.round(driveDist)+'m';
 }
-
 function hvs(la1,ln1,la2,ln2){
   var R=6371000,f=Math.PI/180,p1=la1*f,p2=la2*f,dp=(la2-la1)*f,dl=(ln2-ln1)*f;
   var a=Math.sin(dp/2)*Math.sin(dp/2)+Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)*Math.sin(dl/2);
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
 
+// ── CONTROLS ──────────────────────────────────────────────────────────
 function setSpd(s){pvSpeed=s;document.querySelectorAll('.sx').forEach(function(b){b.classList.remove('on');});var idx=[.5,1,2,4].indexOf(s);if(idx>=0)document.querySelectorAll('.sx')[idx].classList.add('on');}
 function togglePause(){pvPaused=!pvPaused;document.getElementById('btn-pause').textContent=pvPaused?'\u25BA Resume':'\u23F8\u23F8 Pause';}
-function doRestart(){document.getElementById('arrival').style.display='none';lastTs=null;startPreview();}
+function doRestart(){
+  document.getElementById('arrival').style.display='none';
+  if(vctx)vctx.clearRect(0,0,vc.width,vc.height);
+  landmarks.forEach(function(l){l.announced=false;});
+  lastTs=null;startPreview();
+}
 function doExit(){
   stopAudio();
   if(vctx)vctx.clearRect(0,0,vc.width,vc.height);
   document.getElementById('arrival').style.display='none';
-  document.getElementById('scr-prev').style.display='none';
-  document.getElementById('scr-plan').style.display='block';
+  document.getElementById('lm-toast').style.display='none';
+  showPlan();
+  if(ptA)placeMarker('A',ptA.lat,ptA.lon);
+  if(ptB)placeMarker('B',ptB.lat,ptB.lon);
+  if(rtLayer)map.fitBounds(rtLayer.getBounds(),{padding:[20,20]});
   map.invalidateSize();
 }
-function newRoute(){
-  doExit();
-  ptA=ptB=null;routeCoords=[];routeSteps=[];
-  if(mkA){map.removeLayer(mkA);mkA=null;}
-  if(mkB){map.removeLayer(mkB);mkB=null;}
-  if(rtLayer){map.removeLayer(rtLayer);rtLayer=null;}
-  ['set-a','set-b'].forEach(function(id){var b=document.getElementById(id);b.style.cssText='';b.textContent=id==='set-a'?'Set A':'Set B';});
-  document.getElementById('lbl-a').textContent='Tap map to set';
-  document.getElementById('lbl-b').textContent='Tap map to set';
-  document.getElementById('rinfo').style.display='none';
-  document.getElementById('btn-go').style.display='none';
-  document.getElementById('phint').style.display='block';
-  activatePick('A');
-}
-
 function onArrive(){
-  if(!pv||pv.done)return;pv.done=true;
-  stopAudio();
+  if(!pv||pv.done)return;pv.done=true;stopAudio();
   if(vctx)vctx.clearRect(0,0,vc.width,vc.height);
   var el=(Date.now()-driveT0)/1000;
   var avg=driveSpeeds.length?driveSpeeds.reduce(function(a,b){return a+b;},0)/driveSpeeds.length:0;
-  document.getElementById('arr-sub').textContent='Route in '+pendName+' complete';
+  document.getElementById('arr-sub').textContent=pendName+' route complete';
   document.getElementById('arr-d').textContent=(driveDist/1000).toFixed(2)+' km';
   document.getElementById('arr-t').textContent=Math.floor(el/60)+'m '+Math.floor(el%60)+'s';
-  document.getElementById('arr-s').textContent=Math.round(avg)+' km/h';
+  document.getElementById('arr-s').textContent=Math.round(avg);
   document.getElementById('arrival').style.display='flex';
 }
 
-// ── AUDIO ──────────────────────────────────────────────
+// ── AUDIO ──────────────────────────────────────────────────────────────
 function initAudio(){
   try{
     var AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
-    audioCtx=new AC();
-    masterGain=audioCtx.createGain();masterGain.gain.value=0.75;masterGain.connect(audioCtx.destination);
-    // Engine
-    engFilter=audioCtx.createBiquadFilter();engFilter.type='lowpass';engFilter.frequency.value=600;engFilter.Q.value=1.2;
+    audioCtx=new AC();masterGain=audioCtx.createGain();masterGain.gain.value=0.7;masterGain.connect(audioCtx.destination);
+    engFilter=audioCtx.createBiquadFilter();engFilter.type='lowpass';engFilter.frequency.value=600;
     engGain=audioCtx.createGain();engGain.gain.value=0;
     var dist=audioCtx.createWaveShaper();
     var cv=new Float32Array(256);for(var i=0;i<256;i++){var x=i*2/256-1;cv[i]=x<0?-Math.pow(-x,.65):Math.pow(x,.65);}dist.curve=cv;
     engOsc=audioCtx.createOscillator();engOsc.type='sawtooth';engOsc.frequency.value=85;
     engOsc2=audioCtx.createOscillator();engOsc2.type='triangle';engOsc2.frequency.value=170;
     var g2=audioCtx.createGain();g2.gain.value=0.3;
-    engOsc.connect(dist);dist.connect(engFilter);engOsc2.connect(g2);g2.connect(engFilter);
-    engFilter.connect(engGain);engGain.connect(masterGain);
+    engOsc.connect(dist);dist.connect(engFilter);engOsc2.connect(g2);g2.connect(engFilter);engFilter.connect(engGain);engGain.connect(masterGain);
     engOsc.start();engOsc2.start();
-    // Wind noise
-    var bufSz=4096;
-    var wp=audioCtx.createScriptProcessor(bufSz,0,1);
-    wp.onaudioprocess=function(e){var d=e.outputBuffer.getChannelData(0);for(var i=0;i<bufSz;i++)d[i]=(Math.random()*2-1)*0.4;};
-    var wbp=audioCtx.createBiquadFilter();wbp.type='bandpass';wbp.frequency.value=500;wbp.Q.value=0.4;
+    var bp=audioCtx.createBiquadFilter();bp.type='bandpass';bp.frequency.value=500;
     windGain=audioCtx.createGain();windGain.gain.value=0;
-    wp.connect(wbp);wbp.connect(windGain);windGain.connect(masterGain);
-    // City rumble
+    var wp=audioCtx.createScriptProcessor(4096,0,1);
+    wp.onaudioprocess=function(e){var d=e.outputBuffer.getChannelData(0);for(var i=0;i<4096;i++)d[i]=(Math.random()*2-1)*0.4;};
+    wp.connect(bp);bp.connect(windGain);windGain.connect(masterGain);
     var ro=audioCtx.createOscillator();ro.type='sawtooth';ro.frequency.value=58;
     var rlp=audioCtx.createBiquadFilter();rlp.type='lowpass';rlp.frequency.value=110;
-    var rg=audioCtx.createGain();rg.gain.value=0.045;
+    var rg=audioCtx.createGain();rg.gain.value=0.04;
     ro.connect(rlp);rlp.connect(rg);rg.connect(masterGain);ro.start();
-    // Random horn honks
-    function schedHorn(){
-      hornTmr=setTimeout(function(){
-        if(!audioCtx||audioCtx.state!=='running'){schedHorn();return;}
-        var ho=audioCtx.createOscillator();ho.type='square';ho.frequency.value=380+Math.random()*250;
-        var hg=audioCtx.createGain();hg.gain.value=0;
-        ho.connect(hg);hg.connect(masterGain);ho.start();
-        var t=audioCtx.currentTime;
-        hg.gain.setValueAtTime(0,t);hg.gain.linearRampToValueAtTime(0.07,t+0.03);
-        var dr=0.12+Math.random()*0.25;
-        hg.gain.setValueAtTime(0.07,t+dr);hg.gain.linearRampToValueAtTime(0,t+dr+0.04);
-        setTimeout(function(){ho.stop();ho.disconnect();hg.disconnect();},1500);
-        schedHorn();
-      },2500+Math.random()*5000);
-    }
-    schedHorn();
-  }catch(e){console.log('Audio:',e.message);}
+    (function horn(){setTimeout(function(){
+      if(!audioCtx||audioCtx.state!=='running'){horn();return;}
+      var o=audioCtx.createOscillator();o.type='square';o.frequency.value=380+Math.random()*200;
+      var g=audioCtx.createGain();g.gain.value=0;o.connect(g);g.connect(masterGain);o.start();
+      var t=audioCtx.currentTime;
+      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.05,t+0.03);
+      var dr=0.1+Math.random()*.3;g.gain.setValueAtTime(0.05,t+dr);g.gain.linearRampToValueAtTime(0,t+dr+0.04);
+      setTimeout(function(){try{o.stop();o.disconnect();g.disconnect();}catch(e){}},1500);
+      horn();
+    },3500+Math.random()*6000);})();
+  }catch(e){}
 }
-
 function updateEngine(spd,max){
   if(!audioCtx||!engOsc)return;
   if(audioCtx.state==='suspended')audioCtx.resume().catch(function(){});
   var t=audioCtx.currentTime,r=spd/max;
   engOsc.frequency.setTargetAtTime(75+r*3200,t,.1);
   engOsc2.frequency.setTargetAtTime(150+r*6400,t,.1);
-  engGain.gain.setTargetAtTime(0.02+r*0.065,t,.1);
+  engGain.gain.setTargetAtTime(0.02+r*.065,t,.1);
   engFilter.frequency.setTargetAtTime(350+r*1800,t,.15);
-  if(windGain)windGain.gain.setTargetAtTime(r*0.07,t,.2);
+  if(windGain)windGain.gain.setTargetAtTime(r*.06,t,.2);
 }
-
 function stopAudio(){
   if(engGain&&audioCtx)engGain.gain.setTargetAtTime(0,audioCtx.currentTime,.4);
   if(windGain&&audioCtx)windGain.gain.setTargetAtTime(0,audioCtx.currentTime,.4);
-  if(hornTmr)clearTimeout(hornTmr);
 }
 
 function loading(on,t,s){document.getElementById('lov').classList.toggle('on',on);if(t)document.getElementById('lov-t').textContent=t;if(s)document.getElementById('lov-s').textContent=s;}
 
-try{(function(){var m={name:'RoutePreview',short_name:'RoutePreview',start_url:'.',display:'standalone',background_color:'#1c1c1e',theme_color:'#0a84ff',icons:[{src:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',sizes:'192x192',type:'image/png'}]};document.getElementById('mf').href=URL.createObjectURL(new Blob([JSON.stringify(m)],{type:'application/manifest+json'}));})();}catch(e){}
+// Enter key
+document.getElementById('inp-from').addEventListener('keydown',function(e){if(e.key==='Enter'){hideAC();document.getElementById('inp-to').focus();}});
+document.getElementById('inp-to').addEventListener('keydown',function(e){if(e.key==='Enter'&&ptA&&ptB){hideAC();calcRoute();}});
 </script>
 </body>
 </html>
