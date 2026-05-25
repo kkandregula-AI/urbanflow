@@ -240,25 +240,21 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 <div id="lov"><div class="spin"></div><div id="lov-t">Loading</div><div id="lov-s">Please wait...</div></div>
 <script>
 'use strict';
-// lhd:true = Left-Hand Drive (drives on left side of road)
-// lhd:false = Right-Hand Drive (drives on right side of road)
 var CITIES=[
-  {n:"Hyderabad",c:"India",la:17.3850,lo:78.4867,ic:"&#127961;",lhd:true},
-  {n:"Mumbai",c:"India",la:19.0760,lo:72.8777,ic:"&#127754;",lhd:true},
-  {n:"Delhi",c:"India",la:28.6139,lo:77.2090,ic:"&#127963;",lhd:true},
-  {n:"Bangalore",c:"India",la:12.9716,lo:77.5946,ic:"&#128187;",lhd:true},
-  {n:"Chennai",c:"India",la:13.0827,lo:80.2707,ic:"&#127796;",lhd:true},
-  {n:"Pune",c:"India",la:18.5204,lo:73.8567,ic:"&#127979;",lhd:true},
-  {n:"Kolkata",c:"India",la:22.5726,lo:88.3639,ic:"&#127750;",lhd:true},
-  {n:"Ahmedabad",c:"India",la:23.0225,lo:72.5714,ic:"&#127963;",lhd:true},
-  {n:"Visakhapatnam",c:"India",la:17.6868,lo:83.2185,ic:"&#9875;",lhd:true},
-  {n:"Jaipur",c:"India",la:26.9124,lo:75.7873,ic:"&#127984;",lhd:true},
+  {n:"Hyderabad",c:"India",la:17.3850,lo:78.4867,ic:"&#127961;"},
+  {n:"Mumbai",c:"India",la:19.0760,lo:72.8777,ic:"&#127754;"},
+  {n:"Delhi",c:"India",la:28.6139,lo:77.2090,ic:"&#127963;"},
+  {n:"Bangalore",c:"India",la:12.9716,lo:77.5946,ic:"&#128187;"},
+  {n:"Chennai",c:"India",la:13.0827,lo:80.2707,ic:"&#127796;"},
+  {n:"Pune",c:"India",la:18.5204,lo:73.8567,ic:"&#127979;"},
+  {n:"Kolkata",c:"India",la:22.5726,lo:88.3639,ic:"&#127750;"},
+  {n:"Ahmedabad",c:"India",la:23.0225,lo:72.5714,ic:"&#127963;"},
+  {n:"Visakhapatnam",c:"India",la:17.6868,lo:83.2185,ic:"&#9875;"},
+  {n:"Jaipur",c:"India",la:26.9124,lo:75.7873,ic:"&#127984;"},
   {n:"Tokyo",c:"Japan",la:35.6762,lo:139.6503,ic:"&#128508;",lhd:true},
   {n:"Singapore",c:"Singapore",la:1.3521,lo:103.8198,ic:"&#129409;",lhd:true},
   {n:"Dubai",c:"UAE",la:25.2048,lo:55.2708,ic:"&#127959;",lhd:false},
   {n:"London",c:"UK",la:51.5074,lo:-.1278,ic:"&#127981;",lhd:true},
-  {n:"New York",c:"USA",la:40.7128,lo:-74.006,ic:"&#127895;",lhd:false},
-  {n:"Paris",c:"France",la:48.8566,lo:2.3522,ic:"&#128508;",lhd:false},
 ];
 // State
 var map,rtLayer,mkA,mkB;
@@ -271,8 +267,7 @@ var audioCtx,masterGain,engGain,engOsc,engOsc2,engFilter,windGain;
 var vc,vctx,lmTimer;
 var acTarget=null,acDebounce=null;
 var acBias={lat:17.39,lon:78.49,d:0.5,city:'',country:''};
-var mapStyle='road',tileLayer=null,labelLayer=null;
-window.isLHD=true; // default LHD
+var mapStyle='road',tileLayer=null,labelLayer=null; window.isLHD=true;
 
 // Build city grid
 (function(){
@@ -280,8 +275,7 @@ window.isLHD=true; // default LHD
   CITIES.forEach(function(c){
     var card=document.createElement('div');
     card.className='city-card';
-    var side=c.lhd!==false?'<span style="font-size:9px;background:rgba(48,209,88,.2);color:#30d158;padding:2px 5px;border-radius:4px;margin-left:4px">LHD</span>':'<span style="font-size:9px;background:rgba(255,159,10,.2);color:#ff9f0a;padding:2px 5px;border-radius:4px;margin-left:4px">RHD</span>';
-    card.innerHTML='<div class="city-emoji">'+c.ic+'</div><div class="city-card-name">'+c.n+side+'</div><div class="city-card-country">'+c.c+'</div>';
+    card.innerHTML='<div class="city-emoji">'+c.ic+'</div><div class="city-card-name">'+c.n+'</div><div class="city-card-country">'+c.c+'</div>';
     card.addEventListener('click',function(){selectCity(c);});
     card.addEventListener('touchend',function(e){e.preventDefault();selectCity(c);});
     grid.appendChild(card);
@@ -290,8 +284,7 @@ window.isLHD=true; // default LHD
 
 function selectCity(city){
   pendName=city.n;
-  acBias={lat:city.la,lon:city.lo,d:0.4,city:city.n,country:city.c};
-  window.isLHD=(city.lhd!==false); // default to LHD if not specified
+  acBias={lat:city.la,lon:city.lo,d:0.4,city:city.n,country:city.c}; window.isLHD=(city.lhd!==false);
   document.getElementById('rp-city-name').textContent=city.n+' \u2014 Plan Your Route';
   document.getElementById('inp-from').placeholder='From: search in '+city.n+'...';
   document.getElementById('inp-to').placeholder='To: search in '+city.n+'...';
@@ -391,32 +384,24 @@ function positionAC(){
 
 async function fetchAC(q,inputId){
   try{
-    // Always search with city context for local results
-    var city=acBias.city||'';
-    var sq=(city&&q.toLowerCase().indexOf(city.toLowerCase())<0)?(q+', '+city):q;
-    var r=0.45;
+    var hdr={'Accept':'application/json','User-Agent':'RoutePreview/1.0'};
+    var city=acBias.city||''; var r=0.5;
     var vb='&viewbox='+(acBias.lon-r)+','+(acBias.lat+r)+','+(acBias.lon+r)+','+(acBias.lat-r)+'&bounded=0';
-    var url='https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(sq)
-      +'&format=json&limit=10&addressdetails=1&namedetails=1'+vb+'&dedupe=1';
-    var res=await fetch(url,{headers:{'Accept':'application/json','User-Agent':'RoutePreview/1.0'}});
-    var data=await res.json();
-    // Filter to within ~60km of city center, sort by distance
-    var local=data.filter(function(it){
-      var d=dist(parseFloat(it.lat),parseFloat(it.lon),acBias.lat,acBias.lon);
-      return d<0.6;
-    });
-    var results=local.length>0?local:data;
-    results.sort(function(a,b){
-      return dist(parseFloat(a.lat),parseFloat(a.lon),acBias.lat,acBias.lon)
-            -dist(parseFloat(b.lat),parseFloat(b.lon),acBias.lat,acBias.lon);
-    });
-    showACResults(results,inputId);
-  }catch(e){console.warn('AC:',e);}
-}
-
-function dist(la1,lo1,la2,lo2){return Math.sqrt((la1-la2)*(la1-la2)+(lo1-lo2)*(lo1-lo2));}
-
-function showACResults(results,inputId){
+    var sq=(city&&q.toLowerCase().indexOf(city.toLowerCase())<0)?(q+', '+city):q;
+    var u='https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(sq)+'&format=json&limit=10&addressdetails=1&namedetails=1'+vb+'&dedupe=1';
+    var data=await (await fetch(u,{headers:hdr})).json();
+    var loc=data.filter(function(x){return dist(parseFloat(x.lat),parseFloat(x.lon),acBias.lat,acBias.lon)<1.0;});
+    if(loc.length<3){
+      var u2='https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(q)+'&format=json&limit=8&addressdetails=1&namedetails=1'+vb+'&dedupe=1';
+      var d2=await (await fetch(u2,{headers:hdr})).json();
+      d2.filter(function(x){return dist(parseFloat(x.lat),parseFloat(x.lon),acBias.lat,acBias.lon)<1.2;})
+        .forEach(function(x){if(!loc.find(function(y){return y.place_id===x.place_id;}))loc.push(x);});
+    }
+    var results=loc.length>0?loc:data;
+    results.sort(function(a,b){return dist(parseFloat(a.lat),parseFloat(a.lon),acBias.lat,acBias.lon)-dist(parseFloat(b.lat),parseFloat(b.lon),acBias.lat,acBias.lon);});
+    showACResults(results.slice(0,8),inputId);
+  }catch(e){}
+}function showACResults(results,inputId){
   var box=document.getElementById('ac-box');
   positionAC();
   var html='';
@@ -604,15 +589,6 @@ function checkLandmarks(){
 }
 
 // Preview
-async function goPreview(){
-  var fv=document.getElementById('inp-from').value.trim();
-  var tv=document.getElementById('inp-to').value.trim();
-  if(fv&&(!ptA||ptA.name!==fv))await geocodeInput('inp-from',null);
-  if(tv&&(!ptB||ptB.name!==tv))await geocodeInput('inp-to',null);
-  if(!ptA||!ptB){alert('Could not find the locations. Please check the names.');return;}
-  if(!routeCoords||routeCoords.length<2){await calcRoute();if(!routeCoords||routeCoords.length<2)return;}
-  startPreview();
-}
 function startPreview(){
   if(!routeCoords||routeCoords.length<2)return;
   pvPaused=false;segIdx=0;segProg=0;camLast=0;
@@ -733,10 +709,7 @@ function renderCar(){
     var sc=Math.max(0.5,Math.min(4,Math.pow(2,map.getZoom()-16)*0.5));
     var pp=map.latLngToContainerPoint([pv.lat,pv.lng]);
     var fwdX=Math.sin(pv.heading),fwdY=-Math.cos(pv.heading);
-    // LHD (India/Japan/Singapore/UK): car on LEFT perp
-    // RHD (Dubai/USA/Europe): car on RIGHT perp
-    var lhd=(window.isLHD!==false);
-    var lx=lhd?fwdY:-fwdY, ly=lhd?-fwdX:fwdX;
+    var lhd2=(window.isLHD!==false); var lx=lhd2?fwdY:-fwdY,ly=lhd2?-fwdX:fwdX;
     drawCar(pp.x+lx*4*sc,pp.y+ly*4*sc,pv.heading,sc);
   }catch(e){}
 }
@@ -944,44 +917,52 @@ async function geocodeInput(inputId,cb){
   var q=inp.value.trim();if(!q)return;
   if(inputId==='inp-from'&&ptA&&ptA.name===q){if(cb)cb();return;}
   if(inputId==='inp-to'&&ptB&&ptB.name===q){if(cb)cb();return;}
-  try{
-    var city=acBias.city||'';
-    var sq=(city&&q.toLowerCase().indexOf(city.toLowerCase())<0)?(q+', '+city):q;
-    var r2=0.5;
-    var vb2='&viewbox='+(acBias.lon-r2)+','+(acBias.lat+r2)+','+(acBias.lon+r2)+','+(acBias.lat-r2)+'&bounded=0';
-    var url2='https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(sq)
-      +'&format=json&limit=5&addressdetails=1&namedetails=1'+vb2+'&dedupe=1';
-    var res2=await fetch(url2,{headers:{'Accept':'application/json','User-Agent':'RoutePreview/1.0'}});
-    var data2=await res2.json();
-    if(!data2||!data2.length){
-      inp.style.borderColor='#ff453a';
-      setTimeout(function(){inp.style.borderColor='';},2000);
-      return;
-    }
-    data2.sort(function(a,b){
-      return dist(parseFloat(a.lat),parseFloat(a.lon),acBias.lat,acBias.lon)
-            -dist(parseFloat(b.lat),parseFloat(b.lon),acBias.lat,acBias.lon);
-    });
-    var best=data2[0];
-    var nd2=best.namedetails||{};
-    var name2=nd2.name||nd2['name:en']||best.display_name.split(',')[0].trim();
-    var lat2=parseFloat(best.lat),lon2=parseFloat(best.lon);
-    inp.value=name2;
-    if(inputId==='inp-from'){ptA={lat:lat2,lon:lon2,name:name2};placeMarker('A',lat2,lon2);}
-    else{ptB={lat:lat2,lon:lon2,name:name2};placeMarker('B',lat2,lon2);}
-    inp.style.borderColor='#30d158';
-    setTimeout(function(){inp.style.borderColor='';},1500);
-    if(cb)cb();
-  }catch(e){console.warn('geocode:',e);}
+  var hdr={'Accept':'application/json','User-Agent':'RoutePreview/1.0'};
+  var city=acBias.city||''; var r=0.5;
+  var vb='&viewbox='+(acBias.lon-r)+','+(acBias.lat+r)+','+(acBias.lon+r)+','+(acBias.lat-r)+'&bounded=0';
+  var found=null;
+  var queries=[(city&&q.toLowerCase().indexOf(city.toLowerCase())<0)?(q+', '+city):q, q];
+  for(var ti=0;ti<queries.length&&!found;ti++){
+    try{
+      var u='https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(queries[ti])
+        +'&format=json&limit=10&addressdetails=1&namedetails=1'+vb+'&dedupe=1';
+      var data=await (await fetch(u,{headers:hdr})).json();
+      if(data&&data.length){
+        var loc=data.filter(function(x){return dist(parseFloat(x.lat),parseFloat(x.lon),acBias.lat,acBias.lon)<1.5;});
+        if(loc.length>0){loc.sort(function(a,b){return dist(parseFloat(a.lat),parseFloat(a.lon),acBias.lat,acBias.lon)-dist(parseFloat(b.lat),parseFloat(b.lon),acBias.lat,acBias.lon);});found=loc[0];}
+        else if(ti===queries.length-1&&data.length>0)found=data[0];
+      }
+    }catch(e){}
+  }
+  if(!found){
+    inp.style.borderColor='#ff453a';inp.style.background='rgba(255,69,58,.08)';
+    var op=inp.placeholder;inp.placeholder='Not found - try different spelling';
+    setTimeout(function(){inp.style.borderColor='';inp.style.background='';inp.placeholder=op;},3000);
+    return;
+  }
+  var nd=found.namedetails||{};
+  var nm=nd.name||nd['name:en']||found.display_name.split(',')[0].trim();
+  var la=parseFloat(found.lat),lo=parseFloat(found.lon);
+  inp.value=nm;
+  if(inputId==='inp-from'){ptA={lat:la,lon:lo,name:nm};placeMarker('A',la,lo);}
+  else{ptB={lat:la,lon:lo,name:nm};placeMarker('B',la,lo);}
+  inp.style.borderColor='#30d158';inp.style.background='rgba(48,209,88,.06)';
+  setTimeout(function(){inp.style.borderColor='';inp.style.background='';},1800);
+  if(cb)cb();
+}
+async function goPreview(){
+  var fv=document.getElementById('inp-from').value.trim();
+  var tv=document.getElementById('inp-to').value.trim();
+  if(fv&&(!ptA||ptA.name!==fv))await geocodeInput('inp-from',null);
+  if(tv&&(!ptB||ptB.name!==tv))await geocodeInput('inp-to',null);
+  if(!ptA||!ptB){alert('Could not find locations. Try different spelling.');return;}
+  if(!routeCoords||routeCoords.length<2){await calcRoute();if(!routeCoords||routeCoords.length<2)return;}
+  startPreview();
 }
 function loading(on,t,s){document.getElementById('lov').classList.toggle('on',on);if(t)document.getElementById('lov-t').textContent=t;if(s)document.getElementById('lov-s').textContent=s;}
 
-document.getElementById('inp-from').addEventListener('keydown',function(e){
-  if(e.key==='Enter'){hideAC();geocodeInput('inp-from',function(){document.getElementById('inp-to').focus()});}});
-document.getElementById('inp-to').addEventListener('keydown',function(e){
-  if(e.key==='Enter'){hideAC();geocodeInput('inp-to',function(){if(ptA&&ptB)calcRoute();});}});
-document.getElementById('inp-from').addEventListener('blur',function(){
-  var v=this.value.trim();if(v&&(!ptA||ptA.name!==v))geocodeInput('inp-from',null);});
-document.getElementById('inp-to').addEventListener('blur',function(){
-  var v=this.value.trim();if(v&&(!ptB||ptB.name!==v))geocodeInput('inp-to',function(){if(ptA&&ptB)calcRoute();});});
+document.getElementById('inp-from').addEventListener('keydown',function(e){if(e.key==='Enter'){hideAC();geocodeInput('inp-from',function(){document.getElementById('inp-to').focus();});}});
+document.getElementById('inp-to').addEventListener('keydown',function(e){if(e.key==='Enter'){hideAC();geocodeInput('inp-to',function(){if(ptA&&ptB)calcRoute();});}});
+document.getElementById('inp-from').addEventListener('blur',function(){var v=this.value.trim();if(v&&(!ptA||ptA.name!==v))geocodeInput('inp-from',null);});
+document.getElementById('inp-to').addEventListener('blur',function(){var v=this.value.trim();if(v&&(!ptB||ptB.name!==v))geocodeInput('inp-to',function(){if(ptA&&ptB)calcRoute();});});
 </script></body></html>
