@@ -19,7 +19,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 .app-sub{font-size:14px;color:rgba(255,255,255,.38);margin-top:5px}
 .city-grid{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:10px 20px 30px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .city-grid::-webkit-scrollbar{display:none}
-.city-card{background:rgba(255,255,255,.06);border-radius:16px;padding:16px;cursor:pointer;border:1.5px solid rgba(255,255,255,.06);touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.city-card{background:rgba(255,255,255,.06);border-radius:16px;padding:16px;cursor:pointer;border:1.5px solid rgba(255,255,255,.06);touch-action:manipulation;-webkit-user-select:none;user-select:none}
 .city-card:active{background:rgba(255,255,255,.12)}
 .city-emoji{font-size:26px;margin-bottom:8px}
 .city-card-name{font-size:16px;font-weight:600}
@@ -27,8 +27,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 /* PLAN */
 #scr-plan{position:fixed;inset:0;z-index:2;display:none}
 #back-btn{position:fixed;top:12px;left:12px;z-index:30;width:36px;height:36px;border-radius:50%;background:rgba(28,28,30,.92);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(12px)}
-#route-panel{position:fixed;bottom:0;left:0;right:0;z-index:20;background:rgba(18,18,22,.97);border-radius:20px 20px 0 0;padding:12px 0 28px;box-shadow:0 -4px 40px rgba(0,0,0,.5);backdrop-filter:blur(20px);transition:transform .3s ease}
-#route-panel.mini{transform:translateY(calc(100% - 44px))}
+#route-panel{position:fixed;bottom:0;left:0;right:0;z-index:20;background:rgba(18,18,22,.97);border-radius:20px 20px 0 0;padding:12px 0 28px;box-shadow:0 -4px 40px rgba(0,0,0,.5);backdrop-filter:blur(20px)}
 .rp-handle{width:36px;height:4px;background:rgba(255,255,255,.18);border-radius:2px;margin:0 auto 12px}
 .rp-title{font-size:11px;font-weight:600;color:rgba(255,255,255,.32);letter-spacing:1px;text-transform:uppercase;padding:0 20px;margin-bottom:10px}
 .rp-row{display:flex;align-items:center;gap:10px;padding:0 16px;margin-bottom:6px}
@@ -63,7 +62,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 .rstat+.rstat{border-left:1px solid rgba(255,255,255,.08)}
 .rv{font-size:20px;font-weight:700}
 .rl{font-size:10px;color:rgba(255,255,255,.38);margin-top:2px;text-transform:uppercase;letter-spacing:.3px}
-#btn-go{margin:0;width:100%;padding:15px;border-radius:14px;border:none;background:#0a84ff;color:#fff;font-size:17px;font-weight:600;cursor:pointer;touch-action:manipulation}
+#btn-go{display:none;margin:10px 20px 0;width:calc(100% - 40px);padding:15px;border-radius:14px;border:none;background:#0a84ff;color:#fff;font-size:17px;font-weight:600;cursor:pointer;touch-action:manipulation}
 #btn-go:active{opacity:.8}
 /* PREVIEW */
 #scr-prev{position:fixed;inset:0;z-index:2;display:none;pointer-events:none}
@@ -136,11 +135,6 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
     <div class="app-eye">Route Experience</div>
     <div class="app-title">RoutePreview</div>
     <div class="app-sub">Feel the journey before you travel</div>
-    <div style="margin-top:10px;display:flex;gap:8px">
-      <input id="gkey-inp" type="password" placeholder="Paste Google Maps API key for better search" style="flex:1;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 11px;color:#fff;font-size:12px;outline:none">
-      <button onclick="saveGKey()" style="padding:8px 12px;background:#0a84ff;border:none;border-radius:10px;color:#fff;font-size:12px;font-weight:600;cursor:pointer">Save</button>
-    </div>
-    <div id="gkey-st" style="font-size:11px;margin-top:4px;color:rgba(255,255,255,.35)">No API key - using OpenStreetMap search</div>
   </div>
   <div class="city-grid" id="city-grid"></div>
 </div>
@@ -149,8 +143,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 <div id="scr-plan">
   <button id="back-btn" onclick="showHome()">&#8592;</button>
   <div id="route-panel">
-    <div class="rp-handle" onclick="togglePlanPanel()" style="cursor:pointer;padding:8px 0;margin:-8px auto 4px"></div>
-    <div id="ptoggle" style="text-align:center;font-size:10px;color:rgba(255,255,255,.22);margin-top:-4px;margin-bottom:4px">tap handle to hide panel</div>
+    <div class="rp-handle"></div>
     <div class="rp-title" id="rp-city-name">Plan Your Route</div>
     <div class="rp-row">
       <div class="rp-icon from">A</div>
@@ -180,10 +173,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
         <div class="rstat"><div class="rv" id="r-turns">-</div><div class="rl">Turns</div></div>
       </div>
     </div>
-    <div style="display:flex;gap:8px;margin:10px 20px 0">
-      <button id="btn-overview" onclick="viewRouteOverview()" style="flex:0 0 auto;padding:15px 14px;border-radius:14px;border:none;background:rgba(255,255,255,.1);color:#fff;font-size:15px;cursor:pointer;touch-action:manipulation" title="View full route">&#128506;</button>
-      <button id="btn-go" onclick="goPreview()" style="flex:1;padding:15px;border-radius:14px;border:none;background:#0a84ff;color:#fff;font-size:17px;font-weight:600;cursor:pointer;touch-action:manipulation;display:none">&#9654; Preview This Route</button>
-    </div>
+    <button id="btn-go" onclick="goPreview()">&#9654; Preview This Route</button>
   </div>
 </div>
 
@@ -285,13 +275,12 @@ var mapStyle='road',tileLayer=null,labelLayer=null; window.isLHD=true;
   CITIES.forEach(function(c){
     var card=document.createElement('div');
     card.className='city-card';
-    var badge=(c.lhd!==false)?'<span style="font-size:9px;background:rgba(48,209,88,.2);color:#30d158;padding:1px 5px;border-radius:4px;margin-left:4px">LHD</span>':'<span style="font-size:9px;background:rgba(255,159,10,.2);color:#ff9f0a;padding:1px 5px;border-radius:4px;margin-left:4px">RHD</span>';
-    card.innerHTML='<div class="city-emoji">'+c.ic+'</div><div class="city-card-name">'+c.n+badge+'</div><div class="city-card-country">'+c.c+'</div>';
-    // Only fire on tap, not on scroll
-    var touchStartY=0,touchStartX=0,touchMoved=false;
-    card.addEventListener('touchstart',function(e){touchStartY=e.touches[0].clientY;touchStartX=e.touches[0].clientX;touchMoved=false;},{passive:true});
-    card.addEventListener('touchmove',function(e){if(Math.abs(e.touches[0].clientY-touchStartY)>8||Math.abs(e.touches[0].clientX-touchStartX)>8)touchMoved=true;},{passive:true});
-    card.addEventListener('touchend',function(e){if(!touchMoved)selectCity(c);});
+    var bdg=(c.lhd!==false)?'<span style="font-size:9px;background:rgba(48,209,88,.2);color:#30d158;padding:1px 5px;border-radius:4px;margin-left:4px">LHD</span>':'<span style="font-size:9px;background:rgba(255,159,10,.2);color:#ff9f0a;padding:1px 5px;border-radius:4px;margin-left:4px">RHD</span>';
+    card.innerHTML='<div class="city-emoji">'+c.ic+'</div><div class="city-card-name">'+c.n+bdg+'</div><div class="city-card-country">'+c.c+'</div>';
+    var tSY=0,tSX=0,tMv=false;
+    card.addEventListener('touchstart',function(e){tSY=e.touches[0].clientY;tSX=e.touches[0].clientX;tMv=false;},{passive:true});
+    card.addEventListener('touchmove',function(e){if(Math.abs(e.touches[0].clientY-tSY)>8||Math.abs(e.touches[0].clientX-tSX)>8)tMv=true;},{passive:true});
+    card.addEventListener('touchend',function(e){if(!tMv)selectCity(c);});
     card.addEventListener('click',function(){selectCity(c);});
     grid.appendChild(card);
   });
@@ -331,7 +320,7 @@ function showPlan(){
 // Map init
 function initMap(lat,lon){
   if(map){map.setView([lat,lon],14);return;}
-  map=L.map('map',{center:[lat,lon],zoom:14,zoomControl:true,preferCanvas:true,zoomControlOptions:{position:'topright'}});
+  map=L.map('map',{center:[lat,lon],zoom:14,zoomControl:false,preferCanvas:true});
   L.control.attribution({position:'bottomleft',prefix:false}).addTo(map);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
     attribution:'\u00a9 OpenStreetMap',subdomains:['a','b','c'],maxZoom:20
@@ -398,39 +387,32 @@ function positionAC(){
 }
 
 async function fetchAC(q,inputId){
-  if(GKEY){
-    try{
-      var preds=await googleAC(q);
-      if(preds.length>0){
-        var gr=preds.slice(0,8).map(function(p){
-          return {isGoogle:true,place_id:p.place_id,
-            name:(p.structured_formatting?p.structured_formatting.main_text:p.description.split(',')[0]),
-            addr:(p.structured_formatting?p.structured_formatting.secondary_text:'')};
-        });
-        showACResults(gr,inputId);return;
-      }
-    }catch(e){console.warn('Google AC:',e);}
-  }
-  // OSM fallback
   try{
-    var hdr={'Accept':'application/json','User-Agent':'RoutePreview/1.0'};
+    // Always search with city context for local results
     var city=acBias.city||'';
-    var r2=0.8;
-    var vb='&viewbox='+(acBias.lon-r2)+','+(acBias.lat+r2)+','+(acBias.lon+r2)+','+(acBias.lat-r2)+'&bounded=0';
     var sq=(city&&q.toLowerCase().indexOf(city.toLowerCase())<0)?(q+', '+city):q;
-    var seen={},results=[];
-    for(var qi=0;qi<2;qi++){
-      try{
-        var u='https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(qi===0?sq:q)
-          +'&format=json&limit=10&addressdetails=1&namedetails=1'+vb+'&dedupe=1';
-        var d=await (await fetch(u,{headers:hdr})).json();
-        (d||[]).forEach(function(x){if(!seen[x.place_id]){seen[x.place_id]=true;results.push(x);}});
-      }catch(e){}
-    }
-    results.sort(function(a,b){return dist(parseFloat(a.lat),parseFloat(a.lon),acBias.lat,acBias.lon)-dist(parseFloat(b.lat),parseFloat(b.lon),acBias.lat,acBias.lon);});
-    showACResults(results.slice(0,8),inputId);
-  }catch(e){}
+    var r=0.45;
+    var vb='&viewbox='+(acBias.lon-r)+','+(acBias.lat+r)+','+(acBias.lon+r)+','+(acBias.lat-r)+'&bounded=0';
+    var url='https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(sq)
+      +'&format=json&limit=7&addressdetails=1&namedetails=1'+vb+'&dedupe=1';
+    var res=await fetch(url,{headers:{'Accept':'application/json','User-Agent':'RoutePreview/1.0'}});
+    var data=await res.json();
+    // Filter to within ~60km of city center, sort by distance
+    var local=data.filter(function(it){
+      var d=dist(parseFloat(it.lat),parseFloat(it.lon),acBias.lat,acBias.lon);
+      return d<0.6;
+    });
+    var results=local.length>0?local:data;
+    results.sort(function(a,b){
+      return dist(parseFloat(a.lat),parseFloat(a.lon),acBias.lat,acBias.lon)
+            -dist(parseFloat(b.lat),parseFloat(b.lon),acBias.lat,acBias.lon);
+    });
+    showACResults(results,inputId);
+  }catch(e){console.warn('AC:',e);}
 }
+
+function dist(la1,lo1,la2,lo2){return Math.sqrt((la1-la2)*(la1-la2)+(lo1-lo2)*(lo1-lo2));}
+
 function showACResults(results,inputId){
   var box=document.getElementById('ac-box');
   positionAC();
@@ -439,33 +421,26 @@ function showACResults(results,inputId){
     html+='<div class="ac-loc-row" onclick="useMyLocation()"><span class="ac-pin">&#128205;</span><div><div class="ac-name">Use My Current Location</div><div class="ac-addr">GPS position</div></div></div>';
   }
   if(!results||!results.length){
-    html+='<div class="ac-item"><span class="ac-pin">&#128270;</span><div><div class="ac-name">No results</div></div></div>';
+    html+='<div class="ac-item"><span class="ac-pin">&#128270;</span><div><div class="ac-name">No results in '+acBias.city+'</div><div class="ac-addr">Try a different search</div></div></div>';
   } else {
-    results.forEach(function(r){
-      if(r.isGoogle){
-        var ns=r.name.replace(/'/g,'&#39;');
-        html+='<div class="ac-item" onclick="pickGoogle(\''+(inputId)+'\',\''+ns+'\',\''+r.place_id+'\')">'
-          +'<span class="ac-pin">&#128205;</span>'
-          +'<div><div class="ac-name">'+esc(r.name)+'<span style="font-size:9px;color:#4CAF50;margin-left:5px;font-weight:700">G</span></div>'
-          +(r.addr?'<div class="ac-addr">'+esc(r.addr)+'</div>':'')+'</div></div>';
-      } else {
-        var nd=r.namedetails||{},ad=r.address||{};
-        var name=nd.name||nd['name:en']||r.display_name.split(',')[0].trim();
-        var addr=(ad.suburb||ad.neighbourhood||ad.city||'').trim();
-        var lat=parseFloat(r.lat),lon=parseFloat(r.lon);
-        var dkm=Math.round(dist(lat,lon,acBias.lat,acBias.lon)*111);
-        var dtag=dkm>1?' <span style="color:rgba(255,255,255,.3);font-size:10px">'+dkm+'km</span>':'';
-        var ns=name.replace(/'/g,'&#39;');
-        html+='<div class="ac-item" onclick="pickAC(\''+inputId+'\',\''+ns+'\','+lat+','+lon+')">'
-          +'<span class="ac-pin">&#128205;</span>'
-          +'<div><div class="ac-name">'+esc(name)+dtag+'</div>'
-          +(addr?'<div class="ac-addr">'+esc(addr)+'</div>':'')+'</div></div>';
-      }
+    results.slice(0,6).forEach(function(r){
+      var nd=r.namedetails||{},ad=r.address||{};
+      var name=nd.name||nd['name:en']||r.display_name.split(',')[0].trim();
+      var addr=(ad.suburb||ad.neighbourhood||ad.city_district||ad.city||'').trim();
+      var lat=parseFloat(r.lat),lon=parseFloat(r.lon);
+      var dkm=Math.round(dist(lat,lon,acBias.lat,acBias.lon)*111);
+      var dtag=dkm>1?' <span style="color:rgba(255,255,255,.3);font-size:10px">'+dkm+'km</span>':'';
+      var ns=name.replace(/'/g,'&#39;');
+      html+='<div class="ac-item" onclick="pickAC(\''+inputId+'\',\''+ns+'\','+lat+','+lon+')">'
+        +'<span class="ac-pin">&#128205;</span>'
+        +'<div><div class="ac-name">'+esc(name)+dtag+'</div>'
+        +(addr?'<div class="ac-addr">'+esc(addr)+'</div>':'')+'</div></div>';
     });
   }
   box.innerHTML=html;
   box.style.display='block';
 }
+
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 function pickAC(inputId,name,lat,lon){
@@ -534,14 +509,22 @@ function placeMarker(t,lat,lon){
 // Snap to road access point
 async function snapToRoad(lat,lon){
   try{
-    var url='https://router.project-osrm.org/nearest/v1/driving/'+lon.toFixed(6)+','+lat.toFixed(6)+'?number=3';
+    var url='https://router.project-osrm.org/nearest/v1/driving/'+lon.toFixed(6)+','+lat.toFixed(6)+'?number=5';
     var r=await fetch(url);
     var d=await r.json();
     if(d.code==='Ok'&&d.waypoints&&d.waypoints.length>0){
-      var wp=d.waypoints[0];
-      return{lat:wp.location[1],lon:wp.location[0]};
+      var restricted=['airside','apron','taxiway','runway','perimeter','cargo','ramp','stand','service road','loop road'];
+      var best=null;
+      for(var i=0;i<d.waypoints.length;i++){
+        var wp=d.waypoints[i];
+        var nm=(wp.name||'').toLowerCase();
+        var isR=restricted.some(function(r2){return nm.indexOf(r2)>=0;});
+        if(!isR){best=wp;break;}
+      }
+      if(!best)best=d.waypoints[0];
+      return{lat:best.location[1],lon:best.location[0]};
     }
-  }catch(e){}
+  }catch(e){console.warn('snap:',e.message);}
   return{lat:lat,lon:lon};
 }
 
@@ -575,9 +558,6 @@ async function calcRoute(){
       document.getElementById('r-turns').textContent=routeSteps.filter(function(s){var t=s.maneuver&&s.maneuver.type;return t&&t!=='depart'&&t!=='arrive';}).length;
       document.getElementById('rinfo').style.display='block';
       document.getElementById('btn-go').style.display='block';
-      document.getElementById('btn-overview').style.display='block';
-      // Auto-fit to show full route
-      setTimeout(function(){viewRouteOverview();},300);
       loading(false);
       fetchLandmarks();
       return;
@@ -599,13 +579,9 @@ async function fetchLandmarks(){
       var nm=(d.namedetails&&d.namedetails.name)||(d.address&&(d.address.road||d.address.suburb||d.address.neighbourhood));
       if(nm&&nm.length>2){
         var dd=0;for(var j=0;j<i;j++)dd+=hvs(routeCoords[j].lat,routeCoords[j].lng,routeCoords[j+1].lat,routeCoords[j+1].lng);
-        // Only add if name not already in landmarks (deduplicate)
-      var isDupe=landmarks.some(function(l){return l.name===nm;});
-      if(!isDupe){
         var lmIco=L.divIcon({className:'',html:'<div style="background:rgba(255,159,10,.9);color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.3);border:1.5px solid rgba(255,255,255,.3)">\uD83C\uDFDB '+nm+'</div>',iconSize:[1,1],iconAnchor:[0,12]});
         var lmMk=L.marker([c.lat,c.lng],{icon:lmIco,interactive:false}).addTo(map);
         landmarks.push({name:nm,dist:dd,announced:false,mk:lmMk});
-      }
       }
     }catch(e){}
     await new Promise(function(r){setTimeout(r,260);});
@@ -661,86 +637,26 @@ function loop(ts){
   requestAnimationFrame(loop);
 }
 
-// Speed limits database by country
-var SPEED_PROFILES={
-  // India
-  'India':{expressway:120,highway:100,ringroad:100,bypass:80,urban:60,main:50,residential:40,service:25,def:40},
-  // Singapore - stricter limits
-  'Singapore':{expressway:90,highway:90,ringroad:80,bypass:70,urban:60,main:50,residential:40,service:20,def:50},
-  // Japan - conservative limits
-  'Japan':{expressway:100,highway:60,ringroad:60,bypass:60,urban:60,main:50,residential:30,service:20,def:40},
-  // UAE/Dubai - high limits on Sheikh Zayed Road etc
-  'UAE':{expressway:140,highway:120,ringroad:100,bypass:100,urban:80,main:60,residential:40,service:30,def:60},
-  // UK
-  'UK':{expressway:112,highway:96,ringroad:80,bypass:80,urban:48,main:48,residential:32,service:20,def:48},
-  // France - Paris: city 30, peripheral 70, autoroute 130
-  'France':{expressway:130,highway:80,ringroad:70,bypass:70,urban:50,main:50,residential:30,service:20,def:40},
-  // USA - varies by state, general limits
-  'USA':{expressway:121,highway:105,ringroad:88,bypass:88,urban:56,main:56,residential:40,service:25,def:56},
-  // Australia
-  'Australia':{expressway:110,highway:100,ringroad:90,bypass:90,urban:50,main:50,residential:40,service:20,def:50},
-  // Default / fallback
-  'default':{expressway:120,highway:100,ringroad:100,bypass:80,urban:60,main:50,residential:40,service:25,def:40}
-};
-
-function getSpeedProfile(){
-  var country=acBias.country||'';
-  return SPEED_PROFILES[country]||SPEED_PROFILES['default'];
-}
-
 function stepSpeed(){
-  if(!routeSteps.length)return getSpeedProfile().def;
-  var sp=getSpeedProfile();
+  if(!routeSteps.length)return 30;
   var d=0;
   for(var i=0;i<routeSteps.length;i++){
     d+=routeSteps[i].distance||0;
     if(driveDist<d){
-      var nm=(routeSteps[i].name||'').toLowerCase();
-      var ref=(routeSteps[i].ref||'').toUpperCase();
-      // Classify road type
-      // Singapore 3-letter expressway codes (AYE, MCE, PIE, CTE etc)
-      var isSGExpy=ref.match(/^(AYE|MCE|PIE|CTE|TPE|KJE|BKE|SLE|KPE|ECP|NSC)/) ||
-                   nm.match(/ayer rajah|marina coastal|pan-island|central express|tampines|kranji|bukit timah|seletar|kallang/);
-      if(isSGExpy||nm.indexOf('expressway')>=0||nm.indexOf('freeway')>=0||nm.indexOf('autoroute')>=0||nm.indexOf('autobahn')>=0)
-        return sp.expressway;
-      if(nm.indexOf('outer ring')>=0||nm.indexOf('ring road')>=0||nm.indexOf('beltway')>=0||nm.indexOf('peripheral')>=0||nm.indexOf('peripherique')>=0)
-        return sp.ringroad;
-      if(ref.match(/^(NH|SH|AH|A[0-9]|M[0-9]|I-[0-9])/)||nm.indexOf('highway')>=0||nm.indexOf('motorway')>=0)
-        return sp.highway;
-      if(nm.indexOf('inner ring')>=0||nm.indexOf('bypass')>=0||nm.indexOf('ring')>=0)
-        return sp.bypass;
-      if(nm.indexOf('service')>=0||nm.indexOf('back')>=0||nm.indexOf('alley')>=0)
-        return sp.service;
-      if(nm.indexOf('lane')>=0||nm.indexOf('close')>=0||nm.indexOf('court')>=0||nm.indexOf('place')>=0)
-        return sp.residential;
-      if(nm.indexOf('road')>=0||nm.indexOf('marg')>=0||nm.indexOf('avenue')>=0||nm.indexOf('boulevard')>=0||nm.indexOf('rue')>=0)
-        return sp.urban;
-      if(nm.indexOf('main')>=0||nm.indexOf('street')>=0||nm.indexOf('str.')>=0)
-        return sp.main;
-      if(nm.indexOf('park')>=0||nm.indexOf('garden')>=0||nm.indexOf('reserve')>=0||nm.indexOf('forest')>=0)
-        return Math.min(sp.residential,30); // park access roads: slow
-      if(nm.length<3) return sp.residential; // unnamed/short = small road
-      return sp.def;
+      var nm=(routeSteps[i].name||'').toLowerCase(),ref=routeSteps[i].ref||'';
+      if(nm.indexOf('highway')>=0||nm.indexOf('expressway')>=0||ref.indexOf('NH')>=0)return 80;
+      if(nm.indexOf('main')>=0||nm.indexOf('road')>=0)return 48;
+      return 28;
     }
-  }
-  return sp.def;
+  }return 25;
 }
-
 function stepName(){
   if(!routeSteps.length)return '-';
   var d=0;
   for(var i=0;i<routeSteps.length;i++){
     d+=routeSteps[i].distance||0;
-    if(driveDist<d){
-      var n=routeSteps[i].name||routeSteps[i].ref||'';
-      // Detect tunnel/underground roads
-      var nm=n.toLowerCase();
-      if(nm.indexOf('tunnel')>=0||nm.indexOf('underpass')>=0)n='[Tunnel] '+n;
-      else if(nm.indexOf('bridge')>=0||nm.indexOf('flyover')>=0||nm.indexOf('viaduct')>=0)n='[Elevated] '+n;
-      return n.length>24?n.slice(0,22)+'..':n||'-';
-    }
-  }
-  return '-';
+    if(driveDist<d){var n=routeSteps[i].name||routeSteps[i].ref||'';return n.length>22?n.slice(0,20)+'..':n||'-';}
+  }return '-';
 }
 
 function updateDrive(dt){
@@ -749,8 +665,7 @@ function updateDrive(dt){
   var A=routeCoords[segIdx],B=routeCoords[segIdx+1];
   var sd=Math.max(hvs(A.lat,A.lng,B.lat,B.lng),.5);
   var ts=stepSpeed();
-  pv.spd+=(ts-pv.spd)*dt*3.5; // faster speed adaptation
-  pv.spd=Math.max(10,Math.min(ts*1.08,pv.spd));
+  pv.spd+=(ts-pv.spd)*dt*2.5;pv.spd=Math.max(5,Math.min(ts*1.05,pv.spd));
   segProg+=pv.spd*1000/3600*dt/sd;
   driveDist+=pv.spd*1000/3600*dt;
   driveSpeeds.push(pv.spd);
@@ -767,68 +682,37 @@ function updateDrive(dt){
   document.getElementById('nav-rem-b').textContent=rem>1000?(rem/1000).toFixed(1)+' km':Math.round(rem)+'m';
   var arrT=new Date(Date.now()+(rem/1000/Math.max(pv.spd,1))*3600000);
   document.getElementById('nav-eta-t').textContent=arrT.getHours()+':'+(('0'+arrT.getMinutes()).slice(-2));
-  var sn=stepName(); document.getElementById('d-road').textContent=sn&&sn!=='-'?sn:'On route';
+  var sn2=stepName(); document.getElementById('d-road').textContent=sn2&&sn2!=='-'?sn2:'On route';
   updateNav();checkLandmarks();
 }
 
 function updateNav(){
   if(!routeSteps.length){setNav('\u2191','Continue','','');return;}
-  var maneuvers=[];
   var cum=0;
   for(var i=0;i<routeSteps.length;i++){
-    var m=routeSteps[i].maneuver||{};
     var d2=cum-driveDist;
-    if(m.type!=='depart'){
-      maneuvers.push({step:routeSteps[i],m:m,dist:d2});
+    var m=routeSteps[i].maneuver||{};
+    if(m.type!=='depart'&&d2>-50){
+      var mod=m.modifier||'',type=m.type||'';
+      var ar='\u2191',tx='Continue',lane='';
+      if(mod.indexOf('right')>=0){ar='\u21B1';tx='Turn right';}
+      else if(mod.indexOf('left')>=0){ar='\u21B0';tx='Turn left';}
+      else if(mod==='slight right'){ar='\u2197';tx='Bear right';}
+      else if(mod==='slight left'){ar='\u2196';tx='Bear left';}
+      else if(type==='roundabout'||type==='rotary'){ar='\u21BB';tx='Roundabout';}
+      else if(type==='arrive'){ar='\uD83C\uDFC1';tx='Arriving';}
+      var dd=Math.max(0,d2);
+      var ds=dd<20?'now':dd<1000?'in '+Math.round(dd/10)*10+'m':'in '+(dd/1000).toFixed(1)+'km';
+      if(dd>0&&dd<500){
+        if(mod.indexOf('right')>=0)lane='\u26A0\uFE0F Move to right lane '+ds;
+        else if(mod.indexOf('left')>=0)lane='\u2714\uFE0F Stay left \u2014 turn '+ds;
+      }
+      setNav(ar,type==='arrive'?'Arriving at destination':tx+' '+ds,routeSteps[i].name?'onto '+routeSteps[i].name:'',lane);
+      return;
     }
     cum+=routeSteps[i].distance||0;
   }
-  var next=null;
-  for(var j=0;j<maneuvers.length;j++){
-    if(maneuvers[j].dist>-8){next=maneuvers[j];break;}
-  }
-  if(!next){setNav('\uD83C\uDFC1','Arriving','','');return;}
-  var mod=next.m.modifier||'',type=next.m.type||'';
-  var dd=Math.max(0,next.dist);
-  var ar='\u2191',tx='Continue';
-  if(mod==='right'||mod==='sharp right')      {ar='\u21B1';tx='Turn right';}
-  else if(mod==='left'||mod==='sharp left')   {ar='\u21B0';tx='Turn left';}
-  else if(mod==='slight right')               {ar='\u2197';tx='Bear right';}
-  else if(mod==='slight left')                {ar='\u2196';tx='Bear left';}
-  else if(mod==='uturn')                      {ar='\u21BA';tx='U-turn';}
-  else if(type==='roundabout'||type==='rotary'){ar='\u21BB';tx='Roundabout';}
-  else if(type==='arrive')                    {ar='\uD83C\uDFC1';tx='Arriving';}
-  var ds=type==='arrive'?'':dd<20?'NOW':dd<1000?'in '+Math.round(dd/10)*10+'m':'in '+(dd/1000).toFixed(1)+'km';
-  // Lane guidance: only show ADDITIONAL context, not repeat the instruction
-  var lane='';
-  if(type==='arrive'){
-    lane='You have arrived';
-  } else if(dd<20){
-    lane=''; // main instruction already says NOW
-  } else if(dd<600){
-    if(mod==='right'||mod==='sharp right')
-      lane='\u26A0\uFE0F Move right \u2014 watch oncoming traffic';
-    else if(mod==='left'||mod==='sharp left')
-      lane='\u2714\uFE0F Stay in left lane';
-    else if(type==='roundabout'||type==='rotary')
-      lane='\u21BB Prepare for roundabout';
-  }
-  // Next turn preview only when current is far (>400m) and next exists
-  var preview='';
-  if(dd>400&&maneuvers.length>1&&maneuvers[1]&&maneuvers[1].dist>0){
-    var n2=maneuvers[1],mod2=n2.m.modifier||'',type2=n2.m.type||'';
-    var ar2='\u2191';
-    if(mod2==='right'||mod2==='sharp right')ar2='\u21B1';
-    else if(mod2==='left'||mod2==='sharp left')ar2='\u21B0';
-    else if(mod2==='slight right')ar2='\u2197';
-    else if(mod2==='slight left')ar2='\u2196';
-    else if(type2==='roundabout')ar2='\u21BB';
-    var dd2=Math.max(0,n2.dist-dd);
-    var ds2=dd2<80?'immediately':dd2<1000?Math.round(dd2/10)*10+'m':(dd2/1000).toFixed(1)+'km';
-    preview=' then '+ar2+' '+ds2;
-  }
-  var street=next.step.name?'onto '+next.step.name:'';
-  setNav(ar,type==='arrive'?'Arriving at destination':tx+' '+ds+preview,street,lane);
+  setNav('\uD83C\uDFC1','Arriving','','');
 }
 function setNav(a,t,s,l){
   document.getElementById('nav-arrow').textContent=a;
@@ -845,9 +729,10 @@ function renderCar(){
     var sc=Math.max(0.5,Math.min(4,Math.pow(2,map.getZoom()-16)*0.5));
     var pp=map.latLngToContainerPoint([pv.lat,pv.lng]);
     var fwdX=Math.sin(pv.heading),fwdY=-Math.cos(pv.heading);
-    var lhd2=(window.isLHD!==false); var lx=lhd2?fwdY:-fwdY,ly=lhd2?-fwdX:fwdX;
-    var laneOff=Math.min(2.5,1.5)*sc; // small offset, stays on road visually
-    drawCar(pp.x+lx*laneOff,pp.y+ly*laneOff,pv.heading,sc);
+    var lhd2=(window.isLHD!==false);
+    var lx=lhd2?fwdY:-fwdY,ly=lhd2?-fwdX:fwdX;
+    var loff=1.5*sc;
+    drawCar(pp.x+lx*loff,pp.y+ly*loff,pv.heading,sc);
   }catch(e){}
 }
 
@@ -1049,197 +934,75 @@ function stopAudio(){
   if(windGain&&audioCtx)windGain.gain.setTargetAtTime(0,audioCtx.currentTime,.4);
 }
 
+
+var SPEED_PROFILES={
+  'India':{expressway:120,highway:100,ringroad:100,bypass:80,urban:60,main:50,residential:40,service:25,def:40},
+  'Singapore':{expressway:90,highway:90,ringroad:80,bypass:70,urban:60,main:50,residential:40,service:20,def:50},
+  'Japan':{expressway:100,highway:60,ringroad:60,bypass:60,urban:60,main:50,residential:30,service:20,def:40},
+  'UAE':{expressway:140,highway:120,ringroad:100,bypass:100,urban:80,main:60,residential:40,service:30,def:60},
+  'UK':{expressway:112,highway:96,ringroad:80,bypass:80,urban:48,main:48,residential:32,service:20,def:48},
+  'France':{expressway:130,highway:80,ringroad:70,bypass:70,urban:50,main:50,residential:30,service:20,def:40},
+  'USA':{expressway:121,highway:105,ringroad:88,bypass:88,urban:56,main:56,residential:40,service:25,def:56},
+  'Australia':{expressway:110,highway:100,ringroad:90,bypass:90,urban:50,main:50,residential:40,service:20,def:50},
+  'default':{expressway:120,highway:100,ringroad:100,bypass:80,urban:60,main:50,residential:40,service:25,def:40}
+};
+function getSpeedProfile(){return SPEED_PROFILES[acBias.country||'']||SPEED_PROFILES['default'];}
+function stepSpeed(){
+  if(!routeSteps.length)return getSpeedProfile().def;
+  var sp=getSpeedProfile(),d=0;
+  for(var i=0;i<routeSteps.length;i++){
+    d+=routeSteps[i].distance||0;
+    if(driveDist<d){
+      var nm=(routeSteps[i].name||'').toLowerCase();
+      var ref=(routeSteps[i].ref||'').toUpperCase();
+      var isSGExpy=ref.match(/^(AYE|MCE|PIE|CTE|TPE|KJE|BKE|SLE|KPE|ECP)/)||nm.match(/ayer rajah|marina coastal|pan-island|central express/);
+      if(isSGExpy||nm.indexOf('expressway')>=0||nm.indexOf('freeway')>=0||nm.indexOf('autoroute')>=0)return sp.expressway;
+      if(nm.indexOf('outer ring')>=0||nm.indexOf('ring road')>=0||nm.indexOf('peripheral')>=0)return sp.ringroad;
+      if(ref.match(/^(NH|SH|A[0-9]|M[0-9])/)||nm.indexOf('highway')>=0||nm.indexOf('motorway')>=0)return sp.highway;
+      if(nm.indexOf('inner ring')>=0||nm.indexOf('bypass')>=0)return sp.bypass;
+      if(nm.indexOf('park')>=0||nm.indexOf('garden')>=0||nm.indexOf('reserve')>=0)return Math.min(sp.residential,30);
+      if(nm.indexOf('service')>=0||nm.indexOf('alley')>=0)return sp.service;
+      if(nm.indexOf('lane')>=0||nm.indexOf('court')>=0)return sp.residential;
+      if(nm.indexOf('road')>=0||nm.indexOf('marg')>=0||nm.indexOf('avenue')>=0||nm.indexOf('boulevard')>=0)return sp.urban;
+      if(nm.indexOf('main')>=0||nm.indexOf('street')>=0)return sp.main;
+      if(nm.length<3)return sp.residential;
+      return sp.def;
+    }
+  }return sp.def;
+}
+function stepName(){
+  if(!routeSteps.length)return '-';
+  var d=0;
+  for(var i=0;i<routeSteps.length;i++){
+    d+=routeSteps[i].distance||0;
+    if(driveDist<d){
+      var n=routeSteps[i].name||routeSteps[i].ref||'';
+      var nm=n.toLowerCase();
+      if(nm.indexOf('tunnel')>=0||nm.indexOf('underpass')>=0)n='[Tunnel] '+n;
+      else if(nm.indexOf('bridge')>=0||nm.indexOf('flyover')>=0)n='[Elevated] '+n;
+      return n.length>24?n.slice(0,22)+'..':n||'-';
+    }
+  }return '-';
+}
 var GKEY='';
-function saveGKey(){
-  var k=document.getElementById('gkey-inp').value.trim();
-  GKEY=k;
-  var st=document.getElementById('gkey-st');
-  if(k){try{localStorage.setItem('rp_gkey',k);}catch(e){}
-    if(st){st.textContent='Google Maps API active \u2713';st.style.color='#30d158';}
-  } else {
-    try{localStorage.removeItem('rp_gkey');}catch(e){}
-    if(st){st.textContent='No API key - using OpenStreetMap search';st.style.color='rgba(255,255,255,.35)';}
-  }
-}
-// Key loaded after DOM ready (at end of script)
-function loadSavedKey(){
-  try{
-    var k=localStorage.getItem('rp_gkey');
-    if(k){
-      GKEY=k;
-      var inp=document.getElementById('gkey-inp');
-      var st=document.getElementById('gkey-st');
-      if(inp)inp.value=k;
-      if(st){st.textContent='Google Maps API active \u2713';st.style.color='#30d158';}
-    }
-  }catch(e){}
-}
+function saveGKey(){var k=document.getElementById('gkey-inp').value.trim();GKEY=k;var st=document.getElementById('gkey-st');if(k){try{localStorage.setItem('rp_gkey',k);}catch(e){}if(st){st.textContent='Google Maps API active ✓';st.style.color='#30d158';}}else{try{localStorage.removeItem('rp_gkey');}catch(e){}if(st){st.textContent='No API key - using OpenStreetMap search';st.style.color='rgba(255,255,255,.35)';}}}
+function loadSavedKey(){try{var k=localStorage.getItem('rp_gkey');if(k){GKEY=k;var i2=document.getElementById('gkey-inp');var st=document.getElementById('gkey-st');if(i2)i2.value=k;if(st){st.textContent='Google Maps API active ✓';st.style.color='#30d158';}}}catch(e){}}
 var gSdkLoading=null;
-function loadGoogleSDK(){
-  if(window.google&&window.google.maps)return Promise.resolve();
-  if(gSdkLoading)return gSdkLoading;
-  gSdkLoading=new Promise(function(resolve,reject){
-    var s=document.createElement('script');
-    s.src='https://maps.googleapis.com/maps/api/js?key='+GKEY+'&libraries=places&callback=__gCB';
-    s.onerror=function(){gSdkLoading=null;reject(new Error('Google SDK load failed'));}
-    window.__gCB=function(){resolve();};
-    document.head.appendChild(s);
-  });
-  return gSdkLoading;
-}
-async function googleAC(q){
-  await loadGoogleSDK();
-  return new Promise(function(resolve){
-    var svc=new window.google.maps.places.AutocompleteService();
-    svc.getPlacePredictions({
-      input:q,
-      locationBias:new window.google.maps.Circle({center:{lat:acBias.lat,lng:acBias.lon},radius:50000})
-    },function(p,s){resolve(s==='OK'&&p?p:[]);});
-  });
-}
-async function googleGeocode(q){
-  await loadGoogleSDK();
-  return new Promise(function(resolve){
-    new window.google.maps.Geocoder().geocode({
-      address:q,
-      bounds:new window.google.maps.LatLngBounds(
-        new window.google.maps.LatLng(acBias.lat-0.5,acBias.lon-0.5),
-        new window.google.maps.LatLng(acBias.lat+0.5,acBias.lon+0.5))
-    },function(r,s){
-      if(s==='OK'&&r&&r[0]){
-        var loc=r[0].geometry.location;
-        resolve({lat:loc.lat(),lon:loc.lng(),name:r[0].formatted_address.split(',')[0]});
-      }else resolve(null);
-    });
-  });
-}
-async function googlePlaceDetail(placeId){
-  await loadGoogleSDK();
-  return new Promise(function(resolve){
-    var svc=new window.google.maps.places.PlacesService(document.createElement('div'));
-    svc.getDetails({placeId:placeId,fields:['geometry','name','formatted_address']},function(p,s){
-      if(s==='OK'&&p){var l=p.geometry.location;resolve({lat:l.lat(),lon:l.lng(),name:p.name||p.formatted_address.split(',')[0]});}
-      else resolve(null);
-    });
-  });
-}
-async function pickGoogle(inputId,name,placeId){
-  hideAC();
-  document.getElementById(inputId).value=name;
-  document.getElementById('quick-chips').style.display='none';
-  // Set point immediately with name as placeholder coords
-  // (will be updated with real coords from Place Details)
-  try{
-    loading(true,'Getting location...','Fetching place details');
-    var det=await googlePlaceDetail(placeId);
-    loading(false);
-    if(det){
-      var nm=det.name||name;
-      document.getElementById(inputId).value=nm;
-      if(inputId==='inp-from'){ptA={lat:det.lat,lon:det.lon,name:nm};placeMarker('A',det.lat,det.lon);}
-      else{ptB={lat:det.lat,lon:det.lon,name:nm};placeMarker('B',det.lat,det.lon);}
-      // Show on map
-      if(ptA&&!ptB){map.setView([det.lat,det.lon],15);}
-      if(ptA&&ptB)calcRoute();
-    }
-  }catch(e){
-    loading(false);
-    console.warn('pickGoogle:',e);
-    // Fall back to OSM geocode
-    geocodeInput(inputId,function(){if(ptA&&ptB)calcRoute();});
-  }
-}
-async function goPreview(){
-  // If coords already set (from pickAC/pickGoogle/useMyLocation), just route+preview
-  // Only geocode if typed text doesn't match stored point name
-  var fv=document.getElementById('inp-from').value.trim();
-  var tv=document.getElementById('inp-to').value.trim();
-  if(!ptA&&fv) await geocodeInput('inp-from',null);
-  if(!ptB&&tv) await geocodeInput('inp-to',null);
-  if(!ptA||!ptB){alert('Please set start and destination.');return;}
-  if(!routeCoords||routeCoords.length<2){await calcRoute();}
-  if(!routeCoords||routeCoords.length<2){alert('Could not calculate route. Check connection.');return;}
-  startPreview();
-}
+function loadGoogleSDK(){if(window.google&&window.google.maps)return Promise.resolve();if(gSdkLoading)return gSdkLoading;gSdkLoading=new Promise(function(resolve,reject){var s=document.createElement('script');s.src='https://maps.googleapis.com/maps/api/js?key='+GKEY+'&libraries=places&callback=__gCB';s.onerror=function(){gSdkLoading=null;reject(new Error('fail'));};window.__gCB=function(){resolve();};document.head.appendChild(s);});return gSdkLoading;}
+async function googleAC(q){await loadGoogleSDK();return new Promise(function(resolve){var svc=new window.google.maps.places.AutocompleteService();svc.getPlacePredictions({input:q,locationBias:new window.google.maps.Circle({center:{lat:acBias.lat,lng:acBias.lon},radius:50000})},function(p,s){resolve(s==='OK'&&p?p:[]);});});}
+async function googleGeocode(q){await loadGoogleSDK();return new Promise(function(resolve){new window.google.maps.Geocoder().geocode({address:q,bounds:new window.google.maps.LatLngBounds(new window.google.maps.LatLng(acBias.lat-0.5,acBias.lon-0.5),new window.google.maps.LatLng(acBias.lat+0.5,acBias.lon+0.5))},function(r,s){if(s==='OK'&&r&&r[0]){var loc=r[0].geometry.location;resolve({lat:loc.lat(),lon:loc.lng(),name:r[0].formatted_address.split(',')[0]});}else resolve(null);});});}
+async function googlePlaceDetail(placeId){await loadGoogleSDK();return new Promise(function(resolve){var svc=new window.google.maps.places.PlacesService(document.createElement('div'));svc.getDetails({placeId:placeId,fields:['geometry','name','formatted_address']},function(p,s){if(s==='OK'&&p){var l=p.geometry.location;resolve({lat:l.lat(),lon:l.lng(),name:p.name||p.formatted_address.split(',')[0]});}else resolve(null);});});}
+async function pickGoogle(inputId,name,placeId){hideAC();document.getElementById(inputId).value=name;document.getElementById('quick-chips').style.display='none';try{loading(true,'Getting location...','');var det=await googlePlaceDetail(placeId);loading(false);if(det){var nm=det.name||name;document.getElementById(inputId).value=nm;if(inputId==='inp-from'){ptA={lat:det.lat,lon:det.lon,name:nm};placeMarker('A',det.lat,det.lon);}else{ptB={lat:det.lat,lon:det.lon,name:nm};placeMarker('B',det.lat,det.lon);}if(ptA&&!ptB){map.setView([det.lat,det.lon],15);}if(ptA&&ptB)calcRoute();}}catch(e){loading(false);geocodeInput(inputId,function(){if(ptA&&ptB)calcRoute();});}}
+async function geocodeInput(inputId,cb){var inp=document.getElementById(inputId);var q=inp.value.trim();if(!q){if(cb)cb();return;}if(inputId==='inp-from'&&ptA&&ptA.name===q){if(cb)cb();return;}if(inputId==='inp-to'&&ptB&&ptB.name===q){if(cb)cb();return;}if(GKEY){try{var gr=await googleGeocode(q);if(gr){inp.value=gr.name;if(inputId==='inp-from'){ptA={lat:gr.lat,lon:gr.lon,name:gr.name};placeMarker('A',gr.lat,gr.lon);}else{ptB={lat:gr.lat,lon:gr.lon,name:gr.name};placeMarker('B',gr.lat,gr.lon);}inp.style.borderColor='#30d158';setTimeout(function(){inp.style.borderColor='';},1500);if(cb)cb();return;}}catch(e){}}var hdr={'Accept':'application/json','User-Agent':'RoutePreview/1.0'};var city=acBias.city||'';var r2=0.8;var vb='&viewbox='+(acBias.lon-r2)+','+(acBias.lat+r2)+','+(acBias.lon+r2)+','+(acBias.lat-r2)+'&bounded=0';var sq=(city&&q.toLowerCase().indexOf(city.toLowerCase())<0)?(q+', '+city):q;var found=null;for(var ti=0;ti<3&&!found;ti++){try{var qry=[sq,q,q+' '+city][ti];var u='https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(qry)+'&format=json&limit=10&addressdetails=1&namedetails=1'+(ti<2?vb:'')+'&dedupe=1';var data=await (await fetch(u,{headers:hdr})).json();if(data&&data.length){data.sort(function(a,b){return dist(parseFloat(a.lat),parseFloat(a.lon),acBias.lat,acBias.lon)-dist(parseFloat(b.lat),parseFloat(b.lon),acBias.lat,acBias.lon);});found=data[0];}}catch(e){}}if(!found){inp.style.borderColor='#ff453a';var op=inp.placeholder;inp.placeholder='Not found in maps';setTimeout(function(){inp.style.borderColor='';inp.placeholder=op;},2500);return;}var nd=found.namedetails||{};var nm2=nd.name||nd['name:en']||found.display_name.split(',')[0].trim();inp.value=nm2;var la=parseFloat(found.lat),lo=parseFloat(found.lon);if(inputId==='inp-from'){ptA={lat:la,lon:lo,name:nm2};placeMarker('A',la,lo);}else{ptB={lat:la,lon:lo,name:nm2};placeMarker('B',la,lo);}inp.style.borderColor='#30d158';setTimeout(function(){inp.style.borderColor='';},1500);if(cb)cb();}
+async function goPreview(){var fv=document.getElementById('inp-from').value.trim();var tv=document.getElementById('inp-to').value.trim();if(!ptA&&fv)await geocodeInput('inp-from',null);if(!ptB&&tv)await geocodeInput('inp-to',null);if(!ptA||!ptB){alert('Please set start and destination.');return;}if(!routeCoords||routeCoords.length<2){await calcRoute();}if(!routeCoords||routeCoords.length<2){alert('Could not calculate route.');return;}startPreview();}
 var planPanelCollapsed=false;
-function togglePlanPanel(){
-  planPanelCollapsed=!planPanelCollapsed;
-  var p=document.getElementById('route-panel');
-  var h=document.getElementById('ptoggle');
-  if(planPanelCollapsed){
-    p.classList.add('mini');
-    if(h)h.textContent='tap to show panel';
-  } else {
-    p.classList.remove('mini');
-    if(h)h.textContent='tap handle to hide panel';
-    if(rtLayer)setTimeout(function(){viewRouteOverview();},350);
-  }
-}
-function viewRouteOverview(){
-  if(!rtLayer){alert('Calculate a route first.');return;}
-  // Fit map to show entire route with padding for the panel
-  var panelH=document.getElementById('route-panel').offsetHeight||240;
-  var padBottom=panelH+20;
-  map.fitBounds(rtLayer.getBounds(),{
-    paddingTopLeft:[20,60],
-    paddingBottomRight:[20,padBottom]
-  });
-}
+function togglePlanPanel(){planPanelCollapsed=!planPanelCollapsed;var p=document.getElementById('route-panel');var h=document.getElementById('ptoggle');if(planPanelCollapsed){p.classList.add('mini');if(h)h.textContent='tap to show panel';}else{p.classList.remove('mini');if(h)h.textContent='tap handle to hide panel';if(rtLayer)setTimeout(function(){viewRouteOverview();},350);}}
+function viewRouteOverview(){if(!rtLayer){return;}var panelH=document.getElementById('route-panel').offsetHeight||240;map.fitBounds(rtLayer.getBounds(),{paddingTopLeft:[20,60],paddingBottomRight:[20,panelH+20]});}
 function loading(on,t,s){document.getElementById('lov').classList.toggle('on',on);if(t)document.getElementById('lov-t').textContent=t;if(s)document.getElementById('lov-s').textContent=s;}
 
-loadSavedKey();
 document.getElementById('inp-from').addEventListener('keydown',function(e){if(e.key==='Enter'){hideAC();geocodeInput('inp-from',function(){document.getElementById('inp-to').focus();});}});
 document.getElementById('inp-to').addEventListener('keydown',function(e){if(e.key==='Enter'){hideAC();geocodeInput('inp-to',function(){if(ptA&&ptB)calcRoute();});}});
 document.getElementById('inp-from').addEventListener('blur',function(){var v=this.value.trim();if(v&&(!ptA||ptA.name!==v))geocodeInput('inp-from',null);});
 document.getElementById('inp-to').addEventListener('blur',function(){var v=this.value.trim();if(v&&(!ptB||ptB.name!==v))geocodeInput('inp-to',function(){if(ptA&&ptB)calcRoute();});});
-</script></body></htmlasync function geocodeInput(inputId,cb){
-  var inp=document.getElementById(inputId);
-  var q=inp.value.trim();
-  if(!q){if(cb)cb();return;}
-  if(inputId==='inp-from'&&ptA&&ptA.name===q){if(cb)cb();return;}
-  if(inputId==='inp-to'&&ptB&&ptB.name===q){if(cb)cb();return;}
-  if(GKEY){
-    try{
-      var gr=await googleGeocode(q);
-      if(gr){
-        inp.value=gr.name;
-        if(inputId==='inp-from'){ptA={lat:gr.lat,lon:gr.lon,name:gr.name};placeMarker('A',gr.lat,gr.lon);}
-        else{ptB={lat:gr.lat,lon:gr.lon,name:gr.name};placeMarker('B',gr.lat,gr.lon);}
-        inp.style.borderColor='#30d158';setTimeout(function(){inp.style.borderColor='';},1500);
-        if(cb)cb();return;
-      }
-    }catch(e){console.warn('Google geocode:',e);}
-  }
-  var hdr={'Accept':'application/json','User-Agent':'RoutePreview/1.0'};
-  var city=acBias.city||'';var r2=0.8;
-  var vb='&viewbox='+(acBias.lon-r2)+','+(acBias.lat+r2)+','+(acBias.lon+r2)+','+(acBias.lat-r2)+'&bounded=0';
-  var sq=(city&&q.toLowerCase().indexOf(city.toLowerCase())<0)?(q+', '+city):q;
-  var found=null;
-  for(var ti=0;ti<3&&!found;ti++){
-    try{
-      var qry=[sq,q,q+' '+city][ti];
-      var u='https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(qry)
-        +'&format=json&limit=10&addressdetails=1&namedetails=1'+(ti<2?vb:'')+'&dedupe=1';
-      var data=await (await fetch(u,{headers:hdr})).json();
-      if(data&&data.length){
-        data.sort(function(a,b){return dist(parseFloat(a.lat),parseFloat(a.lon),acBias.lat,acBias.lon)-dist(parseFloat(b.lat),parseFloat(b.lon),acBias.lat,acBias.lon);});
-        found=data[0];
-      }
-    }catch(e){}
-  }
-  if(!found){
-    inp.style.borderColor='#ff453a';
-    var op=inp.placeholder;inp.placeholder='Not found in maps';
-    setTimeout(function(){inp.style.borderColor='';inp.placeholder=op;},2500);
-    return;
-  }
-  var nd=found.namedetails||{};
-  var nm=nd.name||nd['name:en']||found.display_name.split(',')[0].trim();
-  inp.value=nm;
-  var la=parseFloat(found.lat),lo=parseFloat(found.lon);
-  if(inputId==='inp-from'){ptA={lat:la,lon:lo,name:nm};placeMarker('A',la,lo);}
-  else{ptB={lat:la,lon:lo,name:nm};placeMarker('B',la,lo);}
-  inp.style.borderColor='#30d158';setTimeout(function(){inp.style.borderColor='';},1500);
-  if(cb)cb();
-}
->
+loadSavedKey();
+</script></body></html>
