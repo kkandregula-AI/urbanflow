@@ -136,7 +136,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
     <div class="app-title">RoutePreview</div>
     <div class="app-sub">Feel the journey before you travel</div>
     <div style="margin-top:10px;display:flex;gap:8px">
-      <input id="gkey-inp" type="text" placeholder="Paste Google Maps API key for better search" style="flex:1;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 11px;color:#fff;font-size:12px;outline:none">
+      <input id="gkey-inp" type="password" placeholder="Paste Google Maps API key for better search" style="flex:1;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 11px;color:#fff;font-size:12px;outline:none">
       <button onclick="saveGKey()" style="padding:8px 12px;background:#0a84ff;border:none;border-radius:10px;color:#fff;font-size:12px;font-weight:600;cursor:pointer">Save</button>
     </div>
     <div id="gkey-st" style="font-size:11px;margin-top:4px;color:rgba(255,255,255,.35)">No API key - using OpenStreetMap search</div>
@@ -703,19 +703,32 @@ function updateNav(){
     if(m.type!=='depart'&&d2>-50){
       var mod=m.modifier||'',type=m.type||'';
       var ar='\u2191',tx='Continue',lane='';
-      if(mod.indexOf('right')>=0){ar='\u21B1';tx='Turn right';}
-      else if(mod.indexOf('left')>=0){ar='\u21B0';tx='Turn left';}
+      // Exact OSRM modifier matching
+      if(mod==='right'||mod==='sharp right'){ar='\u21B1';tx='Turn right';}
+      else if(mod==='left'||mod==='sharp left'){ar='\u21B0';tx='Turn left';}
       else if(mod==='slight right'){ar='\u2197';tx='Bear right';}
       else if(mod==='slight left'){ar='\u2196';tx='Bear left';}
-      else if(type==='roundabout'||type==='rotary'){ar='\u21BB';tx='Roundabout';}
+      else if(mod==='uturn'){ar='\u21BA';tx='Make U-turn';}
+      else if(type==='roundabout'||type==='rotary'){ar='\u21BB';tx='At roundabout';}
       else if(type==='arrive'){ar='\uD83C\uDFC1';tx='Arriving';}
       var dd=Math.max(0,d2);
       var ds=dd<20?'now':dd<1000?'in '+Math.round(dd/10)*10+'m':'in '+(dd/1000).toFixed(1)+'km';
-      if(dd>0&&dd<500){
-        if(mod.indexOf('right')>=0)lane='\u26A0\uFE0F Move to right lane '+ds;
-        else if(mod.indexOf('left')>=0)lane='\u2714\uFE0F Stay left \u2014 turn '+ds;
+      // India LHD lane guidance
+      if(dd>0&&dd<600){
+        if(mod==='right'||mod==='sharp right')
+          lane='\u26A0\uFE0F Right turn ahead '+ds+' \u2014 watch oncoming traffic';
+        else if(mod==='left'||mod==='sharp left')
+          lane='\u2714\uFE0F Stay left \u2014 turn left '+ds;
+        else if(mod==='slight right')
+          lane='\u27A1\uFE0F Bear right '+ds;
+        else if(mod==='slight left')
+          lane='\u2196\uFE0F Bear left '+ds;
+        else if(type==='roundabout'||type==='rotary')
+          lane='\u21BB Enter roundabout '+ds;
       }
-      setNav(ar,type==='arrive'?'Arriving at destination':tx+' '+ds,routeSteps[i].name?'onto '+routeSteps[i].name:'',lane);
+      if(type==='arrive'){lane='You have arrived at your destination';}
+      setNav(ar,type==='arrive'?'Arriving at destination':tx+' '+ds,
+             routeSteps[i].name?'onto '+routeSteps[i].name:'',lane);
       return;
     }
     cum+=routeSteps[i].distance||0;
