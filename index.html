@@ -657,28 +657,66 @@ function loop(ts){
   requestAnimationFrame(loop);
 }
 
+// Speed limits database by country
+var SPEED_PROFILES={
+  // India
+  'India':{expressway:120,highway:100,ringroad:100,bypass:80,urban:60,main:50,residential:40,service:25,def:40},
+  // Singapore - stricter limits
+  'Singapore':{expressway:90,highway:90,ringroad:80,bypass:70,urban:60,main:50,residential:40,service:20,def:50},
+  // Japan - conservative limits
+  'Japan':{expressway:100,highway:60,ringroad:60,bypass:60,urban:60,main:50,residential:30,service:20,def:40},
+  // UAE/Dubai - high limits on Sheikh Zayed Road etc
+  'UAE':{expressway:140,highway:120,ringroad:100,bypass:100,urban:80,main:60,residential:40,service:30,def:60},
+  // UK
+  'UK':{expressway:112,highway:96,ringroad:80,bypass:80,urban:48,main:48,residential:32,service:20,def:48},
+  // France - Paris: city 30, peripheral 70, autoroute 130
+  'France':{expressway:130,highway:80,ringroad:70,bypass:70,urban:50,main:50,residential:30,service:20,def:40},
+  // USA - varies by state, general limits
+  'USA':{expressway:121,highway:105,ringroad:88,bypass:88,urban:56,main:56,residential:40,service:25,def:56},
+  // Australia
+  'Australia':{expressway:110,highway:100,ringroad:90,bypass:90,urban:50,main:50,residential:40,service:20,def:50},
+  // Default / fallback
+  'default':{expressway:120,highway:100,ringroad:100,bypass:80,urban:60,main:50,residential:40,service:25,def:40}
+};
+
+function getSpeedProfile(){
+  var country=acBias.country||'';
+  return SPEED_PROFILES[country]||SPEED_PROFILES['default'];
+}
+
 function stepSpeed(){
-  if(!routeSteps.length)return 40;
+  if(!routeSteps.length)return getSpeedProfile().def;
+  var sp=getSpeedProfile();
   var d=0;
   for(var i=0;i<routeSteps.length;i++){
     d+=routeSteps[i].distance||0;
     if(driveDist<d){
       var nm=(routeSteps[i].name||'').toLowerCase();
       var ref=(routeSteps[i].ref||'').toUpperCase();
-      // Highway/expressway: 100 km/h
-      if(nm.indexOf('expressway')>=0||nm.indexOf('freeway')>=0)return 120;
-      if(nm.indexOf('outer ring')>=0||nm.indexOf('ring road')>=0)return 100;
-      if(ref.indexOf('NH')>=0||ref.indexOf('SH')>=0||nm.indexOf('highway')>=0)return 100;
-      if(nm.indexOf('inner ring')>=0||nm.indexOf('bypass')>=0)return 80;
-      // Major city roads: 60 km/h
-      if(nm.indexOf('road')>=0||nm.indexOf('marg')>=0||nm.indexOf('avenue')>=0)return 60;
-      if(nm.indexOf('main')>=0||nm.indexOf('street')>=0)return 50;
-      // Internal/service roads: 30 km/h
-      if(nm.indexOf('service')>=0||nm.indexOf('lane')>=0||nm.indexOf('alley')>=0)return 30;
-      return 40; // default city speed
+      // Classify road type
+      if(nm.indexOf('expressway')>=0||nm.indexOf('freeway')>=0||nm.indexOf('autoroute')>=0||nm.indexOf('autobahn')>=0)
+        return sp.expressway;
+      if(nm.indexOf('outer ring')>=0||nm.indexOf('ring road')>=0||nm.indexOf('beltway')>=0||nm.indexOf('peripheral')>=0||nm.indexOf('peripherique')>=0)
+        return sp.ringroad;
+      if(ref.match(/^(NH|SH|AH|A[0-9]|M[0-9]|I-[0-9])/)||nm.indexOf('highway')>=0||nm.indexOf('motorway')>=0)
+        return sp.highway;
+      if(nm.indexOf('inner ring')>=0||nm.indexOf('bypass')>=0||nm.indexOf('ring')>=0)
+        return sp.bypass;
+      if(nm.indexOf('service')>=0||nm.indexOf('back')>=0||nm.indexOf('alley')>=0)
+        return sp.service;
+      if(nm.indexOf('lane')>=0||nm.indexOf('close')>=0||nm.indexOf('court')>=0||nm.indexOf('place')>=0)
+        return sp.residential;
+      if(nm.indexOf('road')>=0||nm.indexOf('marg')>=0||nm.indexOf('avenue')>=0||nm.indexOf('boulevard')>=0||nm.indexOf('rue')>=0)
+        return sp.urban;
+      if(nm.indexOf('main')>=0||nm.indexOf('street')>=0||nm.indexOf('str.')>=0)
+        return sp.main;
+      if(nm.length<3) return sp.residential; // unnamed/short = small road
+      return sp.def;
     }
-  }return 40;
+  }
+  return sp.def;
 }
+
 function stepName(){
   if(!routeSteps.length)return '-';
   var d=0;
