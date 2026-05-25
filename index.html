@@ -696,44 +696,87 @@ function updateDrive(dt){
 
 function updateNav(){
   if(!routeSteps.length){setNav('\u2191','Continue','','');return;}
+
+  // Build full list of upcoming maneuvers with distances
+  var maneuvers=[];
   var cum=0;
   for(var i=0;i<routeSteps.length;i++){
-    var d2=cum-driveDist;
     var m=routeSteps[i].maneuver||{};
-    if(m.type!=='depart'&&d2>-50){
-      var mod=m.modifier||'',type=m.type||'';
-      var ar='\u2191',tx='Continue',lane='';
-      // Exact OSRM modifier matching
-      if(mod==='right'||mod==='sharp right'){ar='\u21B1';tx='Turn right';}
-      else if(mod==='left'||mod==='sharp left'){ar='\u21B0';tx='Turn left';}
-      else if(mod==='slight right'){ar='\u2197';tx='Bear right';}
-      else if(mod==='slight left'){ar='\u2196';tx='Bear left';}
-      else if(mod==='uturn'){ar='\u21BA';tx='Make U-turn';}
-      else if(type==='roundabout'||type==='rotary'){ar='\u21BB';tx='At roundabout';}
-      else if(type==='arrive'){ar='\uD83C\uDFC1';tx='Arriving';}
-      var dd=Math.max(0,d2);
-      var ds=dd<20?'now':dd<1000?'in '+Math.round(dd/10)*10+'m':'in '+(dd/1000).toFixed(1)+'km';
-      // India LHD lane guidance
-      if(dd>0&&dd<600){
-        if(mod==='right'||mod==='sharp right')
-          lane='\u26A0\uFE0F Right turn ahead '+ds+' \u2014 watch oncoming traffic';
-        else if(mod==='left'||mod==='sharp left')
-          lane='\u2714\uFE0F Stay left \u2014 turn left '+ds;
-        else if(mod==='slight right')
-          lane='\u27A1\uFE0F Bear right '+ds;
-        else if(mod==='slight left')
-          lane='\u2196\uFE0F Bear left '+ds;
-        else if(type==='roundabout'||type==='rotary')
-          lane='\u21BB Enter roundabout '+ds;
-      }
-      if(type==='arrive'){lane='You have arrived at your destination';}
-      setNav(ar,type==='arrive'?'Arriving at destination':tx+' '+ds,
-             routeSteps[i].name?'onto '+routeSteps[i].name:'',lane);
-      return;
+    var d2=cum-driveDist; // positive = ahead, negative = passed
+    if(m.type!=='depart'){
+      maneuvers.push({
+        step:routeSteps[i],
+        m:m,
+        dist:d2
+      });
     }
     cum+=routeSteps[i].distance||0;
   }
-  setNav('\uD83C\uDFC1','Arriving','','');
+
+  // Find the NEXT upcoming turn (smallest positive dist, or just-passed within 8m)
+  var next=null;
+  for(var j=0;j<maneuvers.length;j++){
+    if(maneuvers[j].dist>-8){  // upcoming OR within 8m past
+      next=maneuvers[j];
+      break;
+    }
+  }
+
+  if(!next){setNav('\uD83C\uDFC1','Arriving','','');return;}
+
+  var mod=next.m.modifier||'', type=next.m.type||'';
+  var dd=Math.max(0,next.dist);
+
+  // Arrow + action text
+  var ar='\u2191', tx='Continue';
+  if(mod==='right'||mod==='sharp right')      {ar='\u21B1';tx='Turn right';}
+  else if(mod==='left'||mod==='sharp left')   {ar='\u21B0';tx='Turn left';}
+  else if(mod==='slight right')               {ar='\u2197';tx='Bear right';}
+  else if(mod==='slight left')                {ar='\u2196';tx='Bear left';}
+  else if(mod==='uturn')                      {ar='\u21BA';tx='U-turn';}
+  else if(type==='roundabout'||type==='rotary'){ar='\u21BB';tx='Roundabout';}
+  else if(type==='arrive')                    {ar='\uD83C\uDFC1';tx='Arriving';}
+
+  // Distance label
+  var ds='';
+  if(type==='arrive')      ds='';
+  else if(dd<20)           ds='NOW';
+  else if(dd<1000)         ds='in '+Math.round(dd/10)*10+'m';
+  else                     ds='in '+(dd/1000).toFixed(1)+'km';
+
+  // Lane guidance (India LHD)
+  var lane='';
+  if(dd>0&&dd<800&&type!=='arrive'){
+    if(mod==='right'||mod==='sharp right')
+      lane='\u26A0\uFE0F Right turn ahead \u2014 watch oncoming';
+    else if(mod==='left'||mod==='sharp left')
+      lane='\u2714\uFE0F Stay left \u2014 turn left '+ds;
+    else if(type==='roundabout'||type==='rotary')
+      lane='\u21BB Enter roundabout '+ds;
+  }
+  if(type==='arrive') lane='You have arrived';
+  if(dd<20&&type!=='arrive') lane='\uD83D\uDEA8 Turn '+mod+' NOW';
+
+  var street=next.step.name?'onto '+next.step.name:'';
+  var actionTxt=type==='arrive'?'Arriving at destination':tx+(ds?' '+ds:'');
+
+  // Show next-next turn as preview when current turn is far away
+  var preview='';
+  if(dd>300&&maneuvers.length>1&&maneuvers[1]&&maneuvers[1].dist>0){
+    var n2=maneuvers[1];
+    var mod2=n2.m.modifier||'',type2=n2.m.type||'';
+    var ar2='\u2191';
+    if(mod2==='right'||mod2==='sharp right')ar2='\u21B1';
+    else if(mod2==='left'||mod2==='sharp left')ar2='\u21B0';
+    else if(mod2==='slight right')ar2='\u2197';
+    else if(mod2==='slight left')ar2='\u2196';
+    else if(type2==='roundabout')ar2='\u21BB';
+    var dd2=Math.max(0,n2.dist);
+    var ds2=dd2<1000?Math.round(dd2/10)*10+'m':(dd2/1000).toFixed(1)+'km';
+    preview=' then '+ar2+' '+ds2;
+  }
+
+  setNav(ar, actionTxt+preview, street, lane);
 }
 function setNav(a,t,s,l){
   document.getElementById('nav-arrow').textContent=a;
