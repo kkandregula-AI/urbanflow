@@ -62,7 +62,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 .rstat+.rstat{border-left:1px solid rgba(255,255,255,.08)}
 .rv{font-size:20px;font-weight:700}
 .rl{font-size:10px;color:rgba(255,255,255,.38);margin-top:2px;text-transform:uppercase;letter-spacing:.3px}
-#btn-go{display:none;margin:10px 20px 0;width:calc(100% - 40px);padding:15px;border-radius:14px;border:none;background:#0a84ff;color:#fff;font-size:17px;font-weight:600;cursor:pointer;touch-action:manipulation}
+#btn-go{margin:0;width:100%;padding:15px;border-radius:14px;border:none;background:#0a84ff;color:#fff;font-size:17px;font-weight:600;cursor:pointer;touch-action:manipulation}
 #btn-go:active{opacity:.8}
 /* PREVIEW */
 #scr-prev{position:fixed;inset:0;z-index:2;display:none;pointer-events:none}
@@ -178,7 +178,10 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
         <div class="rstat"><div class="rv" id="r-turns">-</div><div class="rl">Turns</div></div>
       </div>
     </div>
-    <button id="btn-go" onclick="goPreview()">&#9654; Preview This Route</button>
+    <div style="display:flex;gap:8px;margin:10px 20px 0">
+      <button id="btn-overview" onclick="viewRouteOverview()" style="flex:0 0 auto;padding:15px 14px;border-radius:14px;border:none;background:rgba(255,255,255,.1);color:#fff;font-size:15px;cursor:pointer;touch-action:manipulation" title="View full route">&#128506;</button>
+      <button id="btn-go" onclick="goPreview()" style="flex:1;padding:15px;border-radius:14px;border:none;background:#0a84ff;color:#fff;font-size:17px;font-weight:600;cursor:pointer;touch-action:manipulation;display:none">&#9654; Preview This Route</button>
+    </div>
   </div>
 </div>
 
@@ -566,6 +569,9 @@ async function calcRoute(){
       document.getElementById('r-turns').textContent=routeSteps.filter(function(s){var t=s.maneuver&&s.maneuver.type;return t&&t!=='depart'&&t!=='arrive';}).length;
       document.getElementById('rinfo').style.display='block';
       document.getElementById('btn-go').style.display='block';
+      document.getElementById('btn-overview').style.display='block';
+      // Auto-fit to show full route
+      setTimeout(function(){viewRouteOverview();},300);
       loading(false);
       fetchLandmarks();
       return;
@@ -688,9 +694,9 @@ function updateDrive(dt){
   updateEngine(pv.spd,80);
   var rem=0;for(var i=segIdx;i<routeCoords.length-1;i++)rem+=hvs(routeCoords[i].lat,routeCoords[i].lng,routeCoords[i+1].lat,routeCoords[i+1].lng);
   document.getElementById('nav-rem-b').textContent=rem>1000?(rem/1000).toFixed(1)+' km':Math.round(rem)+'m';
-  var arrT=new Date(Date.now()+rem/Math.max(pv.spd,1)*3600000);
+  var arrT=new Date(Date.now()+(rem/1000/Math.max(pv.spd,1))*3600000);
   document.getElementById('nav-eta-t').textContent=arrT.getHours()+':'+(('0'+arrT.getMinutes()).slice(-2));
-  document.getElementById('d-road').textContent=stepName();
+  var sn=stepName(); document.getElementById('d-road').textContent=sn&&sn!=='-'?sn:'On route';
   updateNav();checkLandmarks();
 }
 
@@ -1107,6 +1113,16 @@ async function goPreview(){
   if(!routeCoords||routeCoords.length<2){await calcRoute();}
   if(!routeCoords||routeCoords.length<2){alert('Could not calculate route. Check connection.');return;}
   startPreview();
+}
+function viewRouteOverview(){
+  if(!rtLayer){alert('Calculate a route first.');return;}
+  // Fit map to show entire route with padding for the panel
+  var panelH=document.getElementById('route-panel').offsetHeight||240;
+  var padBottom=panelH+20;
+  map.fitBounds(rtLayer.getBounds(),{
+    paddingTopLeft:[20,60],
+    paddingBottomRight:[20,padBottom]
+  });
 }
 function loading(on,t,s){document.getElementById('lov').classList.toggle('on',on);if(t)document.getElementById('lov-t').textContent=t;if(s)document.getElementById('lov-s').textContent=s;}
 
