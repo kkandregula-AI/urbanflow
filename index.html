@@ -27,9 +27,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 /* PLAN */
 #scr-plan{position:fixed;inset:0;z-index:2;display:none}
 #back-btn{position:fixed;top:12px;left:12px;z-index:30;width:36px;height:36px;border-radius:50%;background:rgba(28,28,30,.92);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(12px)}
-#route-panel{position:fixed;bottom:0;left:0;right:0;z-index:20;background:rgba(18,18,22,.97);border-radius:20px 20px 0 0;padding:12px 0 28px;box-shadow:0 -4px 40px rgba(0,0,0,.5);backdrop-filter:blur(20px);transition:transform .3s ease}
-#route-panel.collapsed{transform:translateY(calc(100% - 44px));pointer-events:none}
-#route-panel.collapsed .rp-handle{pointer-events:auto}
+#route-panel{position:fixed;bottom:0;left:0;right:0;z-index:20;background:rgba(18,18,22,.97);border-radius:20px 20px 0 0;padding:12px 0 28px;box-shadow:0 -4px 40px rgba(0,0,0,.5);backdrop-filter:blur(20px)}
 .rp-handle{width:36px;height:4px;background:rgba(255,255,255,.18);border-radius:2px;margin:0 auto 12px}
 .rp-title{font-size:11px;font-weight:600;color:rgba(255,255,255,.32);letter-spacing:1px;text-transform:uppercase;padding:0 20px;margin-bottom:10px}
 .rp-row{display:flex;align-items:center;gap:10px;padding:0 16px;margin-bottom:6px}
@@ -47,7 +45,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 .chip{display:inline-block;padding:6px 12px;margin-right:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:20px;font-size:13px;color:rgba(255,255,255,.85);cursor:pointer;touch-action:manipulation;-webkit-user-select:none;user-select:none}
 .chip:active{background:rgba(10,132,255,.25);border-color:#0a84ff;color:#fff}
 /* Autocomplete */
-#ac-box{display:none;position:fixed;left:16px;right:16px;z-index:9999;background:rgba(28,28,32,.98);border-radius:14px;border:1px solid rgba(255,255,255,.1);overflow:hidden;max-height:220px;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+#ac-box{display:none;position:fixed;left:16px;right:16px;z-index:200;background:rgba(28,28,32,.98);border-radius:14px;border:1px solid rgba(255,255,255,.1);overflow:hidden;max-height:220px;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.5)}
 #ac-box::-webkit-scrollbar{display:none}
 .ac-item{padding:11px 16px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.05);display:flex;align-items:center;gap:10px}
 .ac-item:last-child{border-bottom:none}
@@ -137,6 +135,11 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
     <div class="app-eye">Route Experience</div>
     <div class="app-title">RoutePreview</div>
     <div class="app-sub">Feel the journey before you travel</div>
+    <div style="margin-top:10px;display:flex;gap:8px">
+      <input id="gkey-inp" type="text" placeholder="Paste Google Maps API key for better search" style="flex:1;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 11px;color:#fff;font-size:12px;outline:none">
+      <button onclick="saveGKey()" style="padding:8px 12px;background:#0a84ff;border:none;border-radius:10px;color:#fff;font-size:12px;font-weight:600;cursor:pointer">Save</button>
+    </div>
+    <div id="gkey-st" style="font-size:11px;margin-top:4px;color:rgba(255,255,255,.35)">No API key - using OpenStreetMap search</div>
   </div>
   <div class="city-grid" id="city-grid"></div>
 </div>
@@ -145,8 +148,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 <div id="scr-plan">
   <button id="back-btn" onclick="showHome()">&#8592;</button>
   <div id="route-panel">
-    <div class="rp-handle" onclick="hideTapHint()" style="cursor:pointer"></div>
-    <div id="tap-hint" style="display:none;text-align:center;font-size:12px;color:#0a84ff;padding:4px 16px 8px;font-weight:600"></div>
+    <div class="rp-handle"></div>
     <div class="rp-title" id="rp-city-name">Plan Your Route</div>
     <div class="rp-row">
       <div class="rp-icon from">A</div>
@@ -329,8 +331,6 @@ function initMap(lat,lon){
   vctx=vc.getContext('2d');
   function rsz(){vc.width=window.innerWidth;vc.height=window.innerHeight;}
   rsz();window.addEventListener('resize',rsz);
-  map.on('click',onPlanMapClick);
-  map.on('touchend',onPlanMapTouch);
 }
 
 // Satellite toggle
@@ -389,32 +389,38 @@ function positionAC(){
 }
 
 async function fetchAC(q,inputId){
+  if(GKEY){
+    try{
+      var preds=await googleAC(q);
+      if(preds.length>0){
+        var gr=preds.slice(0,8).map(function(p){
+          return {isGoogle:true,place_id:p.place_id,
+            name:(p.structured_formatting?p.structured_formatting.main_text:p.description.split(',')[0]),
+            addr:(p.structured_formatting?p.structured_formatting.secondary_text:'')};
+        });
+        showACResults(gr,inputId);return;
+      }
+    }catch(e){console.warn('Google AC:',e);}
+  }
+  // OSM fallback
   try{
     var hdr={'Accept':'application/json','User-Agent':'RoutePreview/1.0'};
     var city=acBias.city||'';
-    var r=0.8;
-    var vb='&viewbox='+(acBias.lon-r)+','+(acBias.lat+r)+','+(acBias.lon+r)+','+(acBias.lat-r)+'&bounded=0';
-    var queries=[];
-    if(city&&q.toLowerCase().indexOf(city.toLowerCase())<0){
-      queries.push(q+', '+city);
-      queries.push(q+' '+city);
-    }
-    queries.push(q);
+    var r2=0.8;
+    var vb='&viewbox='+(acBias.lon-r2)+','+(acBias.lat+r2)+','+(acBias.lon+r2)+','+(acBias.lat-r2)+'&bounded=0';
+    var sq=(city&&q.toLowerCase().indexOf(city.toLowerCase())<0)?(q+', '+city):q;
     var seen={},results=[];
-    for(var qi=0;qi<queries.length&&results.length<8;qi++){
+    for(var qi=0;qi<2;qi++){
       try{
-        var u='https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(queries[qi])
+        var u='https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(qi===0?sq:q)
           +'&format=json&limit=10&addressdetails=1&namedetails=1'+vb+'&dedupe=1';
-        var data=await (await fetch(u,{headers:hdr})).json();
-        (data||[]).forEach(function(x){if(!seen[x.place_id]){seen[x.place_id]=true;results.push(x);}});
+        var d=await (await fetch(u,{headers:hdr})).json();
+        (d||[]).forEach(function(x){if(!seen[x.place_id]){seen[x.place_id]=true;results.push(x);}});
       }catch(e){}
     }
-    results.sort(function(a,b){
-      return dist(parseFloat(a.lat),parseFloat(a.lon),acBias.lat,acBias.lon)
-            -dist(parseFloat(b.lat),parseFloat(b.lon),acBias.lat,acBias.lon);
-    });
+    results.sort(function(a,b){return dist(parseFloat(a.lat),parseFloat(a.lon),acBias.lat,acBias.lon)-dist(parseFloat(b.lat),parseFloat(b.lon),acBias.lat,acBias.lon);});
     showACResults(results.slice(0,8),inputId);
-  }catch(e){console.warn('AC:',e);}
+  }catch(e){}
 }
 function showACResults(results,inputId){
   var box=document.getElementById('ac-box');
@@ -424,26 +430,33 @@ function showACResults(results,inputId){
     html+='<div class="ac-loc-row" onclick="useMyLocation()"><span class="ac-pin">&#128205;</span><div><div class="ac-name">Use My Current Location</div><div class="ac-addr">GPS position</div></div></div>';
   }
   if(!results||!results.length){
-    html+='<div class="ac-item"><span class="ac-pin">&#128270;</span><div><div class="ac-name">No results in '+acBias.city+'</div><div class="ac-addr">Try a different search</div></div></div>';
+    html+='<div class="ac-item"><span class="ac-pin">&#128270;</span><div><div class="ac-name">No results</div></div></div>';
   } else {
-    results.slice(0,6).forEach(function(r){
-      var nd=r.namedetails||{},ad=r.address||{};
-      var name=nd.name||nd['name:en']||r.display_name.split(',')[0].trim();
-      var addr=(ad.suburb||ad.neighbourhood||ad.city_district||ad.city||'').trim();
-      var lat=parseFloat(r.lat),lon=parseFloat(r.lon);
-      var dkm=Math.round(dist(lat,lon,acBias.lat,acBias.lon)*111);
-      var dtag=dkm>1?' <span style="color:rgba(255,255,255,.3);font-size:10px">'+dkm+'km</span>':'';
-      var ns=name.replace(/'/g,'&#39;');
-      html+='<div class="ac-item" onclick="pickAC(\''+inputId+'\',\''+ns+'\','+lat+','+lon+')">'
-        +'<span class="ac-pin">&#128205;</span>'
-        +'<div><div class="ac-name">'+esc(name)+dtag+'</div>'
-        +(addr?'<div class="ac-addr">'+esc(addr)+'</div>':'')+'</div></div>';
+    results.forEach(function(r){
+      if(r.isGoogle){
+        var ns=r.name.replace(/'/g,'&#39;');
+        html+='<div class="ac-item" onclick="pickGoogle(\''+(inputId)+'\',\''+ns+'\',\''+r.place_id+'\')">'
+          +'<span class="ac-pin">&#128205;</span>'
+          +'<div><div class="ac-name">'+esc(r.name)+'<span style="font-size:9px;color:#4CAF50;margin-left:5px;font-weight:700">G</span></div>'
+          +(r.addr?'<div class="ac-addr">'+esc(r.addr)+'</div>':'')+'</div></div>';
+      } else {
+        var nd=r.namedetails||{},ad=r.address||{};
+        var name=nd.name||nd['name:en']||r.display_name.split(',')[0].trim();
+        var addr=(ad.suburb||ad.neighbourhood||ad.city||'').trim();
+        var lat=parseFloat(r.lat),lon=parseFloat(r.lon);
+        var dkm=Math.round(dist(lat,lon,acBias.lat,acBias.lon)*111);
+        var dtag=dkm>1?' <span style="color:rgba(255,255,255,.3);font-size:10px">'+dkm+'km</span>':'';
+        var ns=name.replace(/'/g,'&#39;');
+        html+='<div class="ac-item" onclick="pickAC(\''+inputId+'\',\''+ns+'\','+lat+','+lon+')">'
+          +'<span class="ac-pin">&#128205;</span>'
+          +'<div><div class="ac-name">'+esc(name)+dtag+'</div>'
+          +(addr?'<div class="ac-addr">'+esc(addr)+'</div>':'')+'</div></div>';
+      }
     });
   }
   box.innerHTML=html;
   box.style.display='block';
 }
-
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 function pickAC(inputId,name,lat,lon){
@@ -927,72 +940,127 @@ function stopAudio(){
   if(windGain&&audioCtx)windGain.gain.setTargetAtTime(0,audioCtx.currentTime,.4);
 }
 
-
-var mapTapTarget=null;
-function onPlanMapClick(e){
-  if(!mapTapTarget||document.getElementById('scr-plan').style.display==='none')return;
-  setFromMapTap(e.latlng.lat,e.latlng.lng);
+var GKEY='';
+function saveGKey(){
+  var k=document.getElementById('gkey-inp').value.trim();
+  GKEY=k;
+  var st=document.getElementById('gkey-st');
+  if(k){try{localStorage.setItem('rp_gkey',k);}catch(e){}
+    if(st){st.textContent='Google Maps API active \u2713';st.style.color='#30d158';}
+  } else {
+    try{localStorage.removeItem('rp_gkey');}catch(e){}
+    if(st){st.textContent='No API key - using OpenStreetMap search';st.style.color='rgba(255,255,255,.35)';}
+  }
 }
-function onPlanMapTouch(e){
-  if(!mapTapTarget||document.getElementById('scr-plan').style.display==='none')return;
-  var t=(e.touches&&e.touches[0])||(e.changedTouches&&e.changedTouches[0]);
-  if(!t)return;
-  var ll=map.containerPointToLatLng(L.point(t.clientX,t.clientY));
-  setFromMapTap(ll.lat,ll.lng);
+(function(){
+  try{
+    var k=localStorage.getItem('rp_gkey');
+    if(k){
+      GKEY=k;
+      var inp=document.getElementById('gkey-inp');
+      var st=document.getElementById('gkey-st');
+      if(inp)inp.value=k;
+      if(st){st.textContent='Google Maps API active \u2713';st.style.color='#30d158';}
+    }
+  }catch(e){}
+})();
+var gSdkLoading=null;
+function loadGoogleSDK(){
+  if(window.google&&window.google.maps)return Promise.resolve();
+  if(gSdkLoading)return gSdkLoading;
+  gSdkLoading=new Promise(function(resolve,reject){
+    var s=document.createElement('script');
+    s.src='https://maps.googleapis.com/maps/api/js?key='+GKEY+'&libraries=places&callback=__gCB';
+    s.onerror=function(){gSdkLoading=null;reject(new Error('Google SDK load failed'));}
+    window.__gCB=function(){resolve();};
+    document.head.appendChild(s);
+  });
+  return gSdkLoading;
 }
-function setFromMapTap(lat,lon){
-  var inputId=mapTapTarget==='from'?'inp-from':'inp-to';
-  hideTapHint();
-  fetch('https://nominatim.openstreetmap.org/reverse?lat='+lat+'&lon='+lon+'&format=json&zoom=18&namedetails=1&addressdetails=1',{headers:{'Accept':'application/json','User-Agent':'RoutePreview/1.0'}})
-  .then(function(r){return r.json();}).then(function(d){
-    var nd=d.namedetails||{},ad=d.address||{};
-    var name=nd.name||nd['name:en']||ad.amenity||ad.building||ad.tourism||ad.road||ad.neighbourhood||(d.display_name?d.display_name.split(',')[0]:'Tapped location');
-    document.getElementById(inputId).value=name;
-    if(inputId==='inp-from'){ptA={lat:lat,lon:lon,name:name};placeMarker('A',lat,lon);}
-    else{ptB={lat:lat,lon:lon,name:name};placeMarker('B',lat,lon);}
-    document.getElementById(inputId).style.borderColor='#30d158';
-    setTimeout(function(){document.getElementById(inputId).style.borderColor='';},1500);
-    if(ptA&&ptB)calcRoute();
-  }).catch(function(){
-    var name='Pinned location';
-    document.getElementById(inputId).value=name;
-    if(inputId==='inp-from'){ptA={lat:lat,lon:lon,name:name};placeMarker('A',lat,lon);}
-    else{ptB={lat:lat,lon:lon,name:name};placeMarker('B',lat,lon);}
-    if(ptA&&ptB)calcRoute();
+async function googleAC(q){
+  await loadGoogleSDK();
+  return new Promise(function(resolve){
+    var svc=new window.google.maps.places.AutocompleteService();
+    svc.getPlacePredictions({
+      input:q,
+      locationBias:new window.google.maps.Circle({center:{lat:acBias.lat,lng:acBias.lon},radius:50000})
+    },function(p,s){resolve(s==='OK'&&p?p:[]);});
   });
 }
-function showTapHint(field){
-  mapTapTarget=field;
-  var hint=document.getElementById('tap-hint');
-  if(hint){hint.innerHTML='Tap the map to pin '+(field==='from'?'start':'destination')+' &nbsp;<span onclick="hideTapHint()" style="color:rgba(255,255,255,.45);cursor:pointer;font-weight:400">Cancel</span>';hint.style.display='block';}
-  var panel=document.getElementById('route-panel');
-  if(panel){panel.classList.add('collapsed');panel.style.pointerEvents='none';}
-  document.getElementById('scr-plan').style.pointerEvents='none';
+async function googleGeocode(q){
+  await loadGoogleSDK();
+  return new Promise(function(resolve){
+    new window.google.maps.Geocoder().geocode({
+      address:q,
+      bounds:new window.google.maps.LatLngBounds(
+        new window.google.maps.LatLng(acBias.lat-0.5,acBias.lon-0.5),
+        new window.google.maps.LatLng(acBias.lat+0.5,acBias.lon+0.5))
+    },function(r,s){
+      if(s==='OK'&&r&&r[0]){
+        var loc=r[0].geometry.location;
+        resolve({lat:loc.lat(),lon:loc.lng(),name:r[0].formatted_address.split(',')[0]});
+      }else resolve(null);
+    });
+  });
 }
-function hideTapHint(){
-  mapTapTarget=null;
-  var hint=document.getElementById('tap-hint');
-  if(hint){hint.style.display='none';hint.innerHTML='';}
-  var panel=document.getElementById('route-panel');
-  if(panel){panel.classList.remove('collapsed');panel.style.pointerEvents='';}
-  document.getElementById('scr-plan').style.pointerEvents='';
+async function googlePlaceDetail(placeId){
+  await loadGoogleSDK();
+  return new Promise(function(resolve){
+    var svc=new window.google.maps.places.PlacesService(document.createElement('div'));
+    svc.getDetails({placeId:placeId,fields:['geometry','name','formatted_address']},function(p,s){
+      if(s==='OK'&&p){var l=p.geometry.location;resolve({lat:l.lat(),lon:l.lng(),name:p.name||p.formatted_address.split(',')[0]});}
+      else resolve(null);
+    });
+  });
 }
-async function geocodeInput(inputId,cb){
+async function pickGoogle(inputId,name,placeId){
+  hideAC();
+  document.getElementById(inputId).value=name;
+  try{
+    var det=await googlePlaceDetail(placeId);
+    if(det){
+      var nm=det.name||name;
+      document.getElementById(inputId).value=nm;
+      if(inputId==='inp-from'){ptA={lat:det.lat,lon:det.lon,name:nm};placeMarker('A',det.lat,det.lon);}
+      else{ptB={lat:det.lat,lon:det.lon,name:nm};placeMarker('B',det.lat,det.lon);}
+      document.getElementById('quick-chips').style.display='none';
+      if(ptA&&ptB)calcRoute();
+    }
+  }catch(e){console.warn('pickGoogle:',e);}
+}
+function loading(on,t,s){document.getElementById('lov').classList.toggle('on',on);if(t)document.getElementById('lov-t').textContent=t;if(s)document.getElementById('lov-s').textContent=s;}
+
+document.getElementById('inp-from').addEventListener('keydown',function(e){if(e.key==='Enter'){hideAC();geocodeInput('inp-from',function(){document.getElementById('inp-to').focus();});}});
+document.getElementById('inp-to').addEventListener('keydown',function(e){if(e.key==='Enter'){hideAC();geocodeInput('inp-to',function(){if(ptA&&ptB)calcRoute();});}});
+document.getElementById('inp-from').addEventListener('blur',function(){var v=this.value.trim();if(v&&(!ptA||ptA.name!==v))geocodeInput('inp-from',null);});
+document.getElementById('inp-to').addEventListener('blur',function(){var v=this.value.trim();if(v&&(!ptB||ptB.name!==v))geocodeInput('inp-to',function(){if(ptA&&ptB)calcRoute();});});
+</script></body></htmlasync function geocodeInput(inputId,cb){
   var inp=document.getElementById(inputId);
-  var q=inp.value.trim();if(!q)return;
+  var q=inp.value.trim();
+  if(!q){if(cb)cb();return;}
   if(inputId==='inp-from'&&ptA&&ptA.name===q){if(cb)cb();return;}
   if(inputId==='inp-to'&&ptB&&ptB.name===q){if(cb)cb();return;}
-  var hdr={'Accept':'application/json','User-Agent':'RoutePreview/1.0'};
-  var city=acBias.city||'';
-  var r=0.8;
-  var vb='&viewbox='+(acBias.lon-r)+','+(acBias.lat+r)+','+(acBias.lon+r)+','+(acBias.lat-r)+'&bounded=0';
-  var queries=[];
-  if(city&&q.toLowerCase().indexOf(city.toLowerCase())<0){queries.push(q+', '+city);queries.push(q+' '+city);}
-  queries.push(q);
-  var found=null;
-  for(var ti=0;ti<queries.length&&!found;ti++){
+  if(GKEY){
     try{
-      var u='https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(queries[ti])
+      var gr=await googleGeocode(q);
+      if(gr){
+        inp.value=gr.name;
+        if(inputId==='inp-from'){ptA={lat:gr.lat,lon:gr.lon,name:gr.name};placeMarker('A',gr.lat,gr.lon);}
+        else{ptB={lat:gr.lat,lon:gr.lon,name:gr.name};placeMarker('B',gr.lat,gr.lon);}
+        inp.style.borderColor='#30d158';setTimeout(function(){inp.style.borderColor='';},1500);
+        if(cb)cb();return;
+      }
+    }catch(e){console.warn('Google geocode:',e);}
+  }
+  var hdr={'Accept':'application/json','User-Agent':'RoutePreview/1.0'};
+  var city=acBias.city||'';var r2=0.8;
+  var vb='&viewbox='+(acBias.lon-r2)+','+(acBias.lat+r2)+','+(acBias.lon+r2)+','+(acBias.lat-r2)+'&bounded=0';
+  var sq=(city&&q.toLowerCase().indexOf(city.toLowerCase())<0)?(q+', '+city):q;
+  var found=null;
+  for(var ti=0;ti<3&&!found;ti++){
+    try{
+      var qry=[sq,q,q+' '+city][ti];
+      var u='https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(qry)
         +'&format=json&limit=10&addressdetails=1&namedetails=1'+(ti<2?vb:'')+'&dedupe=1';
       var data=await (await fetch(u,{headers:hdr})).json();
       if(data&&data.length){
@@ -1002,35 +1070,18 @@ async function geocodeInput(inputId,cb){
     }catch(e){}
   }
   if(!found){
-    inp.style.borderColor='#ff9f0a';inp.style.background='rgba(255,159,10,.06)';
-    var op=inp.placeholder;inp.placeholder='Not found - tap map to pin location';
-    setTimeout(function(){inp.style.borderColor='';inp.style.background='';inp.placeholder=op;},4000);
-    showTapHint(inputId==='inp-from'?'from':'to');
+    inp.style.borderColor='#ff453a';
+    var op=inp.placeholder;inp.placeholder='Not found in maps';
+    setTimeout(function(){inp.style.borderColor='';inp.placeholder=op;},2500);
     return;
   }
   var nd=found.namedetails||{};
   var nm=nd.name||nd['name:en']||found.display_name.split(',')[0].trim();
-  var la=parseFloat(found.lat),lo=parseFloat(found.lon);
   inp.value=nm;
+  var la=parseFloat(found.lat),lo=parseFloat(found.lon);
   if(inputId==='inp-from'){ptA={lat:la,lon:lo,name:nm};placeMarker('A',la,lo);}
   else{ptB={lat:la,lon:lo,name:nm};placeMarker('B',la,lo);}
-  inp.style.borderColor='#30d158';inp.style.background='rgba(48,209,88,.06)';
-  setTimeout(function(){inp.style.borderColor='';inp.style.background='';},1800);
+  inp.style.borderColor='#30d158';setTimeout(function(){inp.style.borderColor='';},1500);
   if(cb)cb();
 }
-async function goPreview(){
-  var fv=document.getElementById('inp-from').value.trim();
-  var tv=document.getElementById('inp-to').value.trim();
-  if(fv&&(!ptA||ptA.name!==fv))await geocodeInput('inp-from',null);
-  if(tv&&(!ptB||ptB.name!==tv))await geocodeInput('inp-to',null);
-  if(!ptA||!ptB){alert('Could not find locations. Try different spelling or tap map.');return;}
-  if(!routeCoords||routeCoords.length<2){await calcRoute();if(!routeCoords||routeCoords.length<2)return;}
-  startPreview();
-}
-function loading(on,t,s){document.getElementById('lov').classList.toggle('on',on);if(t)document.getElementById('lov-t').textContent=t;if(s)document.getElementById('lov-s').textContent=s;}
-
-document.getElementById('inp-from').addEventListener('keydown',function(e){if(e.key==='Enter'){hideAC();geocodeInput('inp-from',function(){document.getElementById('inp-to').focus();});}});
-document.getElementById('inp-to').addEventListener('keydown',function(e){if(e.key==='Enter'){hideAC();geocodeInput('inp-to',function(){if(ptA&&ptB)calcRoute();});}});
-document.getElementById('inp-from').addEventListener('blur',function(){var v=this.value.trim();if(v&&(!ptA||ptA.name!==v))geocodeInput('inp-from',null);});
-document.getElementById('inp-to').addEventListener('blur',function(){var v=this.value.trim();if(v&&(!ptB||ptB.name!==v))geocodeInput('inp-to',function(){if(ptA&&ptB)calcRoute();});});
-</script></body></html>
+>
