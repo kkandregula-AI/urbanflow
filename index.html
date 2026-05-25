@@ -952,7 +952,8 @@ function saveGKey(){
     if(st){st.textContent='No API key - using OpenStreetMap search';st.style.color='rgba(255,255,255,.35)';}
   }
 }
-(function(){
+// Key loaded after DOM ready (at end of script)
+function loadSavedKey(){
   try{
     var k=localStorage.getItem('rp_gkey');
     if(k){
@@ -963,7 +964,7 @@ function saveGKey(){
       if(st){st.textContent='Google Maps API active \u2713';st.style.color='#30d158';}
     }
   }catch(e){}
-})();
+}
 var gSdkLoading=null;
 function loadGoogleSDK(){
   if(window.google&&window.google.maps)return Promise.resolve();
@@ -1016,20 +1017,44 @@ async function googlePlaceDetail(placeId){
 async function pickGoogle(inputId,name,placeId){
   hideAC();
   document.getElementById(inputId).value=name;
+  document.getElementById('quick-chips').style.display='none';
+  // Set point immediately with name as placeholder coords
+  // (will be updated with real coords from Place Details)
   try{
+    loading(true,'Getting location...','Fetching place details');
     var det=await googlePlaceDetail(placeId);
+    loading(false);
     if(det){
       var nm=det.name||name;
       document.getElementById(inputId).value=nm;
       if(inputId==='inp-from'){ptA={lat:det.lat,lon:det.lon,name:nm};placeMarker('A',det.lat,det.lon);}
       else{ptB={lat:det.lat,lon:det.lon,name:nm};placeMarker('B',det.lat,det.lon);}
-      document.getElementById('quick-chips').style.display='none';
+      // Show on map
+      if(ptA&&!ptB){map.setView([det.lat,det.lon],15);}
       if(ptA&&ptB)calcRoute();
     }
-  }catch(e){console.warn('pickGoogle:',e);}
+  }catch(e){
+    loading(false);
+    console.warn('pickGoogle:',e);
+    // Fall back to OSM geocode
+    geocodeInput(inputId,function(){if(ptA&&ptB)calcRoute();});
+  }
+}
+async function goPreview(){
+  // If coords already set (from pickAC/pickGoogle/useMyLocation), just route+preview
+  // Only geocode if typed text doesn't match stored point name
+  var fv=document.getElementById('inp-from').value.trim();
+  var tv=document.getElementById('inp-to').value.trim();
+  if(!ptA&&fv) await geocodeInput('inp-from',null);
+  if(!ptB&&tv) await geocodeInput('inp-to',null);
+  if(!ptA||!ptB){alert('Please set start and destination.');return;}
+  if(!routeCoords||routeCoords.length<2){await calcRoute();}
+  if(!routeCoords||routeCoords.length<2){alert('Could not calculate route. Check connection.');return;}
+  startPreview();
 }
 function loading(on,t,s){document.getElementById('lov').classList.toggle('on',on);if(t)document.getElementById('lov-t').textContent=t;if(s)document.getElementById('lov-s').textContent=s;}
 
+loadSavedKey();
 document.getElementById('inp-from').addEventListener('keydown',function(e){if(e.key==='Enter'){hideAC();geocodeInput('inp-from',function(){document.getElementById('inp-to').focus();});}});
 document.getElementById('inp-to').addEventListener('keydown',function(e){if(e.key==='Enter'){hideAC();geocodeInput('inp-to',function(){if(ptA&&ptB)calcRoute();});}});
 document.getElementById('inp-from').addEventListener('blur',function(){var v=this.value.trim();if(v&&(!ptA||ptA.name!==v))geocodeInput('inp-from',null);});
