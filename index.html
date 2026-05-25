@@ -325,7 +325,7 @@ function showPlan(){
 // Map init
 function initMap(lat,lon){
   if(map){map.setView([lat,lon],14);return;}
-  map=L.map('map',{center:[lat,lon],zoom:14,zoomControl:false,preferCanvas:true});
+  map=L.map('map',{center:[lat,lon],zoom:14,zoomControl:true,preferCanvas:true,zoomControlOptions:{position:'topright'}});
   L.control.attribution({position:'bottomleft',prefix:false}).addTo(map);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
     attribution:'\u00a9 OpenStreetMap',subdomains:['a','b','c'],maxZoom:20
@@ -593,9 +593,13 @@ async function fetchLandmarks(){
       var nm=(d.namedetails&&d.namedetails.name)||(d.address&&(d.address.road||d.address.suburb||d.address.neighbourhood));
       if(nm&&nm.length>2){
         var dd=0;for(var j=0;j<i;j++)dd+=hvs(routeCoords[j].lat,routeCoords[j].lng,routeCoords[j+1].lat,routeCoords[j+1].lng);
+        // Only add if name not already in landmarks (deduplicate)
+      var isDupe=landmarks.some(function(l){return l.name===nm;});
+      if(!isDupe){
         var lmIco=L.divIcon({className:'',html:'<div style="background:rgba(255,159,10,.9);color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.3);border:1.5px solid rgba(255,255,255,.3)">\uD83C\uDFDB '+nm+'</div>',iconSize:[1,1],iconAnchor:[0,12]});
         var lmMk=L.marker([c.lat,c.lng],{icon:lmIco,interactive:false}).addTo(map);
         landmarks.push({name:nm,dist:dd,announced:false,mk:lmMk});
+      }
       }
     }catch(e){}
     await new Promise(function(r){setTimeout(r,260);});
@@ -702,39 +706,24 @@ function updateDrive(dt){
 
 function updateNav(){
   if(!routeSteps.length){setNav('\u2191','Continue','','');return;}
-
-  // Build full list of upcoming maneuvers with distances
   var maneuvers=[];
   var cum=0;
   for(var i=0;i<routeSteps.length;i++){
     var m=routeSteps[i].maneuver||{};
-    var d2=cum-driveDist; // positive = ahead, negative = passed
+    var d2=cum-driveDist;
     if(m.type!=='depart'){
-      maneuvers.push({
-        step:routeSteps[i],
-        m:m,
-        dist:d2
-      });
+      maneuvers.push({step:routeSteps[i],m:m,dist:d2});
     }
     cum+=routeSteps[i].distance||0;
   }
-
-  // Find the NEXT upcoming turn (smallest positive dist, or just-passed within 8m)
   var next=null;
   for(var j=0;j<maneuvers.length;j++){
-    if(maneuvers[j].dist>-8){  // upcoming OR within 8m past
-      next=maneuvers[j];
-      break;
-    }
+    if(maneuvers[j].dist>-8){next=maneuvers[j];break;}
   }
-
   if(!next){setNav('\uD83C\uDFC1','Arriving','','');return;}
-
-  var mod=next.m.modifier||'', type=next.m.type||'';
+  var mod=next.m.modifier||'',type=next.m.type||'';
   var dd=Math.max(0,next.dist);
-
-  // Arrow + action text
-  var ar='\u2191', tx='Continue';
+  var ar='\u2191',tx='Continue';
   if(mod==='right'||mod==='sharp right')      {ar='\u21B1';tx='Turn right';}
   else if(mod==='left'||mod==='sharp left')   {ar='\u21B0';tx='Turn left';}
   else if(mod==='slight right')               {ar='\u2197';tx='Bear right';}
@@ -742,35 +731,25 @@ function updateNav(){
   else if(mod==='uturn')                      {ar='\u21BA';tx='U-turn';}
   else if(type==='roundabout'||type==='rotary'){ar='\u21BB';tx='Roundabout';}
   else if(type==='arrive')                    {ar='\uD83C\uDFC1';tx='Arriving';}
-
-  // Distance label
-  var ds='';
-  if(type==='arrive')      ds='';
-  else if(dd<20)           ds='NOW';
-  else if(dd<1000)         ds='in '+Math.round(dd/10)*10+'m';
-  else                     ds='in '+(dd/1000).toFixed(1)+'km';
-
-  // Lane guidance (India LHD)
+  var ds=type==='arrive'?'':dd<20?'NOW':dd<1000?'in '+Math.round(dd/10)*10+'m':'in '+(dd/1000).toFixed(1)+'km';
+  // Lane guidance: only show ADDITIONAL context, not repeat the instruction
   var lane='';
-  if(dd>0&&dd<800&&type!=='arrive'){
+  if(type==='arrive'){
+    lane='You have arrived';
+  } else if(dd<20){
+    lane='\uD83D\uDEA8 Turn '+mod.toUpperCase()+' NOW';
+  } else if(dd<600){
     if(mod==='right'||mod==='sharp right')
-      lane='\u26A0\uFE0F Right turn ahead \u2014 watch oncoming';
+      lane='\u26A0\uFE0F Move right \u2014 watch oncoming traffic';
     else if(mod==='left'||mod==='sharp left')
-      lane='\u2714\uFE0F Stay left \u2014 turn left '+ds;
+      lane='\u2714\uFE0F Stay in left lane';
     else if(type==='roundabout'||type==='rotary')
-      lane='\u21BB Enter roundabout '+ds;
+      lane='\u21BB Prepare for roundabout';
   }
-  if(type==='arrive') lane='You have arrived';
-  if(dd<20&&type!=='arrive') lane='\uD83D\uDEA8 Turn '+mod+' NOW';
-
-  var street=next.step.name?'onto '+next.step.name:'';
-  var actionTxt=type==='arrive'?'Arriving at destination':tx+(ds?' '+ds:'');
-
-  // Show next-next turn as preview when current turn is far away
+  // Next turn preview only when current is far (>400m) and next exists
   var preview='';
-  if(dd>300&&maneuvers.length>1&&maneuvers[1]&&maneuvers[1].dist>0){
-    var n2=maneuvers[1];
-    var mod2=n2.m.modifier||'',type2=n2.m.type||'';
+  if(dd>400&&maneuvers.length>1&&maneuvers[1]&&maneuvers[1].dist>0){
+    var n2=maneuvers[1],mod2=n2.m.modifier||'',type2=n2.m.type||'';
     var ar2='\u2191';
     if(mod2==='right'||mod2==='sharp right')ar2='\u21B1';
     else if(mod2==='left'||mod2==='sharp left')ar2='\u21B0';
@@ -781,8 +760,8 @@ function updateNav(){
     var ds2=dd2<1000?Math.round(dd2/10)*10+'m':(dd2/1000).toFixed(1)+'km';
     preview=' then '+ar2+' '+ds2;
   }
-
-  setNav(ar, actionTxt+preview, street, lane);
+  var street=next.step.name?'onto '+next.step.name:'';
+  setNav(ar,type==='arrive'?'Arriving at destination':tx+' '+ds+preview,street,lane);
 }
 function setNav(a,t,s,l){
   document.getElementById('nav-arrow').textContent=a;
