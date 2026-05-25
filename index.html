@@ -694,7 +694,10 @@ function stepSpeed(){
       var nm=(routeSteps[i].name||'').toLowerCase();
       var ref=(routeSteps[i].ref||'').toUpperCase();
       // Classify road type
-      if(nm.indexOf('expressway')>=0||nm.indexOf('freeway')>=0||nm.indexOf('autoroute')>=0||nm.indexOf('autobahn')>=0)
+      // Singapore 3-letter expressway codes (AYE, MCE, PIE, CTE etc)
+      var isSGExpy=ref.match(/^(AYE|MCE|PIE|CTE|TPE|KJE|BKE|SLE|KPE|ECP|NSC)/) ||
+                   nm.match(/ayer rajah|marina coastal|pan-island|central express|tampines|kranji|bukit timah|seletar|kallang/);
+      if(isSGExpy||nm.indexOf('expressway')>=0||nm.indexOf('freeway')>=0||nm.indexOf('autoroute')>=0||nm.indexOf('autobahn')>=0)
         return sp.expressway;
       if(nm.indexOf('outer ring')>=0||nm.indexOf('ring road')>=0||nm.indexOf('beltway')>=0||nm.indexOf('peripheral')>=0||nm.indexOf('peripherique')>=0)
         return sp.ringroad;
@@ -710,6 +713,8 @@ function stepSpeed(){
         return sp.urban;
       if(nm.indexOf('main')>=0||nm.indexOf('street')>=0||nm.indexOf('str.')>=0)
         return sp.main;
+      if(nm.indexOf('park')>=0||nm.indexOf('garden')>=0||nm.indexOf('reserve')>=0||nm.indexOf('forest')>=0)
+        return Math.min(sp.residential,30); // park access roads: slow
       if(nm.length<3) return sp.residential; // unnamed/short = small road
       return sp.def;
     }
@@ -722,8 +727,16 @@ function stepName(){
   var d=0;
   for(var i=0;i<routeSteps.length;i++){
     d+=routeSteps[i].distance||0;
-    if(driveDist<d){var n=routeSteps[i].name||routeSteps[i].ref||'';return n.length>22?n.slice(0,20)+'..':n||'-';}
-  }return '-';
+    if(driveDist<d){
+      var n=routeSteps[i].name||routeSteps[i].ref||'';
+      // Detect tunnel/underground roads
+      var nm=n.toLowerCase();
+      if(nm.indexOf('tunnel')>=0||nm.indexOf('underpass')>=0)n='[Tunnel] '+n;
+      else if(nm.indexOf('bridge')>=0||nm.indexOf('flyover')>=0||nm.indexOf('viaduct')>=0)n='[Elevated] '+n;
+      return n.length>24?n.slice(0,22)+'..':n||'-';
+    }
+  }
+  return '-';
 }
 
 function updateDrive(dt){
@@ -829,7 +842,8 @@ function renderCar(){
     var pp=map.latLngToContainerPoint([pv.lat,pv.lng]);
     var fwdX=Math.sin(pv.heading),fwdY=-Math.cos(pv.heading);
     var lhd2=(window.isLHD!==false); var lx=lhd2?fwdY:-fwdY,ly=lhd2?-fwdX:fwdX;
-    drawCar(pp.x+lx*4*sc,pp.y+ly*4*sc,pv.heading,sc);
+    var laneOff=Math.min(2.5,1.5)*sc; // small offset, stays on road visually
+    drawCar(pp.x+lx*laneOff,pp.y+ly*laneOff,pv.heading,sc);
   }catch(e){}
 }
 
