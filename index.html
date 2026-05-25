@@ -166,6 +166,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
       <span class="chip" onclick="quickSearch('Petrol Pump')">&#9981; Petrol</span>
     </div>
     <div id="ac-box"></div>
+    <div id="tap-hint" style="display:none;text-align:center;font-size:12px;color:#0a84ff;padding:6px 16px;font-weight:600">Tap the map to set location</div>
     <div id="rinfo">
       <div class="rstats">
         <div class="rstat"><div class="rv" id="r-dist">-</div><div class="rl">Distance</div></div>
@@ -275,7 +276,8 @@ var mapStyle='road',tileLayer=null,labelLayer=null; window.isLHD=true;
   CITIES.forEach(function(c){
     var card=document.createElement('div');
     card.className='city-card';
-    card.innerHTML='<div class="city-emoji">'+c.ic+'</div><div class="city-card-name">'+c.n+'</div><div class="city-card-country">'+c.c+'</div>';
+    var badge=(c.lhd!==false)?'<span style="font-size:9px;background:rgba(48,209,88,.2);color:#30d158;padding:1px 5px;border-radius:4px;margin-left:4px">LHD</span>':'<span style="font-size:9px;background:rgba(255,159,10,.2);color:#ff9f0a;padding:1px 5px;border-radius:4px;margin-left:4px">RHD</span>';
+    card.innerHTML='<div class="city-emoji">'+c.ic+'</div><div class="city-card-name">'+c.n+badge+'</div><div class="city-card-country">'+c.c+'</div>';
     card.addEventListener('click',function(){selectCity(c);});
     card.addEventListener('touchend',function(e){e.preventDefault();selectCity(c);});
     grid.appendChild(card);
@@ -325,6 +327,8 @@ function initMap(lat,lon){
   vctx=vc.getContext('2d');
   function rsz(){vc.width=window.innerWidth;vc.height=window.innerHeight;}
   rsz();window.addEventListener('resize',rsz);
+  map.on('click',onPlanMapClick);
+  map.on('touchend',onPlanMapTouch);
 }
 
 // Satellite toggle
@@ -935,9 +939,12 @@ async function geocodeInput(inputId,cb){
     }catch(e){}
   }
   if(!found){
-    inp.style.borderColor='#ff453a';inp.style.background='rgba(255,69,58,.08)';
-    var op=inp.placeholder;inp.placeholder='Not found - try different spelling';
-    setTimeout(function(){inp.style.borderColor='';inp.style.background='';inp.placeholder=op;},3000);
+    inp.style.borderColor='#ff9f0a';inp.style.background='rgba(255,159,10,.06)';
+    var op2=inp.placeholder;inp.placeholder='Not found - tap map to set location';
+    setTimeout(function(){inp.style.borderColor='';inp.style.background='';inp.placeholder=op2;},4000);
+    // Enable map tap mode as fallback
+    var tfield=inputId==='inp-from'?'from':'to';
+    showTapHint(tfield);
     return;
   }
   var nd=found.namedetails||{};
@@ -958,6 +965,53 @@ async function goPreview(){
   if(!ptA||!ptB){alert('Could not find locations. Try different spelling.');return;}
   if(!routeCoords||routeCoords.length<2){await calcRoute();if(!routeCoords||routeCoords.length<2)return;}
   startPreview();
+}
+
+var mapTapTarget=null; // 'from' or 'to'
+function onPlanMapClick(e){
+  if(!mapTapTarget||document.getElementById('scr-plan').style.display==='none')return;
+  setFromMapTap(e.latlng.lat,e.latlng.lng);
+}
+function onPlanMapTouch(e){
+  if(!mapTapTarget||document.getElementById('scr-plan').style.display==='none')return;
+  var t=(e.touches&&e.touches[0])||(e.changedTouches&&e.changedTouches[0]);
+  if(!t)return;
+  var ll=map.containerPointToLatLng(L.point(t.clientX,t.clientY));
+  setFromMapTap(ll.lat,ll.lng);
+}
+function setFromMapTap(lat,lon){
+  var inputId=mapTapTarget==='from'?'inp-from':'inp-to';
+  mapTapTarget=null;
+  hideTapHint();
+  // Reverse geocode the tapped point
+  fetch('https://nominatim.openstreetmap.org/reverse?lat='+lat+'&lon='+lon+'&format=json&zoom=18&namedetails=1&addressdetails=1',{
+    headers:{'Accept':'application/json','User-Agent':'RoutePreview/1.0'}
+  }).then(function(r){return r.json();}).then(function(d){
+    var nd=d.namedetails||{},ad=d.address||{};
+    var name=nd.name||nd['name:en']||ad.amenity||ad.building||ad.road||ad.neighbourhood||(d.display_name?d.display_name.split(',')[0]:'Tapped location');
+    document.getElementById(inputId).value=name;
+    if(inputId==='inp-from'){ptA={lat:lat,lon:lon,name:name};placeMarker('A',lat,lon);}
+    else{ptB={lat:lat,lon:lon,name:name};placeMarker('B',lat,lon);}
+    document.getElementById(inputId).style.borderColor='#30d158';
+    setTimeout(function(){document.getElementById(inputId).style.borderColor='';},1500);
+    if(ptA&&ptB)calcRoute();
+  }).catch(function(){
+    var name='Location ('+lat.toFixed(4)+','+lon.toFixed(4)+')';
+    document.getElementById(inputId).value=name;
+    if(inputId==='inp-from'){ptA={lat:lat,lon:lon,name:name};placeMarker('A',lat,lon);}
+    else{ptB={lat:lat,lon:lon,name:name};placeMarker('B',lat,lon);}
+    if(ptA&&ptB)calcRoute();
+  });
+}
+function showTapHint(field){
+  mapTapTarget=field;
+  var hint=document.getElementById('tap-hint');
+  if(hint){hint.style.display='block';hint.textContent='Tap the map to set '+(field==='from'?'start':'destination');}
+}
+function hideTapHint(){
+  mapTapTarget=null;
+  var hint=document.getElementById('tap-hint');
+  if(hint)hint.style.display='none';
 }
 function loading(on,t,s){document.getElementById('lov').classList.toggle('on',on);if(t)document.getElementById('lov-t').textContent=t;if(s)document.getElementById('lov-s').textContent=s;}
 
