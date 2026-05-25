@@ -17,9 +17,9 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 .app-eye{font-size:11px;font-weight:600;color:rgba(255,255,255,.38);letter-spacing:1px;text-transform:uppercase}
 .app-title{font-size:34px;font-weight:700;letter-spacing:-.5px;margin-top:3px}
 .app-sub{font-size:14px;color:rgba(255,255,255,.38);margin-top:5px}
-.city-grid{flex:1;overflow-y:auto;padding:10px 20px 30px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.city-grid{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:10px 20px 30px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .city-grid::-webkit-scrollbar{display:none}
-.city-card{background:rgba(255,255,255,.06);border-radius:16px;padding:16px;cursor:pointer;border:1.5px solid rgba(255,255,255,.06)}
+.city-card{background:rgba(255,255,255,.06);border-radius:16px;padding:16px;cursor:pointer;border:1.5px solid rgba(255,255,255,.06);touch-action:manipulation;user-select:none;-webkit-user-select:none}
 .city-card:active{background:rgba(255,255,255,.12)}
 .city-emoji{font-size:26px;margin-bottom:8px}
 .city-card-name{font-size:16px;font-weight:600}
@@ -287,8 +287,12 @@ var mapStyle='road',tileLayer=null,labelLayer=null; window.isLHD=true;
     card.className='city-card';
     var badge=(c.lhd!==false)?'<span style="font-size:9px;background:rgba(48,209,88,.2);color:#30d158;padding:1px 5px;border-radius:4px;margin-left:4px">LHD</span>':'<span style="font-size:9px;background:rgba(255,159,10,.2);color:#ff9f0a;padding:1px 5px;border-radius:4px;margin-left:4px">RHD</span>';
     card.innerHTML='<div class="city-emoji">'+c.ic+'</div><div class="city-card-name">'+c.n+badge+'</div><div class="city-card-country">'+c.c+'</div>';
+    // Only fire on tap, not on scroll
+    var touchStartY=0,touchStartX=0,touchMoved=false;
+    card.addEventListener('touchstart',function(e){touchStartY=e.touches[0].clientY;touchStartX=e.touches[0].clientX;touchMoved=false;},{passive:true});
+    card.addEventListener('touchmove',function(e){if(Math.abs(e.touches[0].clientY-touchStartY)>8||Math.abs(e.touches[0].clientX-touchStartX)>8)touchMoved=true;},{passive:true});
+    card.addEventListener('touchend',function(e){if(!touchMoved)selectCity(c);});
     card.addEventListener('click',function(){selectCity(c);});
-    card.addEventListener('touchend',function(e){e.preventDefault();selectCity(c);});
     grid.appendChild(card);
   });
 })();
