@@ -27,7 +27,8 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 /* PLAN */
 #scr-plan{position:fixed;inset:0;z-index:2;display:none}
 #back-btn{position:fixed;top:12px;left:12px;z-index:30;width:36px;height:36px;border-radius:50%;background:rgba(28,28,30,.92);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(12px)}
-#route-panel{position:fixed;bottom:0;left:0;right:0;z-index:20;background:rgba(18,18,22,.97);border-radius:20px 20px 0 0;padding:12px 0 28px;box-shadow:0 -4px 40px rgba(0,0,0,.5);backdrop-filter:blur(20px)}
+#route-panel{position:fixed;bottom:0;left:0;right:0;z-index:20;background:rgba(18,18,22,.97);border-radius:20px 20px 0 0;padding:12px 0 28px;box-shadow:0 -4px 40px rgba(0,0,0,.5);backdrop-filter:blur(20px);transition:transform .3s ease}
+#route-panel.mini{transform:translateY(calc(100% - 44px))}
 .rp-handle{width:36px;height:4px;background:rgba(255,255,255,.18);border-radius:2px;margin:0 auto 12px}
 .rp-title{font-size:11px;font-weight:600;color:rgba(255,255,255,.32);letter-spacing:1px;text-transform:uppercase;padding:0 20px;margin-bottom:10px}
 .rp-row{display:flex;align-items:center;gap:10px;padding:0 16px;margin-bottom:6px}
@@ -148,7 +149,8 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 <div id="scr-plan">
   <button id="back-btn" onclick="showHome()">&#8592;</button>
   <div id="route-panel">
-    <div class="rp-handle"></div>
+    <div class="rp-handle" onclick="togglePlanPanel()" style="cursor:pointer;padding:8px 0;margin:-8px auto 4px"></div>
+    <div id="ptoggle" style="text-align:center;font-size:10px;color:rgba(255,255,255,.22);margin-top:-4px;margin-bottom:4px">tap handle to hide panel</div>
     <div class="rp-title" id="rp-city-name">Plan Your Route</div>
     <div class="rp-row">
       <div class="rp-icon from">A</div>
@@ -756,8 +758,8 @@ function updateNav(){
     else if(mod2==='slight right')ar2='\u2197';
     else if(mod2==='slight left')ar2='\u2196';
     else if(type2==='roundabout')ar2='\u21BB';
-    var dd2=Math.max(0,n2.dist);
-    var ds2=dd2<1000?Math.round(dd2/10)*10+'m':(dd2/1000).toFixed(1)+'km';
+    var dd2=Math.max(0,n2.dist-dd);
+    var ds2=dd2<80?'immediately':dd2<1000?Math.round(dd2/10)*10+'m':(dd2/1000).toFixed(1)+'km';
     preview=' then '+ar2+' '+ds2;
   }
   var street=next.step.name?'onto '+next.step.name:'';
@@ -1092,6 +1094,20 @@ async function goPreview(){
   if(!routeCoords||routeCoords.length<2){await calcRoute();}
   if(!routeCoords||routeCoords.length<2){alert('Could not calculate route. Check connection.');return;}
   startPreview();
+}
+var planPanelCollapsed=false;
+function togglePlanPanel(){
+  planPanelCollapsed=!planPanelCollapsed;
+  var p=document.getElementById('route-panel');
+  var h=document.getElementById('ptoggle');
+  if(planPanelCollapsed){
+    p.classList.add('mini');
+    if(h)h.textContent='tap to show panel';
+  } else {
+    p.classList.remove('mini');
+    if(h)h.textContent='tap handle to hide panel';
+    if(rtLayer)setTimeout(function(){viewRouteOverview();},350);
+  }
 }
 function viewRouteOverview(){
   if(!rtLayer){alert('Calculate a route first.');return;}
