@@ -658,17 +658,26 @@ function loop(ts){
 }
 
 function stepSpeed(){
-  if(!routeSteps.length)return 30;
+  if(!routeSteps.length)return 40;
   var d=0;
   for(var i=0;i<routeSteps.length;i++){
     d+=routeSteps[i].distance||0;
     if(driveDist<d){
-      var nm=(routeSteps[i].name||'').toLowerCase(),ref=routeSteps[i].ref||'';
-      if(nm.indexOf('highway')>=0||nm.indexOf('expressway')>=0||ref.indexOf('NH')>=0)return 80;
-      if(nm.indexOf('main')>=0||nm.indexOf('road')>=0)return 48;
-      return 28;
+      var nm=(routeSteps[i].name||'').toLowerCase();
+      var ref=(routeSteps[i].ref||'').toUpperCase();
+      // Highway/expressway: 100 km/h
+      if(nm.indexOf('expressway')>=0||nm.indexOf('freeway')>=0)return 120;
+      if(nm.indexOf('outer ring')>=0||nm.indexOf('ring road')>=0)return 100;
+      if(ref.indexOf('NH')>=0||ref.indexOf('SH')>=0||nm.indexOf('highway')>=0)return 100;
+      if(nm.indexOf('inner ring')>=0||nm.indexOf('bypass')>=0)return 80;
+      // Major city roads: 60 km/h
+      if(nm.indexOf('road')>=0||nm.indexOf('marg')>=0||nm.indexOf('avenue')>=0)return 60;
+      if(nm.indexOf('main')>=0||nm.indexOf('street')>=0)return 50;
+      // Internal/service roads: 30 km/h
+      if(nm.indexOf('service')>=0||nm.indexOf('lane')>=0||nm.indexOf('alley')>=0)return 30;
+      return 40; // default city speed
     }
-  }return 25;
+  }return 40;
 }
 function stepName(){
   if(!routeSteps.length)return '-';
@@ -685,7 +694,8 @@ function updateDrive(dt){
   var A=routeCoords[segIdx],B=routeCoords[segIdx+1];
   var sd=Math.max(hvs(A.lat,A.lng,B.lat,B.lng),.5);
   var ts=stepSpeed();
-  pv.spd+=(ts-pv.spd)*dt*2.5;pv.spd=Math.max(5,Math.min(ts*1.05,pv.spd));
+  pv.spd+=(ts-pv.spd)*dt*3.5; // faster speed adaptation
+  pv.spd=Math.max(10,Math.min(ts*1.08,pv.spd));
   segProg+=pv.spd*1000/3600*dt/sd;
   driveDist+=pv.spd*1000/3600*dt;
   driveSpeeds.push(pv.spd);
@@ -697,7 +707,7 @@ function updateDrive(dt){
   var diff=tHdg-pv.heading;
   while(diff>Math.PI)diff-=2*Math.PI;while(diff<-Math.PI)diff+=2*Math.PI;
   pv.heading+=diff*Math.min(1,dt*4.5);
-  updateEngine(pv.spd,80);
+  updateEngine(pv.spd,120);
   var rem=0;for(var i=segIdx;i<routeCoords.length-1;i++)rem+=hvs(routeCoords[i].lat,routeCoords[i].lng,routeCoords[i+1].lat,routeCoords[i+1].lng);
   document.getElementById('nav-rem-b').textContent=rem>1000?(rem/1000).toFixed(1)+' km':Math.round(rem)+'m';
   var arrT=new Date(Date.now()+(rem/1000/Math.max(pv.spd,1))*3600000);
@@ -739,7 +749,7 @@ function updateNav(){
   if(type==='arrive'){
     lane='You have arrived';
   } else if(dd<20){
-    lane='\uD83D\uDEA8 Turn '+mod.toUpperCase()+' NOW';
+    lane=''; // main instruction already says NOW
   } else if(dd<600){
     if(mod==='right'||mod==='sharp right')
       lane='\u26A0\uFE0F Move right \u2014 watch oncoming traffic';
