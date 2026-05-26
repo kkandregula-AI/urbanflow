@@ -117,6 +117,26 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 .abtn-n{background:rgba(255,255,255,.1);color:#fff}
 .abtn-a{background:#0a84ff;color:#fff}
 /* LOADING */
+
+#overview-sheet{display:none;position:fixed;inset:0;z-index:300;flex-direction:column;align-items:stretch;justify-content:flex-end}
+#overview-sheet.on{display:flex}
+#overview-inner{background:#1c1c1e;border-radius:20px 20px 0 0;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 -4px 40px rgba(0,0,0,.6)}
+#ov-map-el{width:100%;height:42vh;flex-shrink:0}
+#ov-hdr{display:flex;align-items:flex-start;justify-content:space-between;padding:14px 20px 8px}
+#ov-title{font-size:16px;font-weight:700;color:#fff}
+#ov-meta{font-size:12px;color:rgba(255,255,255,.45);margin-top:3px}
+#ov-close{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.1);border:none;color:#fff;font-size:14px;cursor:pointer;flex-shrink:0}
+#ov-steps{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:20px}
+#ov-steps::-webkit-scrollbar{display:none}
+.ov-step{display:flex;align-items:center;gap:12px;padding:10px 20px;border-bottom:1px solid rgba(255,255,255,.06)}
+.ov-step:last-child{border-bottom:none}
+.ov-arr{width:36px;height:36px;border-radius:10px;background:rgba(10,132,255,.15);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;color:#0a84ff}
+.ov-arr.fin{background:rgba(48,209,88,.15);color:#30d158}
+.ov-txt{flex:1}
+.ov-action{font-size:14px;font-weight:600;color:#fff}
+.ov-dist{font-size:12px;color:rgba(255,255,255,.4);margin-top:2px}
+.ov-num{font-size:11px;color:rgba(255,255,255,.2);min-width:20px;text-align:right}
+#ov-preview-btn{margin:0 20px;padding:14px;border-radius:14px;border:none;background:#0a84ff;color:#fff;font-size:16px;font-weight:600;cursor:pointer;flex-shrink:0;margin-bottom:env(safe-area-inset-bottom,0px)}
 #lov{display:none;position:fixed;inset:0;z-index:1000;background:rgba(18,18,20,.97);flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:24px}
 #lov.on{display:flex}
 .spin{width:42px;height:42px;border:3px solid rgba(255,255,255,.1);border-top-color:#0a84ff;border-radius:50%;animation:spin .7s linear infinite}
@@ -235,6 +255,14 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
       <button class="abtn abtn-n" onclick="showPlan()">New Route</button>
       <button class="abtn abtn-a" onclick="doRestart()">Again</button>
     </div>
+  </div>
+</div>
+<div id="overview-sheet">
+  <div id="overview-inner">
+    <div id="ov-hdr"><div><div id="ov-title">Route Overview</div><div id="ov-meta"></div></div><button id="ov-close" onclick="closeOverview()">&#10005;</button></div>
+    <div id="ov-map-el"></div>
+    <div id="ov-steps"></div>
+    <button id="ov-preview-btn" onclick="closeOverview();goPreview()">&#9654; Start Preview</button>
   </div>
 </div>
 <div id="lov"><div class="spin"></div><div id="lov-t">Loading</div><div id="lov-s">Please wait...</div></div>
@@ -998,6 +1026,78 @@ async function goPreview(){var fv=document.getElementById('inp-from').value.trim
 var planPanelCollapsed=false;
 function togglePlanPanel(){planPanelCollapsed=!planPanelCollapsed;var p=document.getElementById('route-panel');var h=document.getElementById('ptoggle');if(planPanelCollapsed){p.classList.add('mini');if(h)h.textContent='tap to show panel';}else{p.classList.remove('mini');if(h)h.textContent='tap handle to hide panel';if(rtLayer)setTimeout(function(){viewRouteOverview();},350);}}
 function viewRouteOverview(){if(!rtLayer){return;}var panelH=document.getElementById('route-panel').offsetHeight||240;map.fitBounds(rtLayer.getBounds(),{paddingTopLeft:[20,60],paddingBottomRight:[20,panelH+20]});}
+var ovMap=null;
+function getTurnArrow(mod,type){
+  if(mod==='right'||mod==='sharp right')return '\u21B1';
+  if(mod==='left'||mod==='sharp left')return '\u21B0';
+  if(mod==='slight right')return '\u2197';
+  if(mod==='slight left')return '\u2196';
+  if(mod==='uturn')return '\u21BA';
+  if(type==='roundabout'||type==='rotary')return '\u21BB';
+  if(type==='arrive')return '\uD83C\uDFC1';
+  return '\u2191';
+}
+function getTurnText(mod,type){
+  if(mod==='right'||mod==='sharp right')return 'Turn right';
+  if(mod==='left'||mod==='sharp left')return 'Turn left';
+  if(mod==='slight right')return 'Bear right';
+  if(mod==='slight left')return 'Bear left';
+  if(mod==='uturn')return 'U-turn';
+  if(type==='roundabout'||type==='rotary')return 'Roundabout';
+  if(type==='arrive')return 'Arrive at destination';
+  return 'Continue';
+}
+function openOverview(){
+  if(!routeCoords||routeCoords.length<2){alert('Calculate a route first.');return;}
+  document.getElementById('overview-sheet').classList.add('on');
+  setTimeout(function(){
+    if(!ovMap){
+      ovMap=L.map('ov-map-el',{zoomControl:true,attributionControl:false,preferCanvas:true});
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{subdomains:['a','b','c'],maxZoom:20}).addTo(ovMap);
+    }
+    ovMap.invalidateSize();
+    ovMap.eachLayer(function(l){if(l instanceof L.Polyline||l instanceof L.Marker)ovMap.removeLayer(l);});
+    var lc=routeCoords.map(function(c){return[c.lat,c.lng];});
+    var poly=L.polyline(lc,{color:'#0a84ff',weight:6,opacity:.95}).addTo(ovMap);
+    var mkA2=L.divIcon({className:'',html:'<div style="width:22px;height:22px;border-radius:50%;background:#30d158;border:2.5px solid #fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff">A</div>',iconSize:[22,22],iconAnchor:[11,11]});
+    var mkB2=L.divIcon({className:'',html:'<div style="width:22px;height:22px;border-radius:50%;background:#ff453a;border:2.5px solid #fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff">B</div>',iconSize:[22,22],iconAnchor:[11,11]});
+    L.marker([routeCoords[0].lat,routeCoords[0].lng],{icon:mkA2}).addTo(ovMap);
+    L.marker([routeCoords[routeCoords.length-1].lat,routeCoords[routeCoords.length-1].lng],{icon:mkB2}).addTo(ovMap);
+    routeSteps.forEach(function(s){
+      var m=s.maneuver||{};if(m.type==='depart'||m.type==='arrive'||!m.location)return;
+      var ar=getTurnArrow(m.modifier||'',m.type||'');
+      var ico=L.divIcon({className:'',html:'<div style="width:20px;height:20px;border-radius:5px;background:rgba(10,132,255,.92);color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.4)">'+ar+'</div>',iconSize:[20,20],iconAnchor:[10,10]});
+      L.marker([m.location[1],m.location[0]],{icon:ico}).addTo(ovMap);
+    });
+    ovMap.fitBounds(poly.getBounds(),{padding:[20,20]});
+  },120);
+  var fromN=(ptA&&ptA.name?ptA.name.split(',')[0]:'Start');
+  var toN=(ptB&&ptB.name?ptB.name.split(',')[0]:'Destination');
+  document.getElementById('ov-title').textContent=fromN+' \u2192 '+toN;
+  var dist=document.getElementById('r-dist').textContent;
+  var time=document.getElementById('r-time').textContent;
+  var turns=routeSteps.filter(function(s){return s.maneuver&&s.maneuver.type!=='depart';}).length;
+  document.getElementById('ov-meta').textContent=dist+' \u2022 '+time+' \u2022 '+turns+' turns';
+  var html='<div style="padding:6px 20px 4px;font-size:10px;font-weight:600;color:rgba(255,255,255,.3);letter-spacing:.8px;text-transform:uppercase">Turn by turn</div>';
+  var cum=0;
+  routeSteps.forEach(function(s,i){
+    var m=s.maneuver||{};if(m.type==='depart')return;
+    var mod=m.modifier||'',type=m.type||'';
+    var ar=getTurnArrow(mod,type);
+    var action=getTurnText(mod,type);
+    var nm=s.name||(s.ref||'');if(nm.length>28)nm=nm.slice(0,26)+'..';
+    cum+=s.distance||0;
+    var ds=cum>1000?(cum/1000).toFixed(1)+' km':Math.round(cum)+'m';
+    var isArrive=type==='arrive';
+    html+='<div class="ov-step">'
+      +'<div class="ov-arr'+(isArrive?' fin':'')+'">'+ar+'</div>'
+      +'<div class="ov-txt"><div class="ov-action">'+action+(nm?' onto '+nm:'')+'</div>'
+      +'<div class="ov-dist">'+ds+' from start</div></div>'
+      +'<div class="ov-num">'+(i+1)+'</div></div>';
+  });
+  document.getElementById('ov-steps').innerHTML=html;
+}
+function closeOverview(){document.getElementById('overview-sheet').classList.remove('on');}
 function loading(on,t,s){document.getElementById('lov').classList.toggle('on',on);if(t)document.getElementById('lov-t').textContent=t;if(s)document.getElementById('lov-s').textContent=s;}
 
 document.getElementById('inp-from').addEventListener('keydown',function(e){if(e.key==='Enter'){hideAC();geocodeInput('inp-from',function(){document.getElementById('inp-to').focus();});}});
